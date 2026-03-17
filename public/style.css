@@ -293,11 +293,11 @@ body {
     background-image: url('/assets/world_list/b_server_all/b_server_all_frame_0.png');
 }
 
-#btn-all:hover {
+#btn-all:hover:not(:disabled) {
     background-image: url('/assets/world_list/b_server_all/b_server_all_frame_1.png');
 }
 
-#btn-all:active {
+#btn-all:active:not(:disabled) {
     background-image: url('/assets/world_list/b_server_all/b_server_all_frame_2.png');
 }
 
@@ -314,11 +314,11 @@ body {
     background-image: url('/assets/world_list/b_server_friend/b_server_friend_frame_0.png');
 }
 
-#btn-friend:hover {
+#btn-friend:hover:not(:disabled) {
     background-image: url('/assets/world_list/b_server_friend/b_server_friend_frame_1.png');
 }
 
-#btn-friend:active {
+#btn-friend:active:not(:disabled) {
     background-image: url('/assets/world_list/b_server_friend/b_server_friend_frame_2.png');
 }
 
@@ -335,11 +335,11 @@ body {
     background-image: url('/assets/world_list/b_server_exitgame/b_server_exitgame_frame_0.png');
 }
 
-#btn-exit:hover {
+#btn-exit:hover:not(:disabled) {
     background-image: url('/assets/world_list/b_server_exitgame/b_server_exitgame_frame_1.png');
 }
 
-#btn-exit:active {
+#btn-exit:active:not(:disabled) {
     background-image: url('/assets/world_list/b_server_exitgame/b_server_exitgame_frame_2.png');
 }
 
@@ -356,12 +356,16 @@ body {
     background-image: url('/assets/world_list/b_server_buddygame/b_server_buddygame_frame_0.png');
 }
 
-#btn-buddy:hover {
+#btn-buddy:hover:not(:disabled) {
     background-image: url('/assets/world_list/b_server_buddygame/b_server_buddygame_frame_1.png');
 }
 
-#btn-buddy:active {
+#btn-buddy:active:not(:disabled) {
     background-image: url('/assets/world_list/b_server_buddygame/b_server_buddygame_frame_2.png');
+}
+
+#btn-buddy:disabled {
+    background-image: url('/assets/world_list/b_server_buddygame/b_server_buddygame_frame_3.png');
 }
 
 /* 107x45 */
@@ -373,12 +377,16 @@ body {
     background-image: url('/assets/world_list/b_server_choiceserver/b_server_choiceserver_frame_0.png');
 }
 
-#btn-server:hover {
+#btn-server:hover:not(:disabled) {
     background-image: url('/assets/world_list/b_server_choiceserver/b_server_choiceserver_frame_1.png');
 }
 
-#btn-server:active {
+#btn-server:active:not(:disabled) {
     background-image: url('/assets/world_list/b_server_choiceserver/b_server_choiceserver_frame_2.png');
+}
+
+#btn-server:disabled {
+    background-image: url('/assets/world_list/b_server_choiceserver/b_server_choiceserver_frame_3.png');
 }
 
 /* Joining Animation Overlay */
@@ -461,25 +469,31 @@ body {
 
 .name-guild-group {
     position: absolute;
-    top: 19px;
+    top: 3px;
     left: 30px;
 }
 
 #lobby-guild {
-    display: block;
+    position: absolute;
+    top: 2px;
+    left: 0;
     color: #f8a078;
     font-size: 11px;
     font-weight: bold;
-    margin-bottom: 2px;
     white-space: nowrap;
+    height: 14px;
+    line-height: 14px;
 }
 
 #lobby-nickname {
-    display: block;
+    position: absolute;
+    top: 16px; /* Fixed vertical offset, never move */
+    left: 0;
     color: #fff;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: bold;
     white-space: nowrap;
+    line-height: 14px;
 }
 
 .rank-gp-group {
@@ -559,8 +573,8 @@ body {
     width: 211px;
     height: 267px;
     background-image: url('/assets/lobby/buddy_back/buddy_back_frame_0.png');
-    background-size: 211px 267px;
-    z-index: 2000; /* Increased to be over other elements */
+    background-size: 100% 100%;
+    z-index: 2000;
 }
 
 #buddy-list-panel::before {
@@ -569,20 +583,108 @@ body {
     top: 0;
     left: 0;
     width: 100%;
-    height: 40px;
-    cursor: move;
-    z-index: 2001; /* Handle must be even higher */
+    height: 32px;
+    cursor: inherit;
+    z-index: 2001;
 }
 
-.buddy-counts {
+.buddy-header {
     position: absolute;
-    top: 15px;
-    left: 65px;
-    color: #00ffff;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 32px;
+    pointer-events: none;
+    z-index: 2002;
+}
+
+.buddy-icon {
+    position: absolute;
+    top: 6px;
+    left: 5px;
+    width: 20px;
+    height: 20px;
+    background-image: url('/assets/buddy/buddy_icon.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    pointer-events: none;
+}
+
+.buddy-status-box {
+    position: absolute;
+    top: 10px;
+    left: 35px;
     font-family: Arial, sans-serif;
     font-size: 11px;
     font-weight: bold;
+    color: #ffff00;
+    pointer-events: none;
+    display: flex;
+    gap: 2px;
 }
+
+#buddy-online-count {
+    position: absolute;
+    top: 1px;
+    left: 13px;
+    color: #ffff00;
+}
+
+#buddy-total-count {
+    position: absolute;
+    top: 1px;
+    left: 45px;
+    color: #ffff00;
+}
+
+.buddy-mini-btn {
+    position: absolute;
+    pointer-events: auto;
+    width: 38px;
+    height: 20px;
+    border: none;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-size: contain;
+    cursor: inherit;
+    outline: none;
+}
+
+#btn-buddy-plus { 
+    top: 6px;
+    right: 70px;
+    background-image: url('/assets/lobby/b_buddy_plus/b_buddy_plus_frame_0.png'); 
+}
+#btn-buddy-plus:hover { background-image: url('/assets/lobby/b_buddy_plus/b_buddy_plus_frame_1.png'); }
+#btn-buddy-plus:active { background-image: url('/assets/lobby/b_buddy_plus/b_buddy_plus_frame_2.png'); }
+
+#btn-buddy-del { 
+    top: 6px;
+    right: 32px;
+    background-image: url('/assets/lobby/b_buddy_del/b_buddy_del_frame_0.png'); 
+}
+#btn-buddy-del:hover { background-image: url('/assets/lobby/b_buddy_del/b_buddy_del_frame_1.png'); }
+#btn-buddy-del:active { background-image: url('/assets/lobby/b_buddy_del/b_buddy_del_frame_2.png'); }
+
+#btn-buddy-exit {
+    top: 6px;
+    right: 8px;
+    width: 22px;
+    height: 22px;
+    background-image: url('/assets/lobby/b_buddy_exit/b_buddy_exit_frame_0.png');
+}
+#btn-buddy-exit:hover { background-image: url('/assets/lobby/b_buddy_exit/b_buddy_exit_frame_1.png'); }
+#btn-buddy-exit:active { background-image: url('/assets/lobby/b_buddy_exit/b_buddy_exit_frame_2.png'); }
+
+.buddy-list-content {
+    position: absolute;
+    top: 35px;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    overflow-y: auto;
+}
+
 
 /* Middle Navigation */
 .nav-btn,

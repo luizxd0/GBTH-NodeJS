@@ -14,6 +14,9 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(worlds => {
             currentWorlds = worlds;
             renderWorlds(currentWorlds);
+            
+            // Initial button state
+            if (btnServer) btnServer.disabled = true;
         })
         .catch(error => console.error('Error fetching worlds:', error));
 
@@ -66,6 +69,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 items.forEach(item => item.classList.remove('selected'));
                 li.classList.add('selected');
                 selectedServer = world;
+                
+                // Enable choice button when selected
+                if (btnServer) btnServer.disabled = false;
             });
 
             li.addEventListener('dblclick', () => {
@@ -126,6 +132,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const btnBuddyExit = document.getElementById('btn-buddy-exit');
+    if (btnBuddyExit) {
+        btnBuddyExit.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.getElementById('buddy-list-panel').classList.add('hidden');
+        });
+    }
+
     function toggleBuddyPanel() {
         const panel = document.getElementById('buddy-list-panel');
         if (panel) {
@@ -159,12 +173,8 @@ document.addEventListener('DOMContentLoaded', () => {
         el.onmousedown = dragMouseDown;
 
         function dragMouseDown(e) {
-            // Only drag if clicking in the top area (Y < 40 relative to element)
-            const rect = el.getBoundingClientRect();
-            const scale = window.currentScale || 1;
-            const relativeY = (e.clientY - rect.top) / scale;
-            
-            if (relativeY > 40) return; 
+            // Don't drag if clicking on a button
+            if (e.target.tagName.toLowerCase() === 'button') return;
 
             e = e || window.event;
             pos3 = e.clientX;

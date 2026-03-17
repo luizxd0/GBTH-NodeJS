@@ -21,10 +21,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (guildSpan) {
             if (userData.guild && userData.guild.trim() !== '') {
                 guildSpan.textContent = userData.guild + ' [ 1/ 1]';
-                guildSpan.style.display = 'inline-block';
             } else {
                 guildSpan.textContent = '';
-                guildSpan.style.display = 'none';
             }
         }
         
@@ -176,6 +174,13 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('focus', updateCursor);
     }
 
+    const btnBuddyExit = document.getElementById('btn-buddy-exit');
+    if (btnBuddyExit) {
+        btnBuddyExit.addEventListener('click', () => {
+             document.getElementById('buddy-list-panel').classList.add('hidden');
+        });
+    }
+
     // Make Buddy List Draggable
     const buddyPanel = document.getElementById('buddy-list-panel');
     if (buddyPanel) {
@@ -188,12 +193,8 @@ document.addEventListener('DOMContentLoaded', () => {
         el.onmousedown = dragMouseDown;
 
         function dragMouseDown(e) {
-            // Only drag if clicking in the top area (Y < 40 relative to element)
-            const rect = el.getBoundingClientRect();
-            const scale = window.currentScale || 1;
-            const relativeY = (e.clientY - rect.top) / scale;
-            
-            if (relativeY > 40) return; 
+            // Don't drag if clicking on a button
+            if (e.target.tagName.toLowerCase() === 'button') return;
 
             e = e || window.event;
             pos3 = e.clientX;

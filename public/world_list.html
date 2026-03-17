@@ -40,8 +40,18 @@
             </div>
             
             <div id="buddy-list-panel" class="lobby-panel hidden">
-                <div class="buddy-counts"></div>
-                <!-- Content will follow -->
+                <div class="buddy-header">
+                    <div class="buddy-icon"></div>
+                    <div class="buddy-status-box">
+                        <span id="buddy-online-count">0</span><span id="buddy-total-count">0</span>
+                    </div>
+                    <button id="btn-buddy-plus" class="buddy-mini-btn"></button>
+                    <button id="btn-buddy-del" class="buddy-mini-btn"></button>
+                    <button id="btn-buddy-exit" class="buddy-mini-btn"></button>
+                </div>
+                <div class="buddy-list-content">
+                    <!-- Buddy list items will be injected here -->
+                </div>
             </div>
 
             <div class="external-controls">
