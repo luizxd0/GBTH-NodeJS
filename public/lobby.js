@@ -117,7 +117,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (nickname === 'Perry') { // Example simulation for "Already Friends"
                 showBuddyAlert(`'${nickname}' is already your friend.`);
             } else if (nickname !== '') {
-                // Future logic for adding buddy goes here (API call, etc.)
+                // Simulation for successful buddy request
+                showBuddyAlert(`You trying to add ${nickname} to the buddy list, wait for an answer.`);
                 document.getElementById('add-buddy-popup').classList.add('hidden');
             }
         });
