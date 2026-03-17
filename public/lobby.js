@@ -5,12 +5,34 @@ document.addEventListener('DOMContentLoaded', () => {
     
     console.log('Lobby screen loaded');
     
+    // Populate User Info (Simulated for now, would come from session/API)
+    const nicknameSpan = document.getElementById('lobby-nickname');
+    const guildSpan = document.getElementById('lobby-guild');
+    const rankIcon = document.getElementById('lobby-rank-icon');
+    const rankingValue = document.getElementById('lobby-ranking-value');
+    
+    if (nicknameSpan) nicknameSpan.textContent = 'Luluzera';
+    if (guildSpan) guildSpan.textContent = 'LaFirma[ 1/ 4]';
+    if (rankingValue) rankingValue.textContent = '1';
+    if (rankIcon) rankIcon.src = '/assets/rank1/rank1_frame_21.png'; // Double Golden Axe
+
     // Ensure labels are correct
     setInterval(() => {
         const goldSpan = document.getElementById('lobby-gold');
+        const cashSpan = document.getElementById('lobby-cash');
+        
         if (goldSpan) {
             const currentVal = goldSpan.textContent.replace('GOLD : ', '').trim();
-            goldSpan.textContent = 'GOLD : ' + currentVal;
+            if (!goldSpan.textContent.startsWith('GOLD : ')) {
+                goldSpan.textContent = 'GOLD : ' + currentVal;
+            }
+        }
+        
+        if (cashSpan) {
+            const currentVal = cashSpan.textContent.replace('CASH : ', '').trim();
+            if (!cashSpan.textContent.startsWith('CASH : ')) {
+                cashSpan.textContent = 'CASH : ' + currentVal;
+            }
         }
     }, 500);
 

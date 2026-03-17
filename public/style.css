@@ -405,71 +405,110 @@ body {
 }
 
 /* Top Sections */
+/* Unified User Info Panel - Refined to match image frame */
 #user-info-panel {
-    top: 25px;
-    left: 22px;
-    width: 262px;
-    height: 45px;
+    position: absolute;
+    top: 25px; /* Slightly lower */
+    left: 222px; /* Slightly more to the left */
+    width: 350px;
+    height: 58px;
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+    font-family: Arial, sans-serif;
+    color: #fff;
+    cursor: default;
+    pointer-events: none;
 }
 
-.user-stats {
-    position: relative;
-    color: #fff;
-    font-family: Arial, sans-serif;
-    font-size: 11px;
+.user-info-top {
+    display: flex;
+    align-items: center;
+    height: 34px;
+    padding-left: 10px;
+}
+
+#lobby-rank-icon {
+    width: 15px;
+    height: 25px;
+    margin-right: 12px;
+    image-rendering: pixelated;
+    object-fit: contain;
+}
+
+.name-guild-group {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex-grow: 1;
 }
 
 #lobby-guild {
-    position: absolute;
-    top: 20px;
-    left: 20px;
     color: #f8a078;
+    font-size: 11px;
+    font-weight: bold;
+    margin-bottom: 2px;
+    white-space: nowrap;
+}
+
+#lobby-nickname {
+    color: #fff;
+    font-size: 12px;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.rank-gp-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+    min-width: 90px;
+    padding-right: 15px;
+}
+
+.ranking-row {
+    font-size: 11px;
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.ranking-row .label {
+    margin-right: 10px;
+}
+
+#lobby-ranking-value {
     font-weight: bold;
 }
 
-#lobby-rank-text {
-    position: absolute;
-    top: 19px;
-    right: 80px;
-    color: #fff;
-    font-size: 11px;
+.gp-row {
+    margin-top: 1px;
 }
 
 #lobby-gp {
-    position: absolute;
-    top: 33px;
-    right: 50px;
-    color: #fff;
     font-size: 11px;
+    color: #fff;
 }
 
-#gold-panel {
-    position: absolute;
-    top: 25px;
-    left: 560px;
-    width: 200px;
-    height: 45px;
-    z-index: 25;
+.user-info-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 18px;
+    padding: 0 25px;
 }
 
 #lobby-gold {
-    position: absolute;
-    top: 5px;
-    left: 15px;
     color: #00ffff;
     font-size: 11px;
     font-weight: bold;
-    white-space: nowrap;
 }
 
 #lobby-cash {
-    position: absolute;
-    top: 20px;
-    left: 15px;
     color: #ffff00;
     font-size: 11px;
     font-weight: bold;
-    white-space: nowrap;
 }
 
 #rooms-container {

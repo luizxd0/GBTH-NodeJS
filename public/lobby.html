@@ -16,17 +16,28 @@
             <!-- Scenery and frames are baked into gamelist_back_frame_0 -->
 
             <!-- Top Section Panels -->
-            <div id="user-info-panel" class="lobby-panel">
-                <div class="user-stats">
-                    <span id="lobby-guild">LaFirma[ 1/ 4]</span>
-                    <span id="lobby-rank-text">Ranking 1</span>
-                    <span id="lobby-gp">4781 GP</span>
+            <!-- Unified User Info Panel -->
+            <div id="user-info-panel">
+                <div class="user-info-top">
+                    <img id="lobby-rank-icon" src="/assets/rank1/rank1_frame_21.png" alt="Rank">
+                    <div class="name-guild-group">
+                        <span id="lobby-guild">LaFirma[ 1/ 4]</span>
+                        <span id="lobby-nickname">Luluzera</span>
+                    </div>
+                    <div class="rank-gp-group">
+                        <div class="ranking-row">
+                            <span class="label">Ranking</span>
+                            <span id="lobby-ranking-value">1</span>
+                        </div>
+                        <div class="gp-row">
+                            <span id="lobby-gp">4781 GP</span>
+                        </div>
+                    </div>
                 </div>
-            </div>
-
-            <div id="gold-panel" class="lobby-panel">
-                <span id="lobby-gold">GOLD : 2660281</span>
-                <span id="lobby-cash">CASH : 14400</span>
+                <div class="user-info-bottom">
+                    <span id="lobby-gold">GOLD : 2660281</span>
+                    <span id="lobby-cash">CASH : 14400</span>
+                </div>
             </div>
 
             <div id="buddy-list-panel" class="lobby-panel">
