@@ -397,7 +397,7 @@ body {
 }
 
 #joining-overlay.hidden {
-    display: none;
+    display: none !important;
 }
 
 #wait-message {
@@ -431,13 +431,9 @@ body {
 #user-info-panel {
     position: absolute;
     top: 2px;
-    /* Slightly lower */
     left: 156px;
-    /* Slightly more to the left */
     width: 350px;
     height: 58px;
-    display: flex;
-    flex-direction: column;
     z-index: 1000;
     font-family: Arial, sans-serif;
     color: #fff;
@@ -446,28 +442,31 @@ body {
 }
 
 .user-info-top {
-    display: flex;
-    align-items: center;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
     height: 34px;
-    padding-left: 10px;
 }
 
 #lobby-rank-icon {
+    position: absolute;
+    top: 7px;
+    left: 10px;
     width: 15px;
     height: 25px;
-    margin-right: 12px;
     image-rendering: pixelated;
     object-fit: contain;
 }
 
 .name-guild-group {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    flex-grow: 1;
+    position: absolute;
+    top: 19px;
+    left: 30px;
 }
 
 #lobby-guild {
+    display: block;
     color: #f8a078;
     font-size: 11px;
     font-weight: bold;
@@ -476,6 +475,7 @@ body {
 }
 
 #lobby-nickname {
+    display: block;
     color: #fff;
     font-size: 12px;
     font-weight: bold;
@@ -483,19 +483,16 @@ body {
 }
 
 .rank-gp-group {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
+    position: absolute;
+    top: 4px;
+    right: 91px;
     text-align: right;
-    min-width: 90px;
-    padding-right: 15px;
 }
 
 .ranking-row {
     font-size: 11px;
     display: flex;
-    justify-content: space-between;
-    width: 100%;
+    justify-content: flex-end;
 }
 
 .ranking-row .label {
@@ -516,24 +513,32 @@ body {
 }
 
 .user-info-bottom {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    position: absolute;
+    top: 36px;
+    left: 0;
+    width: 100%;
     height: 18px;
-    padding: 0 25px;
 }
 
 #lobby-gold {
+    position: absolute;
+    left: 12px;
+    top: 0;
     color: #00ffff;
     font-size: 11px;
     font-weight: bold;
 }
 
 #lobby-cash {
+    position: absolute;
+    right: 92px;
+    top: 0;
     color: #ffff00;
     font-size: 11px;
     font-weight: bold;
 }
+
+/* Gold and cash moved to user-info-bottom with absolute positioning */
 
 #rooms-container {
     position: absolute;
@@ -556,6 +561,17 @@ body {
     background-image: url('/assets/lobby/buddy_back/buddy_back_frame_0.png');
     background-size: 211px 267px;
     z-index: 10;
+}
+
+#buddy-list-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 40px;
+    cursor: move;
+    z-index: 11;
 }
 
 .buddy-counts {
@@ -596,36 +612,54 @@ body {
     left: 38px;
     background-image: url('/assets/lobby/b_gamelist_viewall/b_gamelist_viewall_frame_0.png');
 }
+#btn-view-all:hover:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_viewall/b_gamelist_viewall_frame_1.png'); }
+#btn-view-all:active:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_viewall/b_gamelist_viewall_frame_2.png'); }
+#btn-view-all:disabled { background-image: url('/assets/lobby/b_gamelist_viewall/b_gamelist_viewall_frame_3.png'); }
 
 #btn-waiting {
     top: 245px;
-    left: 132px;
+    left: 133px;
     background-image: url('/assets/lobby/b_gamelist_wait/b_gamelist_wait_frame_0.png');
 }
-
-#btn-friends {
-    top: 246px;
-    left: 366px;
-    background-image: url('/assets/lobby/b_gamelist_friend/b_gamelist_friend_frame_0.png');
-}
-
-#btn-goto {
-    top: 246px;
-    left: 464px;
-    background-image: url('/assets/lobby/b_gamelist_directgo/b_gamelist_directgo_frame_0.png');
-}
+#btn-waiting:hover:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_wait/b_gamelist_wait_frame_1.png'); }
+#btn-waiting:active:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_wait/b_gamelist_wait_frame_2.png'); }
+#btn-waiting:disabled { background-image: url('/assets/lobby/b_gamelist_wait/b_gamelist_wait_frame_3.png'); }
 
 #btn-nav-prev {
-    top: 246px;
-    left: 239px;
+    top: 245px;
+    left: 240px;
     background-image: url('/assets/lobby/b_gamelist_prev/b_gamelist_prev_frame_0.png');
 }
+#btn-nav-prev:hover:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_prev/b_gamelist_prev_frame_1.png'); }
+#btn-nav-prev:active:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_prev/b_gamelist_prev_frame_2.png'); }
+#btn-nav-prev:disabled { background-image: url('/assets/lobby/b_gamelist_prev/b_gamelist_prev_frame_3.png'); }
 
 #btn-nav-next {
-    top: 246px;
-    left: 291px;
+    top: 245px;
+    left: 292px;
     background-image: url('/assets/lobby/b_gamelist_next/b_gamelist_next_frame_0.png');
 }
+#btn-nav-next:hover:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_next/b_gamelist_next_frame_1.png'); }
+#btn-nav-next:active:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_next/b_gamelist_next_frame_2.png'); }
+#btn-nav-next:disabled { background-image: url('/assets/lobby/b_gamelist_next/b_gamelist_next_frame_3.png'); }
+
+#btn-friends {
+    top: 245px;
+    left: 370px;
+    background-image: url('/assets/lobby/b_gamelist_friend/b_gamelist_friend_frame_0.png');
+}
+#btn-friends:hover:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_friend/b_gamelist_friend_frame_1.png'); }
+#btn-friends:active:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_friend/b_gamelist_friend_frame_2.png'); }
+#btn-friends:disabled { background-image: url('/assets/lobby/b_gamelist_friend/b_gamelist_friend_frame_3.png'); }
+
+#btn-goto {
+    top: 245px;
+    left: 460px;
+    background-image: url('/assets/lobby/b_gamelist_directgo/b_gamelist_directgo_frame_0.png');
+}
+#btn-goto:hover:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_directgo/b_gamelist_directgo_frame_1.png'); }
+#btn-goto:active:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_directgo/b_gamelist_directgo_frame_2.png'); }
+#btn-goto:disabled { background-image: url('/assets/lobby/b_gamelist_directgo/b_gamelist_directgo_frame_3.png'); }
 
 /* Bottom Frames */
 #gamelist-chat {
@@ -699,36 +733,54 @@ body {
     left: 40px;
     background-image: url('/assets/lobby/b_gamelist_exit/b_gamelist_exit_frame_0.png');
 }
+#btn-lobby-exit:hover:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_exit/b_gamelist_exit_frame_1.png'); }
+#btn-lobby-exit:active:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_exit/b_gamelist_exit_frame_2.png'); }
+#btn-lobby-exit:disabled { background-image: url('/assets/lobby/b_gamelist_exit/b_gamelist_exit_frame_3.png'); }
 
 #btn-lobby-buddy {
     top: 551px;
     left: 163px;
     background-image: url('/assets/lobby/b_gamelist_buddy/b_gamelist_buddy_frame_0.png');
 }
+#btn-lobby-buddy:hover:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_buddy/b_gamelist_buddy_frame_1.png'); }
+#btn-lobby-buddy:active:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_buddy/b_gamelist_buddy_frame_2.png'); }
+#btn-lobby-buddy:disabled { background-image: url('/assets/lobby/b_gamelist_buddy/b_gamelist_buddy_frame_3.png'); }
 
 #btn-lobby-ranking {
     top: 551px;
     left: 286px;
     background-image: url('/assets/lobby/b_gamelist_ranking/b_gamelist_ranking_frame_0.png');
 }
+#btn-lobby-ranking:hover:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_ranking/b_gamelist_ranking_frame_1.png'); }
+#btn-lobby-ranking:active:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_ranking/b_gamelist_ranking_frame_2.png'); }
+#btn-lobby-ranking:disabled { background-image: url('/assets/lobby/b_gamelist_ranking/b_gamelist_ranking_frame_3.png'); }
 
 #btn-lobby-avatar {
     top: 551px;
     left: 409px;
     background-image: url('/assets/lobby/b_gamelist_avatar/b_gamelist_avatar_frame_0.png');
 }
+#btn-lobby-avatar:hover:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_avatar/b_gamelist_avatar_frame_1.png'); }
+#btn-lobby-avatar:active:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_avatar/b_gamelist_avatar_frame_2.png'); }
+#btn-lobby-avatar:disabled { background-image: url('/assets/lobby/b_gamelist_avatar/b_gamelist_avatar_frame_3.png'); }
 
 #btn-lobby-create {
     top: 551px;
     left: 532px;
     background-image: url('/assets/lobby/b_gamelist_create/b_gamelist_create_frame_0.png');
 }
+#btn-lobby-create:hover:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_create/b_gamelist_create_frame_1.png'); }
+#btn-lobby-create:active:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_create/b_gamelist_create_frame_2.png'); }
+#btn-lobby-create:disabled { background-image: url('/assets/lobby/b_gamelist_create/b_gamelist_create_frame_3.png'); }
 
 #btn-lobby-join {
     top: 551px;
     left: 655px;
     background-image: url('/assets/lobby/b_gamelist_join/b_gamelist_join_frame_0.png');
 }
+#btn-lobby-join:hover:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_join/b_gamelist_join_frame_1.png'); }
+#btn-lobby-join:active:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_join/b_gamelist_join_frame_2.png'); }
+#btn-lobby-join:disabled { background-image: url('/assets/lobby/b_gamelist_join/b_gamelist_join_frame_3.png'); }
 
 /* Hover States for Action Buttons */
 #btn-lobby-exit:hover {
@@ -829,77 +881,7 @@ body {
     display: none !important;
 }
 
-/* Screen Transition Animation (Eye-Closing / Shutter) */
-#screen-transition {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    z-index: 20000;
-    /* Above joining overlay and everything else */
-    pointer-events: none;
-    overflow: hidden;
-    display: none;
-}
-
-#screen-transition.active {
-    display: block;
-}
-
-.transition-bar {
-    position: absolute;
-    width: 250vmax; /* Larger to cover any screen when rotated */
-    height: 250vmax;
-    background-color: #000;
-    transition: transform 0.6s cubic-bezier(0.65, 0.05, 0.36, 1);
-}
-
-#transition-top {
-    top: 0;
-    right: 0;
-    transform-origin: top right;
-}
-
-#transition-bottom {
-    bottom: 0;
-    left: 0;
-    transform-origin: bottom left;
-}
-
-/* BASE STATES (No .run) */
-#screen-transition.closing #transition-top {
-    transform: translate(100%, -100%) rotate(-45deg) scale(0.1);
-}
-
-#screen-transition.closing #transition-bottom {
-    transform: translate(-100%, 100%) rotate(-45deg) scale(0.1);
-}
-
-#screen-transition.opening #transition-top {
-    transform: translate(0, 0) rotate(-45deg) scale(1);
-}
-
-#screen-transition.opening #transition-bottom {
-    transform: translate(0, 0) rotate(-45deg) scale(1);
-}
-
-/* ANIMATED STATES (With .run) */
-#screen-transition.closing.run #transition-top {
-    transform: translate(-30%, 30%) rotate(-45deg) scale(1.2);
-}
-
-#screen-transition.closing.run #transition-bottom {
-    transform: translate(30%, -30%) rotate(-45deg) scale(1.2);
-}
-
-#screen-transition.opening.run #transition-top {
-    transform: translate(100%, -100%) rotate(-45deg) scale(0.1);
-}
-
-#screen-transition.opening.run #transition-bottom {
-    transform: translate(-100%, 100%) rotate(-45deg) scale(0.1);
-}
+/* Screen Transition removed as requested */
 
 /* DragonBound-Style Auth UI Styling */
 #auth-overlay {

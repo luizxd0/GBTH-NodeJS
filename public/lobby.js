@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Play opening transition on load
-    playTransition('opening');
+    // Transition removed for instant load
     const socket = io();
     
     console.log('Lobby screen loaded');
@@ -74,13 +73,44 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.addEventListener('click', () => {
                 console.log(`Button clicked: ${id}`);
                 if (id === 'btn-lobby-exit') {
-                    playTransition('closing', () => {
-                        window.location.href = 'world_list.html';
-                    });
+                    window.location.href = 'world_list.html';
+                }
+                if (id === 'btn-lobby-buddy') {
+                    toggleBuddyPanel();
                 }
             });
         }
     });
+
+    function toggleBuddyPanel() {
+        const panel = document.getElementById('buddy-list-panel');
+        if (panel) {
+            const isHidden = panel.classList.contains('hidden');
+            if (isHidden) {
+                // Reset to CSS default position before showing
+                panel.style.top = '';
+                panel.style.left = '';
+            }
+            panel.classList.toggle('hidden');
+        }
+    }
+
+    // F10 Toggle for Buddy List
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'F10') {
+            e.preventDefault(); // Prevent browser menu
+            toggleBuddyPanel();
+        }
+    });
+
+    // Initial Button States
+    const btnRanking = document.getElementById('btn-lobby-ranking');
+    const btnJoin = document.getElementById('btn-lobby-join');
+    const btnPrev = document.getElementById('btn-nav-prev');
+
+    if (btnRanking) btnRanking.disabled = true;
+    if (btnJoin) btnJoin.disabled = true; // Enabled when rooms are loaded
+    if (btnPrev) btnPrev.disabled = true; // Page 1
 
     // Error Popup functionality
     const errorOverlay = document.getElementById('error-overlay');
@@ -101,32 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function playTransition(type, callback) {
-        const transition = document.getElementById('screen-transition');
-        if (!transition) {
-            if (callback) callback();
-            return;
-        }
-
-        transition.classList.remove('opening', 'closing', 'run');
-        transition.classList.add('active', type);
-        
-        // Force reflow
-        transition.offsetHeight;
-
-        if (type === 'opening') {
-            transition.classList.add('run');
-        } else {
-            transition.classList.add('run');
-        }
-
-        setTimeout(() => {
-            if (type === 'opening') {
-                transition.classList.remove('active', 'opening', 'run');
-            }
-            if (callback) callback();
-        }, 700);
-    }
+    // playTransition removed
 
     // Chat Cursor Positioning Logic
     const chatInput = document.getElementById('chat-input');
@@ -169,5 +174,54 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Ensure cursor is always updated even if window focus changes
         window.addEventListener('focus', updateCursor);
+    }
+
+    // Make Buddy List Draggable
+    const buddyPanel = document.getElementById('buddy-list-panel');
+    if (buddyPanel) {
+        makeDraggable(buddyPanel);
+    }
+
+    function makeDraggable(el) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        
+        el.onmousedown = dragMouseDown;
+
+        function dragMouseDown(e) {
+            // Only drag if clicking in the top area (Y < 40 relative to element)
+            const rect = el.getBoundingClientRect();
+            const scale = window.currentScale || 1;
+            const relativeY = (e.clientY - rect.top) / scale;
+            
+            if (relativeY > 40) return; 
+
+            e = e || window.event;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+        }
+
+        function elementDrag(e) {
+            e = e || window.event;
+            e.preventDefault();
+            
+            const scale = window.currentScale || 1;
+            
+            // calculate the new cursor position:
+            pos1 = (pos3 - e.clientX) / scale;
+            pos2 = (pos4 - e.clientY) / scale;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            
+            // set the element's new position:
+            el.style.top = (el.offsetTop - pos2) + "px";
+            el.style.left = (el.offsetLeft - pos1) + "px";
+        }
+
+        function closeDragElement() {
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
     }
 });

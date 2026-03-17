@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Play opening transition on load
-    playTransition('opening');
+    // Transition removed
     const serverListElement = document.getElementById('server-list');
     const btnServer = document.getElementById('btn-server');
     const btnExit = document.getElementById('btn-exit');
@@ -83,9 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectedServer) {
             showJoiningAnimation(() => {
                 socket.emit('joinWorld');
-                playTransition('closing', () => {
-                    window.location.href = 'lobby.html';
-                });
+                window.location.href = 'lobby.html';
             });
         } else {
             window.showError("Server Access Error", "Please select a server first to join.");
@@ -117,10 +114,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnExit) {
         btnExit.addEventListener('click', () => {
-             playTransition('closing', () => {
-                 sessionStorage.clear();
-                 window.location.href = 'index.html';
-             });
+             sessionStorage.clear();
+             window.location.href = 'index.html';
         });
     }
 
@@ -203,34 +198,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function playTransition(type, callback) {
-        const transition = document.getElementById('screen-transition');
-        if (!transition) {
-            if (callback) callback();
-            return;
-        }
-
-        transition.classList.remove('opening', 'closing', 'run');
-        transition.classList.add('active', type);
-        
-        // Force reflow
-        transition.offsetHeight;
-
-        if (type === 'opening') {
-            // Bars are at translate(0,0) by default in opening class
-            // Now start moving them out
-            transition.classList.add('run');
-        } else {
-            // type === 'closing'
-            // Bars start OUT by default, now move them IN
-            transition.classList.add('run');
-        }
-
-        setTimeout(() => {
-            if (type === 'opening') {
-                transition.classList.remove('active', 'opening', 'run');
-            }
-            if (callback) callback();
-        }, 700); 
-    }
+    // playTransition removed
 });

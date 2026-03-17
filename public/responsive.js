@@ -20,8 +20,9 @@
         const scaleY = viewportHeight / TARGET_HEIGHT;
 
         // Use the smaller ratio to ensure the entire container fits (fit-to-screen)
-        const scale = Math.min(scaleX, scaleY);
-
+        // Multiply by 0.95 to reduce overall size slightly as requested
+        const scale = Math.min(scaleX, scaleY) * 0.95;
+        window.currentScale = scale;
         // Apply scale transition/transform
         container.style.transform = `scale(${scale})`;
         container.style.transformOrigin = 'center center';
