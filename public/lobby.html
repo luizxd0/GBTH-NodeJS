@@ -60,7 +60,10 @@
 
             <!-- Main Frames -->
             <div id="gamelist-chat" class="lobby-frame">
-                <input type="text" id="chat-input" maxlength="100">
+                <input type="text" id="chat-input" maxlength="100" autocomplete="off">
+                <div id="chat-cursor"></div>
+                <!-- Hidden span to measure text width for cursor positioning -->
+                <span id="chat-input-ghost" style="visibility: hidden; white-space: pre; position: absolute; font-family: Arial, sans-serif; font-size: 11px;"></span>
             </div>
 
             <div id="gamelist-channel" class="lobby-frame"></div>

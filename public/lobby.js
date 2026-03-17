@@ -127,4 +127,47 @@ document.addEventListener('DOMContentLoaded', () => {
             if (callback) callback();
         }, 700);
     }
+
+    // Chat Cursor Positioning Logic
+    const chatInput = document.getElementById('chat-input');
+    const chatCursor = document.getElementById('chat-cursor');
+    const ghostSpan = document.getElementById('chat-input-ghost');
+
+    if (chatInput && chatCursor && ghostSpan) {
+        function updateCursor() {
+            const text = chatInput.value;
+            const selectionStart = chatInput.selectionStart;
+            const textBeforeCursor = text.substring(0, selectionStart);
+            
+            ghostSpan.textContent = textBeforeCursor;
+            const width = ghostSpan.offsetWidth;
+            
+            // 23px is the base left offset of the input
+            chatCursor.style.left = (23 + width) + 'px';
+        }
+
+        chatInput.addEventListener('input', updateCursor);
+        chatInput.addEventListener('keyup', updateCursor);
+        chatInput.addEventListener('click', updateCursor);
+        chatInput.addEventListener('focus', updateCursor);
+        chatInput.addEventListener('blur', updateCursor);
+        
+        // Global key listener to auto-focus chat
+        document.addEventListener('keydown', (e) => {
+            // If we're not already typing in an input, and it's a printable character or backspace
+            if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                // Ignore function keys, alt, ctrl, etc.
+                if (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete') {
+                    chatInput.focus();
+                    // Let the event propagate to the input
+                }
+            }
+        });
+
+        // Initial position
+        updateCursor();
+        
+        // Ensure cursor is always updated even if window focus changes
+        window.addEventListener('focus', updateCursor);
+    }
 });

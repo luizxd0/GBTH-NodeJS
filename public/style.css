@@ -104,11 +104,6 @@ body {
     top: 46px;
     height: 433px;
     width: 20px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
-    pointer-events: none;
     z-index: 15;
 }
 
@@ -129,6 +124,7 @@ body {
 }
 
 .scroll-button {
+    position: absolute;
     width: 18px;
     height: 18px;
     border: none;
@@ -141,6 +137,8 @@ body {
 }
 
 #scroll-up {
+    top: 0;
+    left: 1px;
     background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_0.png');
 }
 
@@ -158,6 +156,8 @@ body {
 }
 
 #scroll-down {
+    bottom: 0;
+    left: 1px;
     background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_0.png');
 }
 
@@ -260,8 +260,9 @@ body {
     position: absolute;
     bottom: 12px;
     right: 18px;
-    display: flex;
-    gap: 12px;
+    width: 173px;
+    height: 33px;
+    z-index: 15;
 }
 
 .external-controls {
@@ -269,12 +270,12 @@ body {
     bottom: 15px;
     left: 45px;
     width: 710px;
-    display: flex;
-    align-items: center;
+    height: 45px;
     z-index: 20;
 }
 
 .game-button {
+    position: absolute;
     border: none;
     background-color: transparent;
     background-repeat: no-repeat;
@@ -285,6 +286,8 @@ body {
 
 /* 81x33 */
 #btn-all {
+    top: 0;
+    left: 0;
     width: 81px;
     height: 33px;
     background-image: url('/assets/world_list/b_server_all/b_server_all_frame_0.png');
@@ -304,6 +307,8 @@ body {
 
 /* 80x33 */
 #btn-friend {
+    top: 0;
+    left: 93px;
     width: 80px;
     height: 33px;
     background-image: url('/assets/world_list/b_server_friend/b_server_friend_frame_0.png');
@@ -323,6 +328,8 @@ body {
 
 /* 107x45 */
 #btn-exit {
+    top: 0;
+    left: 0;
     width: 107px;
     height: 45px;
     background-image: url('/assets/world_list/b_server_exitgame/b_server_exitgame_frame_0.png');
@@ -342,10 +349,11 @@ body {
 
 /* 107x45 */
 #btn-buddy {
+    top: 0;
+    left: 125px;
     width: 107px;
     height: 45px;
     background-image: url('/assets/world_list/b_server_buddygame/b_server_buddygame_frame_0.png');
-    margin-left: 18px;
 }
 
 #btn-buddy:hover {
@@ -358,10 +366,11 @@ body {
 
 /* 107x45 */
 #btn-server {
+    top: 0;
+    left: 407px;
     width: 107px;
     height: 45px;
     background-image: url('/assets/world_list/b_server_choiceserver/b_server_choiceserver_frame_0.png');
-    margin-left: 175px;
 }
 
 #btn-server:hover {
@@ -374,13 +383,11 @@ body {
 
 /* Joining Animation Overlay */
 #joining-overlay {
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
-    width: auto;
-    height: auto;
+    width: 100vw;
+    height: 100vh;
     background-color: rgba(0, 0, 0, 0.6);
     display: flex;
     justify-content: center;
@@ -643,8 +650,8 @@ body {
 
 #chat-input {
     position: absolute;
-    bottom: 5px;
-    left: 45px;
+    bottom: 10px;
+    left: 23px;
     width: 480px;
     height: 18px;
     background: transparent;
@@ -653,6 +660,25 @@ body {
     outline: none;
     font-family: Arial, sans-serif;
     font-size: 11px;
+    caret-color: transparent; /* Hide native caret, using custom one */
+    z-index: 6;
+}
+
+#chat-cursor {
+    position: absolute;
+    bottom: 12px;
+    left: 23px;
+    width: 2px;
+    height: 14px;
+    background-color: red;
+    z-index: 5;
+    pointer-events: none;
+    animation: cursor-blink 0.8s infinite;
+}
+
+@keyframes cursor-blink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
 }
 
 /* Bottom Action Buttons */
@@ -723,11 +749,11 @@ body {
 
 /* Global Error Popup */
 #error-overlay {
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
-    width: 800px;
-    height: 600px;
+    width: 100vw;
+    height: 100vh;
     background-color: rgba(0, 0, 0, 0.5);
     display: flex;
     justify-content: center;
@@ -805,11 +831,11 @@ body {
 
 /* Screen Transition Animation (Eye-Closing / Shutter) */
 #screen-transition {
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
-    width: 800px;
-    height: 600px;
+    width: 100vw;
+    height: 100vh;
     z-index: 20000;
     /* Above joining overlay and everything else */
     pointer-events: none;
@@ -823,8 +849,8 @@ body {
 
 .transition-bar {
     position: absolute;
-    width: 1600px;
-    height: 1200px;
+    width: 250vmax; /* Larger to cover any screen when rotated */
+    height: 250vmax;
     background-color: #000;
     transition: transform 0.6s cubic-bezier(0.65, 0.05, 0.36, 1);
 }
@@ -860,11 +886,11 @@ body {
 
 /* ANIMATED STATES (With .run) */
 #screen-transition.closing.run #transition-top {
-    transform: translate(0, 0) rotate(-45deg) scale(1);
+    transform: translate(-30%, 30%) rotate(-45deg) scale(1.2);
 }
 
 #screen-transition.closing.run #transition-bottom {
-    transform: translate(0, 0) rotate(-45deg) scale(1);
+    transform: translate(30%, -30%) rotate(-45deg) scale(1.2);
 }
 
 #screen-transition.opening.run #transition-top {
