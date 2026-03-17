@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gunbound Thor's Hammer - Create Account</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="create_account.js"></script>
+</head>
+
+<body class="title-screen">
+    <div id="game-container">
+        <!-- Background is set via CSS class .title-screen -->
+        <div id="signup-popup-overlay">
+            <div id="signup-popup" class="dragon-box">
+                <div class="popup-header">Create Account</div>
+                <form id="signup-form">
+                    <div class="form-group">
+                        <label for="login-id">Login ID</label>
+                        <input type="text" id="login-id" name="username" maxlength="16" required placeholder="Account username">
+                    </div>
+                    <div class="form-group">
+                        <label for="nickname">Nickname</label>
+                        <input type="text" id="nickname" name="nickname" maxlength="16" required placeholder="Game nickname">
+                    </div>
+                    <div class="form-group">
+                        <label>Gender</label>
+                        <div class="gender-selection">
+                            <label class="gender-option">
+                                <input type="radio" name="gender" value="0" checked>
+                                <img src="/assets/avataimsi/avataimsi_frame_1.png" alt="Male">
+                                <span>Male</span>
+                            </label>
+                            <label class="gender-option">
+                                <input type="radio" name="gender" value="1">
+                                <img src="/assets/avataimsi/avataimsi_frame_2.png" alt="Female">
+                                <span>Female</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" maxlength="16" required placeholder="••••••••">
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm-password">Confirm Password</label>
+                        <input type="password" id="confirm-password" name="confirm_password" maxlength="16" required placeholder="••••••••">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">E-Mail</label>
+                        <input type="email" id="email" name="email" maxlength="50" required placeholder="your@email.com">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" id="btn-signup-submit" class="btn-dragon btn-create">Create</button>
+                        <button type="button" id="btn-signup-cancel" class="btn-dragon btn-login" style="margin-left: 10px; background: linear-gradient(to bottom, #777, #333);">Cancel</button>
+                    </div>
+                </form>
+                <div id="signup-message"></div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

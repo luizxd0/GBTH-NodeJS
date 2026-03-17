@@ -1,0 +1,233 @@
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
+const express = require('express');
+const http = require('http');
+const path = require('path');
+const mysql = require('mysql2/promise');
+const { Server } = require("socket.io");
+
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
+
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Root redirect
+app.get('/', (req, res) => {
+    res.redirect('/index.html');
+});
+
+// DB Connection Pool
+const pool = mysql.createPool({
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || 'gunbound',
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
+});
+
+// Signup Endpoint
+app.post('/api/signup', async (req, res) => {
+    const { username, nickname, gender, password, email } = req.body;
+
+    const authority = 0;
+    const gold = 10000;
+    const cash = 10000;
+    const score = 1000;
+    const grade = 24;
+
+    try {
+        const connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        try {
+            await connection.execute(
+                `INSERT INTO user (UserId, Gender, Password, Status, Authority, E_Mail, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+                [username, parseInt(gender), password, 'OK', authority, email]
+            );
+
+            await connection.execute(
+                `INSERT INTO game (Id, Nickname, Gold, Cash, TotalScore, TotalGrade, SeasonScore, SeasonGrade) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                [username, nickname, gold, cash, score, grade, score, grade]
+            );
+
+            await connection.commit();
+            res.status(201).json({ message: 'Account created successfully' });
+        } catch (err) {
+            await connection.rollback();
+            if (err.code === 'ER_DUP_ENTRY') {
+                return res.status(400).json({ error: 'Username or Nickname already exists' });
+            }
+            throw err;
+        } finally {
+            connection.release();
+        }
+    } catch (error) {
+        console.error('Signup error:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// Ranking Logic Function
+async function updateRanks() {
+    console.log('[Ranking] Updating player ranks and grades...');
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        const [rows] = await connection.execute(
+            `    SELECT g.Id, g.TotalScore, g.TotalGrade, g.TotalRank, u.created_at, u.Authority
+             FROM game g
+             JOIN user u ON g.Id = u.UserId
+             ORDER BY g.TotalScore DESC, u.created_at ASC`
+        );
+
+        const dynamicRankPlayers = [];
+        const fixedRankUpdates = [];
+        let currentPosition = 1;
+
+        const getRankByFixedGps = (gp) => {
+            if (gp >= 6000) return 9;
+            if (gp >= 5100) return 10;
+            if (gp >= 4200) return 11;
+            if (gp >= 3500) return 12;
+            if (gp >= 2800) return 13;
+            if (gp >= 2300) return 14;
+            if (gp >= 1800) return 15;
+            if (gp >= 1500) return 16;
+            if (gp >= 1200) return 17;
+            if (gp >= 1100) return 18;
+            return 19;
+        };
+
+        for (const player of rows) {
+            // GM Authority check
+            if (player.Authority === 100) {
+                fixedRankUpdates.push({ Id: player.Id, Grade: 20, Rank: 0 });
+                continue;
+            }
+
+            const gp = player.TotalScore;
+            const pos = currentPosition++;
+
+            if (gp < 6900) {
+                const innerRank = getRankByFixedGps(gp); // 9 to 19
+                fixedRankUpdates.push({ Id: player.Id, Grade: innerRank + 5, Rank: pos });
+            } else {
+                dynamicRankPlayers.push({ ...player, gp, pos });
+            }
+        }
+
+        const dynamicRankUpdates = [];
+        const numDynamic = dynamicRankPlayers.length;
+
+        if (numDynamic > 0) {
+            let grades = [];
+            grades.push(-4 + 5); // Grade 1
+            for (let i = 0; i < 4; i++) grades.push(-3 + 5); // Grade 2
+            for (let i = 0; i < 16; i++) grades.push(-2 + 5); // Grade 3
+
+            const remaining = Math.max(0, numDynamic - 21);
+            if (remaining > 0) {
+                const percentages = [85, 65, 45, 25, 15, 10, 5, 3, 1];
+                let currentInnerRank = -1;
+                let distributed = 0;
+
+                for (let i = percentages.length - 1; i >= 0; i--) {
+                    const count = Math.max(1, Math.round((remaining * percentages[i]) / 100));
+                    const toAdd = Math.min(count, remaining - distributed);
+                    for (let j = 0; j < toAdd; j++) {
+                        grades.push(currentInnerRank + 5);
+                    }
+                    distributed += toAdd;
+                    currentInnerRank++;
+                }
+                
+                while (grades.length < numDynamic) {
+                    grades.push(7 + 5); // Grade 12
+                }
+            }
+
+            for (let i = 0; i < numDynamic; i++) {
+                const p = dynamicRankPlayers[i];
+                dynamicRankUpdates.push({ Id: p.Id, Grade: grades[i] || 13, Rank: p.pos });
+            }
+        }
+
+        const allUpdates = [...fixedRankUpdates, ...dynamicRankUpdates];
+        for (const up of allUpdates) {
+            await connection.execute(
+                'UPDATE game SET TotalGrade = ?, TotalRank = ? WHERE Id = ?',
+                [up.Grade, up.Rank, up.Id]
+            );
+        }
+        console.log(`[Ranking] Successfully updated ${allUpdates.length} player ranks.`);
+    } catch (err) {
+        console.error('[Ranking] Error updating ranks:', err);
+    } finally {
+        if (connection) connection.release();
+    }
+}
+
+// Schedule Ranking
+updateRanks(); // Run on startup
+setInterval(updateRanks, 30 * 60 * 1000); // Every 30 minutes
+
+// ─── LOGIN ───────────────────────────────────
+app.post('/api/login', async (req, res) => {
+    const { username, password } = req.body;
+
+    try {
+        const [users] = await pool.execute(
+            `    SELECT u.UserId, u.Authority, u.Gender, g.Nickname, g.Guild, g.Gold, g.Cash, g.TotalScore, g.TotalGrade, g.TotalRank 
+             FROM user u
+             JOIN game g ON u.UserId = g.Id
+             WHERE u.UserId = ? AND u.Password = ?`,
+            [username, password]
+        );
+
+        if (users.length > 0) {
+            const user = users[0];
+            res.status(200).json({
+                message: 'Login successful',
+                user: {
+                    id: user.UserId,
+                    nickname: user.Nickname,
+                    guild: user.Guild,
+                    authority: user.Authority,
+                    gender: user.Gender,
+                    gold: user.Gold,
+                    cash: user.Cash,
+                    score: user.TotalScore,
+                    grade: user.TotalGrade,
+                    rank: user.TotalRank
+                }
+            });
+        } else {
+            res.status(401).json({ error: 'Invalid username or password' });
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// ─── WORLDS ──────────────────────────────────
+app.get('/api/worlds', (req, res) => {
+    // Return only 1 world as requested
+    res.json([
+        {
+            server_name: 'Server 1',
+            server_description: 'All',
+            server_utilization: io.sockets.sockets.size,
+            server_capacity: 10,
+            server_enabled: true
+        }
+    ]);
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});

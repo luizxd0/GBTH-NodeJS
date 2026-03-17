@@ -117,7 +117,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnExit) {
         btnExit.addEventListener('click', () => {
-             alert('Exiting game...');
+             playTransition('closing', () => {
+                 sessionStorage.clear();
+                 window.location.href = 'index.html';
+             });
         });
     }
 

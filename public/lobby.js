@@ -5,36 +5,46 @@ document.addEventListener('DOMContentLoaded', () => {
     
     console.log('Lobby screen loaded');
     
-    // Populate User Info (Simulated for now, would come from session/API)
+    // Populate User Info (Dynamically from session)
+    const userData = JSON.parse(sessionStorage.getItem('user'));
+    
     const nicknameSpan = document.getElementById('lobby-nickname');
     const guildSpan = document.getElementById('lobby-guild');
     const rankIcon = document.getElementById('lobby-rank-icon');
     const rankingValue = document.getElementById('lobby-ranking-value');
+    const goldSpan = document.getElementById('lobby-gold');
+    const cashSpan = document.getElementById('lobby-cash');
+    const gpSpan = document.getElementById('lobby-gp');
     
-    if (nicknameSpan) nicknameSpan.textContent = 'Luluzera';
-    if (guildSpan) guildSpan.textContent = 'LaFirma[ 1/ 4]';
-    if (rankingValue) rankingValue.textContent = '1';
-    if (rankIcon) rankIcon.src = '/assets/rank1/rank1_frame_21.png'; // Double Golden Axe
+    if (userData) {
+        if (nicknameSpan) nicknameSpan.textContent = userData.nickname;
+        
+        if (guildSpan) {
+            if (userData.guild && userData.guild.trim() !== '') {
+                guildSpan.textContent = userData.guild + ' [ 1/ 1]';
+                guildSpan.style.display = 'inline-block';
+            } else {
+                guildSpan.textContent = '';
+                guildSpan.style.display = 'none';
+            }
+        }
+        
+        if (rankingValue) rankingValue.textContent = (userData.rank || '1').toLocaleString();
+        
+        // Rank mapping to assets (Thor's Hammer 1-24 grade system)
+        if (rankIcon) {
+            const grade = userData.grade || 24;
+            rankIcon.src = `/assets/rank1/rank1_frame_${grade}.png`;
+        }
 
-    // Ensure labels are correct
-    setInterval(() => {
-        const goldSpan = document.getElementById('lobby-gold');
-        const cashSpan = document.getElementById('lobby-cash');
+        if (goldSpan) goldSpan.textContent = 'GOLD : ' + (userData.gold || 0).toLocaleString();
+        if (cashSpan) cashSpan.textContent = 'CASH : ' + (userData.cash || 0).toLocaleString();
         
-        if (goldSpan) {
-            const currentVal = goldSpan.textContent.replace('GOLD : ', '').trim();
-            if (!goldSpan.textContent.startsWith('GOLD : ')) {
-                goldSpan.textContent = 'GOLD : ' + currentVal;
-            }
+        if (gpSpan) {
+            gpSpan.textContent = (userData.score || 0).toLocaleString() + ' GP';
         }
-        
-        if (cashSpan) {
-            const currentVal = cashSpan.textContent.replace('CASH : ', '').trim();
-            if (!cashSpan.textContent.startsWith('CASH : ')) {
-                cashSpan.textContent = 'CASH : ' + currentVal;
-            }
-        }
-    }, 500);
+    }
+
 
     // Custom Animated Cursor Logic (same as world_list)
     let cursorFrame = 0;
@@ -65,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log(`Button clicked: ${id}`);
                 if (id === 'btn-lobby-exit') {
                     playTransition('closing', () => {
-                        window.location.href = '/';
+                        window.location.href = 'world_list.html';
                     });
                 }
             });
