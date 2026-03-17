@@ -89,6 +89,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Reset position to center if it was moved
                 addBuddyPopup.style.top = '226px';
                 addBuddyPopup.style.left = '273px';
+                
+                // Reset and Focus input
+                if (addBuddyInput) {
+                    addBuddyInput.value = '';
+                    addBuddyInput.focus();
+                    if (updateAddBuddyCursor) updateAddBuddyCursor();
+                }
             }
         });
     }
@@ -188,8 +195,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
                 // Ignore function keys, alt, ctrl, etc.
                 if (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete') {
-                    chatInput.focus();
-                    // Let the event propagate to the input
+                    const addBuddyPopup = document.getElementById('add-buddy-popup');
+                    const isAddBuddyVisible = addBuddyPopup && !addBuddyPopup.classList.contains('hidden');
+                    
+                    if (isAddBuddyVisible && addBuddyInput) {
+                        addBuddyInput.focus();
+                    } else if (chatInput) {
+                        chatInput.focus();
+                    }
                 }
             }
         });
