@@ -80,6 +80,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const btnBuddyPlus = document.getElementById('btn-buddy-plus');
+    if (btnBuddyPlus) {
+        btnBuddyPlus.addEventListener('click', () => {
+            const addBuddyPopup = document.getElementById('add-buddy-popup');
+            if (addBuddyPopup) {
+                addBuddyPopup.classList.remove('hidden');
+                // Reset position to center if it was moved
+                addBuddyPopup.style.top = '226px';
+                addBuddyPopup.style.left = '273px';
+            }
+        });
+    }
+
+    const btnAddBuddyClose = document.getElementById('btn-add-buddy-close');
+    const btnAddBuddyOk = document.getElementById('btn-add-buddy-ok');
+    if (btnAddBuddyClose) {
+        btnAddBuddyClose.addEventListener('click', () => {
+            document.getElementById('add-buddy-popup').classList.add('hidden');
+        });
+    }
+    if (btnAddBuddyOk) {
+        btnAddBuddyOk.addEventListener('click', () => {
+            // Future logic for adding buddy goes here
+            document.getElementById('add-buddy-popup').classList.add('hidden');
+        });
+    }
+
     function toggleBuddyPanel() {
         const panel = document.getElementById('buddy-list-panel');
         if (panel) {
@@ -174,6 +201,32 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('focus', updateCursor);
     }
 
+    // Add Buddy Popup Cursor Logic
+    const addBuddyInput = document.getElementById('add-buddy-input');
+    const addBuddyCursor = document.getElementById('add-buddy-cursor');
+    const addBuddyGhostSpan = document.getElementById('add-buddy-input-ghost');
+
+    if (addBuddyInput && addBuddyCursor && addBuddyGhostSpan) {
+        function updateAddBuddyCursor() {
+            const text = addBuddyInput.value;
+            const selectionStart = addBuddyInput.selectionStart;
+            const textBeforeCursor = text.substring(0, selectionStart);
+            
+            addBuddyGhostSpan.textContent = textBeforeCursor;
+            const width = addBuddyGhostSpan.offsetWidth;
+            
+            // Now relative to the same container as the input
+            addBuddyCursor.style.left = (addBuddyInput.offsetLeft + 5 + width) + 'px';
+            addBuddyCursor.style.top = (addBuddyInput.offsetTop + 4) + 'px';
+        }
+
+        addBuddyInput.addEventListener('input', updateAddBuddyCursor);
+        addBuddyInput.addEventListener('keyup', updateAddBuddyCursor);
+        addBuddyInput.addEventListener('click', updateAddBuddyCursor);
+        addBuddyInput.addEventListener('focus', updateAddBuddyCursor);
+        addBuddyInput.addEventListener('blur', updateAddBuddyCursor);
+    }
+
     const btnBuddyExit = document.getElementById('btn-buddy-exit');
     if (btnBuddyExit) {
         btnBuddyExit.addEventListener('click', () => {
@@ -187,6 +240,11 @@ document.addEventListener('DOMContentLoaded', () => {
         makeDraggable(buddyPanel);
     }
 
+    const addBuddyPopup = document.getElementById('add-buddy-popup');
+    if (addBuddyPopup) {
+        makeDraggable(addBuddyPopup);
+    }
+
     function makeDraggable(el) {
         let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
         
@@ -197,11 +255,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.target.tagName.toLowerCase() === 'button') return;
 
             e = e || window.event;
+            
             pos3 = e.clientX;
             pos4 = e.clientY;
             document.onmouseup = closeDragElement;
             document.onmousemove = elementDrag;
         }
+
 
         function elementDrag(e) {
             e = e || window.event;

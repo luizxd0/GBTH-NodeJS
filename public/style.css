@@ -968,6 +968,122 @@ body {
     display: none !important;
 }
 
+/* Add Buddy Popup Styling */
+#add-buddy-popup {
+    position: absolute;
+    top: 226px; /* Centered in 800x600 lobby (600-147)/2 */
+    left: 273px; /* Centered in 800x600 lobby (800-253)/2 */
+    width: 253px;
+    height: 147px;
+    background-image: url('/assets/lobby/buddy_window_back/buddy_window_back_frame_1.png');
+    background-size: 253px 147px;
+    image-rendering: pixelated;
+    z-index: 3000;
+}
+
+.buddy-window-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 32px;
+    cursor: default;
+}
+
+#add-buddy-text-box {
+    position: absolute;
+    top: 38px;
+    left: 21px;
+    right: auto;
+    width: 212px;
+    height: 36px;
+    background-color: #032a31;
+    /* border: 1px solid #00f0ff; */
+    border-radius: 10px;
+    padding: 10px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    line-height: 1.2;
+}
+
+#add-buddy-input {
+    position: absolute;
+    top: 81px;
+    left: 42px;
+    right: auto;
+    width: 167px;
+    height: 22px;
+    background-color: #000;
+    border: 1px solid #333;
+    border-radius: 5px;
+    color: #fff;
+    outline: none;
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    padding: 0 5px;
+    box-sizing: border-box;
+    caret-color: transparent;
+}
+
+#add-buddy-cursor {
+    position: absolute;
+    top: 4px;
+    left: 5px;
+    width: 2px;
+    height: 14px;
+    background-color: red;
+    pointer-events: none;
+    animation: cursor-blink 0.8s infinite;
+}
+
+.buddy-window-btn {
+    width: 82px;
+    height: 33px;
+    border: none;
+    background-color: transparent;
+    background-size: 82px 33px;
+    cursor: url('/assets/cursor/cursor_frame_0.png') 0 0, auto;
+    outline: none;
+}
+
+#btn-add-buddy-ok {
+    position: absolute;
+    top: 107px;
+    left: 37px;
+    right: auto;
+    background-image: url('/assets/lobby/b_buddywindow_friendplus/b_buddywindow_friendplus_frame_0.png');
+}
+#btn-add-buddy-ok:hover:not(:disabled) {
+    background-image: url('/assets/lobby/b_buddywindow_friendplus/b_buddywindow_friendplus_frame_1.png');
+}
+#btn-add-buddy-ok:active:not(:disabled) {
+    background-image: url('/assets/lobby/b_buddywindow_friendplus/b_buddywindow_friendplus_frame_2.png');
+}
+#btn-add-buddy-ok:disabled {
+    background-image: url('/assets/lobby/b_buddywindow_friendplus/b_buddywindow_friendplus_frame_3.png');
+}
+
+#btn-add-buddy-close {
+    position: absolute;
+    top: 107px;
+    left: 134px; /* 37 + 82 + 15 */
+    right: auto;
+    background-image: url('/assets/lobby/b_buddywindow_friendclose/b_buddywindow_friendclose_frame_0.png');
+}
+#btn-add-buddy-close:hover:not(:disabled) {
+    background-image: url('/assets/lobby/b_buddywindow_friendclose/b_buddywindow_friendclose_frame_1.png');
+}
+#btn-add-buddy-close:active:not(:disabled) {
+    background-image: url('/assets/lobby/b_buddywindow_friendclose/b_buddywindow_friendclose_frame_2.png');
+}
+#btn-add-buddy-close:disabled {
+    background-image: url('/assets/lobby/b_buddywindow_friendclose/b_buddywindow_friendclose_frame_3.png');
+}
+
 /* Screen Transition removed as requested */
 
 /* DragonBound-Style Auth UI Styling */

@@ -85,6 +85,22 @@
             <button id="btn-lobby-avatar" class="bottom-btn"></button>
             <button id="btn-lobby-create" class="bottom-btn"></button>
             <button id="btn-lobby-join" class="bottom-btn"></button>
+
+            <!-- Add Buddy Popup (Internal to scale with lobby) -->
+            <div id="add-buddy-popup" class="hidden">
+                <div class="buddy-window-header"></div>
+                <div class="buddy-window-content">
+                    <div id="add-buddy-text-box">
+                        To add a friend, type his nickname below.
+                    </div>
+                    <input type="text" id="add-buddy-input" maxlength="20" autocomplete="off">
+                    <div id="add-buddy-cursor"></div>
+                    <!-- Hidden span to measure text width for cursor positioning -->
+                    <span id="add-buddy-input-ghost" style="visibility: hidden; white-space: pre; position: absolute; font-family: Arial, sans-serif; font-size: 11px;"></span>
+                    <button id="btn-add-buddy-ok" class="buddy-window-btn"></button>
+                    <button id="btn-add-buddy-close" class="buddy-window-btn"></button>
+                </div>
+            </div>
         </div>
     </div>
 
