@@ -22,7 +22,7 @@ body {
     padding: 0;
     width: 100vw;
     height: 100vh;
-    overflow: hidden;
+    overflow: auto;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -34,9 +34,6 @@ body {
     position: relative;
     overflow: hidden;
     background: transparent !important;
-    /* Hardware acceleration for smoother scaling */
-    will-change: transform;
-    backface-visibility: hidden;
 }
 
 .title-screen {
