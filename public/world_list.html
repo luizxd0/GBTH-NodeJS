@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gunbound Thor's Hammer - World List</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="world_list.js"></script>
+</head>
+<body>
+    <div id="game-container">
+        <div id="world-list-screen">
+            <!-- Background container -->
+            <div id="server-back"></div>
+            
+            <div id="world-selection-container">
+                <!-- Inner frame -->
+                
+                <div class="server-list-viewport">
+                    <div id="server-list">
+                        <!-- Servers will be injected here -->
+                    </div>
+                </div>
+
+                <div class="scroll-controls">
+                    <button id="scroll-up" class="scroll-button"></button>
+                    <button id="scroll-down" class="scroll-button"></button>
+                </div>
+                
+                <div class="internal-controls">
+                    <button id="btn-all" class="game-button"></button>
+                    <button id="btn-friend" class="game-button"></button>
+                </div>
+            </div>
+            
+            <div class="external-controls">
+                <button id="btn-exit" class="game-button"></button>
+                <button id="btn-buddy" class="game-button"></button>
+                <button id="btn-server" class="game-button"></button>
+            </div>
+
+            <!-- Joining Animation Overlay -->
+            <div id="joining-overlay" class="hidden">
+                <div id="wait-message"></div>
+            </div>
+        </div>
+
+        <!-- Global Error Popup -->
+        <div id="error-overlay" class="hidden">
+            <div id="error-popup">
+                <div id="error-title">Server Access Error</div>
+                <div id="error-message">Can't access the server you required. Please use another server or try again later.</div>
+                <button id="error-confirm-btn"></button>
+            </div>
+        </div>
+
+        <!-- Screen Transition Overlay -->
+        <div id="screen-transition">
+            <div id="transition-top" class="transition-bar"></div>
+            <div id="transition-bottom" class="transition-bar"></div>
+        </div>
+    </div>
+</body>
+</html>

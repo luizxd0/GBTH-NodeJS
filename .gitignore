@@ -1,0 +1,10 @@
+node_modules/
+*.log
+.DS_Store
+dist/
+tmp/
+.gemini/
+brain/
+all_sizes.txt
+sizes.txt
+dump_sizes.ps1

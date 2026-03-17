@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gunbound Thor's Hammer - Lobby</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="lobby.js"></script>
+</head>
+
+<body>
+    <div id="game-container">
+        <div id="lobby-screen">
+            <!-- Scenery and frames are baked into gamelist_back_frame_0 -->
+
+            <!-- Top Section Panels -->
+            <div id="user-info-panel" class="lobby-panel">
+                <div class="user-stats">
+                    <span id="lobby-guild">LaFirma[ 1/ 4]</span>
+                    <span id="lobby-rank-text">Ranking 1</span>
+                    <span id="lobby-gp">4781 GP</span>
+                </div>
+            </div>
+
+            <div id="gold-panel" class="lobby-panel">
+                <span id="lobby-gold">GOLD : 2660281</span>
+                <span id="lobby-cash">CASH : 14400</span>
+            </div>
+
+            <div id="buddy-list-panel" class="lobby-panel">
+                <div class="buddy-counts">880/884</div>
+                <!-- Content will follow -->
+            </div>
+
+            <!-- Middle Navigation Buttons -->
+            <button id="btn-view-all" class="nav-btn"></button>
+            <button id="btn-waiting" class="nav-btn"></button>
+            <button id="btn-nav-prev" class="nav-btn-mini"></button>
+            <button id="btn-nav-next" class="nav-btn-mini"></button>
+            <button id="btn-friends" class="nav-btn"></button>
+            <button id="btn-goto" class="nav-btn"></button>
+
+            <!-- Room List Area -->
+            <div id="rooms-container"></div>
+
+            <!-- Main Frames -->
+            <div id="gamelist-chat" class="lobby-frame">
+                <input type="text" id="chat-input" maxlength="100">
+            </div>
+
+            <div id="gamelist-channel" class="lobby-frame"></div>
+
+            <!-- Bottom Action Buttons -->
+            <button id="btn-lobby-exit" class="bottom-btn"></button>
+            <button id="btn-lobby-buddy" class="bottom-btn"></button>
+            <button id="btn-lobby-ranking" class="bottom-btn"></button>
+            <button id="btn-lobby-avatar" class="bottom-btn"></button>
+            <button id="btn-lobby-create" class="bottom-btn"></button>
+            <button id="btn-lobby-join" class="bottom-btn"></button>
+        </div>
+
+        <!-- Global Error Popup -->
+        <div id="error-overlay" class="hidden">
+            <div id="error-popup">
+                <div id="error-title">System Error</div>
+                <div id="error-message">An unexpected error occurred. Please try again later.</div>
+                <button id="error-confirm-btn"></button>
+            </div>
+        </div>
+
+        <!-- Screen Transition Overlay -->
+        <div id="screen-transition">
+            <div id="transition-top" class="transition-bar"></div>
+            <div id="transition-bottom" class="transition-bar"></div>
+        </div>
+    </div>
+</body>
+
+</html>
