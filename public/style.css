@@ -1086,6 +1086,69 @@ body {
 
 /* Screen Transition removed as requested */
 
+/* Buddy Alert Popup (Already Friends) */
+#buddy-alert-popup {
+    position: absolute;
+    top: 226px;
+    left: 273px;
+    width: 200px;
+    height: 138px;
+    background-image: url('/assets/lobby/buddy_window_back/buddy_window_back_frame_2.png');
+    background-size: 200px 138px;
+    image-rendering: pixelated;
+    z-index: 3100;
+}
+
+#buddy-alert-text-box {
+    position: absolute;
+    top: 40px;
+    left: 14px;
+    right: auto;
+    width: 206px;
+    height: 36px;
+    /* background-color: #032a31; */
+    /* border: 1px solid #00f0ff; */ /* Added teal border */
+    border-radius: 10px;
+    padding: 8px 10px; /* Adjusted padding */
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    line-height: 1.2;
+}
+
+.buddy-alert-btn {
+    width: 63px;
+    height: 24px;
+    border: none;
+    background-color: transparent;
+    background-size: 63px 24px;
+    cursor: url('/assets/cursor/cursor_frame_0.png') 0 0, auto;
+    outline: none;
+}
+
+#btn-buddy-alert-yes {
+    position: absolute;
+    top: 106px;
+    left: 128px;
+    right: auto;
+    background-image: url('/assets/lobby/b_buddywindow_delyes/b_buddywindow_delyes_frame_0.png');
+}
+
+#btn-buddy-alert-yes:hover:not(:disabled) {
+    background-image: url('/assets/lobby/b_buddywindow_delyes/b_buddywindow_delyes_frame_1.png');
+}
+
+#btn-buddy-alert-yes:active:not(:disabled) {
+    background-image: url('/assets/lobby/b_buddywindow_delyes/b_buddywindow_delyes_frame_2.png');
+}
+
+#btn-buddy-alert-yes:disabled {
+    background-image: url('/assets/lobby/b_buddywindow_delyes/b_buddywindow_delyes_frame_3.png');
+}
+
 /* DragonBound-Style Auth UI Styling */
 #auth-overlay {
     position: fixed;

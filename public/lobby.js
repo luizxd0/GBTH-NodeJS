@@ -109,10 +109,50 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (btnAddBuddyOk) {
         btnAddBuddyOk.addEventListener('click', () => {
-            // Future logic for adding buddy goes here
-            document.getElementById('add-buddy-popup').classList.add('hidden');
+            const nickname = addBuddyInput.value.trim();
+            const currentNickname = userData ? userData.nickname : '';
+
+            if (nickname.toLowerCase() === currentNickname.toLowerCase()) {
+                showBuddyAlert(`You can't add your nickname to buddy.`);
+            } else if (nickname === 'Perry') { // Example simulation for "Already Friends"
+                showBuddyAlert(`'${nickname}' is already your friend.`);
+            } else if (nickname !== '') {
+                // Future logic for adding buddy goes here (API call, etc.)
+                document.getElementById('add-buddy-popup').classList.add('hidden');
+            }
         });
     }
+
+    const btnBuddyAlertYes = document.getElementById('btn-buddy-alert-yes');
+    if (btnBuddyAlertYes) {
+        btnBuddyAlertYes.addEventListener('click', () => {
+            document.getElementById('buddy-alert-popup').classList.add('hidden');
+        });
+    }
+
+    window.showBuddyAlert = function(message) {
+        const popup = document.getElementById('buddy-alert-popup');
+        const parent = document.getElementById('add-buddy-popup');
+        const textBox = document.getElementById('buddy-alert-text-box');
+        
+        if (popup && textBox && parent) {
+            textBox.textContent = message;
+            popup.classList.remove('hidden');
+            
+            // Calculate center relative to parent (Add Buddy window)
+            // parent: 253x147, alert: 200x138 (from user CSS adjustments)
+            const parentRect = {
+                top: parseInt(parent.style.top) || 226,
+                left: parseInt(parent.style.left) || 273
+            };
+            
+            const offsetTop = (147 - 138) / 2;
+            const offsetLeft = (253 - 200) / 2;
+            
+            popup.style.top = (parentRect.top + offsetTop) + 'px';
+            popup.style.left = (parentRect.left + offsetLeft) + 'px';
+        }
+    };
 
     function toggleBuddyPanel() {
         const panel = document.getElementById('buddy-list-panel');
@@ -256,6 +296,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const addBuddyPopup = document.getElementById('add-buddy-popup');
     if (addBuddyPopup) {
         makeDraggable(addBuddyPopup);
+    }
+
+    const buddyAlertPopup = document.getElementById('buddy-alert-popup');
+    if (buddyAlertPopup) {
+        makeDraggable(buddyAlertPopup);
     }
 
     function makeDraggable(el) {
