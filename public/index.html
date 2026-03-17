@@ -2,89 +2,93 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Gunbound Thor's Hammer</title>
     <link rel="stylesheet" href="style.css?v=123">
+    <link rel="stylesheet" href="mobile-fix.css">
 </head>
 <body class="title-screen">
-    <div id="game-container">
-        <div id="auth-overlay">
-            <div id="auth-container">
-                <!-- Login Box -->
-                <div id="login-view" class="dragon-box">
-                    <div class="dragon-box-header">Login</div>
-                    <form id="login-form">
-                        <div class="form-group">
-                            <label for="login-user">Login ID</label>
-                            <input type="text" id="login-user" name="username" maxlength="16" required autocomplete="username" placeholder="Your account ID">
-                        </div>
-                        <div class="form-group">
-                            <label for="login-pass">Password</label>
-                            <input type="password" id="login-pass" name="password" maxlength="16" required autocomplete="current-password" placeholder="••••••••">
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" id="btn-login-submit" class="btn-dragon btn-login">Login</button>
-                        </div>
-                        <div class="auth-toggle">
-                            Don't have an account? <a href="#" id="link-show-signup">Register here</a>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Signup Box -->
-                <div id="signup-view" class="dragon-box hidden">
-                    <div class="dragon-box-header">New Account</div>
-                    <form id="signup-form">
-                        <div class="form-group">
-                            <label for="signup-user">Login ID</label>
-                            <input type="text" id="signup-user" name="username" maxlength="16" required autocomplete="username" placeholder="Choose an ID">
-                        </div>
-                        <div class="form-group">
-                            <label for="signup-nick">Nickname</label>
-                            <input type="text" id="signup-nick" name="nickname" maxlength="16" required placeholder="In-game name">
-                        </div>
-                        <div class="form-group">
-                            <label>Gender</label>
-                            <div class="gender-selection">
-                                <label class="gender-option">
-                                    <input type="radio" name="gender" value="0" checked>
-                                    <img src="/assets/avataimsi/avataimsi_frame_1.png" alt="Male">
-                                    <span>Male</span>
-                                </label>
-                                <label class="gender-option">
-                                    <input type="radio" name="gender" value="1">
-                                    <img src="/assets/avataimsi/avataimsi_frame_2.png" alt="Female">
-                                    <span>Female</span>
-                                </label>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="signup-pass">Password</label>
-                            <input type="password" id="signup-pass" name="password" maxlength="16" required autocomplete="new-password" placeholder="At least 6 chars">
-                        </div>
-                        <div class="form-group">
-                            <label for="signup-email">E-Mail</label>
-                            <input type="email" id="signup-email" name="email" maxlength="50" required placeholder="your@email.com">
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" id="btn-signup-submit" class="btn-dragon btn-create">Create Account</button>
-                        </div>
-                        <div class="auth-toggle">
-                            Already have an account? <a href="#" id="link-show-login">Login here</a>
-                        </div>
-                    </form>
-                </div>
-                
-                <div id="auth-message"></div>
+    <div id="game-container"></div>
+    <div id="auth-overlay">
+        <div id="auth-container">
+            <!-- Login Box -->
+            <div id="login-view" class="dragon-box">
+                <div class="dragon-box-header">Login</div>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="login-user">Login ID</label>
+                        <input type="text" id="login-user" name="username" maxlength="16" required autocomplete="username" placeholder="Your account ID">
+                    </div>
+                    <div class="form-group">
+                        <label for="login-pass">Password</label>
+                        <input type="password" id="login-pass" name="password" maxlength="16" required autocomplete="current-password" placeholder="••••••••">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" id="btn-login-submit" class="btn-dragon btn-login">Login</button>
+                    </div>
+                    <div class="auth-toggle">
+                        Don't have an account? <a href="#" id="link-show-signup">Register here</a>
+                    </div>
+                </form>
             </div>
-        </div>
-        <!-- Screen Transition Animation -->
-        <div id="screen-transition">
-            <div id="transition-top" class="transition-bar"></div>
-            <div id="transition-bottom" class="transition-bar"></div>
+
+            <!-- Signup Box -->
+            <div id="signup-view" class="dragon-box hidden">
+                <div class="dragon-box-header">New Account</div>
+                <form id="signup-form">
+                    <div class="form-group">
+                        <label for="signup-user">Login ID</label>
+                        <input type="text" id="signup-user" name="username" maxlength="16" required autocomplete="username" placeholder="Choose an ID">
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-nick">Nickname</label>
+                        <input type="text" id="signup-nick" name="nickname" maxlength="16" required placeholder="In-game name">
+                    </div>
+                    <div class="form-group">
+                        <label>Gender</label>
+                        <div class="gender-selection">
+                            <label class="gender-option">
+                                <input type="radio" name="gender" value="0" checked>
+                                <img src="/assets/avataimsi/avataimsi_frame_1.png" alt="Male">
+                                <span>Male</span>
+                            </label>
+                            <label class="gender-option">
+                                <input type="radio" name="gender" value="1">
+                                <img src="/assets/avataimsi/avataimsi_frame_2.png" alt="Female">
+                                <span>Female</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-pass">Password</label>
+                        <input type="password" id="signup-pass" name="password" maxlength="16" required autocomplete="new-password" placeholder="At least 6 chars">
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-email">E-Mail</label>
+                        <input type="email" id="signup-email" name="email" maxlength="50" required placeholder="your@email.com">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" id="btn-signup-submit" class="btn-dragon btn-create">Create Account</button>
+                    </div>
+                    <div class="auth-toggle">
+                        Already have an account? <a href="#" id="link-show-login">Login here</a>
+                    </div>
+                </form>
+            </div>
+            
+            <div id="auth-message"></div>
         </div>
     </div>
+    <!-- Screen Transition Animation -->
+    <div id="screen-transition">
+        <div id="transition-top" class="transition-bar"></div>
+        <div id="transition-bottom" class="transition-bar"></div>
+    </div>
 
+    <script src="responsive.js"></script>
     <script src="auth.js"></script>
 </body>
 </html>

@@ -2,10 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Gunbound Thor's Hammer - World List</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="mobile-fix.css">
     <script src="/socket.io/socket.io.js"></script>
+    <script src="responsive.js"></script>
     <script src="world_list.js"></script>
 </head>
 <body>
@@ -39,27 +44,27 @@
                 <button id="btn-buddy" class="game-button"></button>
                 <button id="btn-server" class="game-button"></button>
             </div>
-
-            <!-- Joining Animation Overlay -->
-            <div id="joining-overlay" class="hidden">
-                <div id="wait-message"></div>
-            </div>
         </div>
+    </div>
+    
+    <!-- Joining Animation Overlay -->
+    <div id="joining-overlay" class="hidden">
+        <div id="wait-message"></div>
+    </div>
 
-        <!-- Global Error Popup -->
-        <div id="error-overlay" class="hidden">
-            <div id="error-popup">
-                <div id="error-title">Server Access Error</div>
-                <div id="error-message">Can't access the server you required. Please use another server or try again later.</div>
-                <button id="error-confirm-btn"></button>
-            </div>
+    <!-- Global Error Popup -->
+    <div id="error-overlay" class="hidden">
+        <div id="error-popup">
+            <div id="error-title">Server Access Error</div>
+            <div id="error-message">Can't access the server you required. Please use another server or try again later.</div>
+            <button id="error-confirm-btn"></button>
         </div>
+    </div>
 
-        <!-- Screen Transition Overlay -->
-        <div id="screen-transition">
-            <div id="transition-top" class="transition-bar"></div>
-            <div id="transition-bottom" class="transition-bar"></div>
-        </div>
+    <!-- Screen Transition Overlay -->
+    <div id="screen-transition">
+        <div id="transition-top" class="transition-bar"></div>
+        <div id="transition-bottom" class="transition-bar"></div>
     </div>
 </body>
 </html>

@@ -34,6 +34,9 @@ body {
     position: relative;
     overflow: hidden;
     background: transparent !important;
+    /* Hardware acceleration for smoother scaling */
+    will-change: transform;
+    backface-visibility: hidden;
 }
 
 .title-screen {
@@ -405,7 +408,7 @@ body {
     background-image: url('/assets/lobby/gamelist_back/gamelist_back_frame_0.png');
     background-size: 800px 600px;
     position: relative;
-    overflow: hidden;
+    /* overflow: hidden; Removed to prevent clipping scaled elements sometimes */
 }
 
 /* Template is baked into background, so we don't need an overlay unless we want to mask content */
@@ -420,8 +423,10 @@ body {
 /* Unified User Info Panel - Refined to match image frame */
 #user-info-panel {
     position: absolute;
-    top: 25px; /* Slightly lower */
-    left: 222px; /* Slightly more to the left */
+    top: 2px;
+    /* Slightly lower */
+    left: 156px;
+    /* Slightly more to the left */
     width: 350px;
     height: 58px;
     display: flex;
@@ -537,12 +542,12 @@ body {
 
 #buddy-list-panel {
     position: absolute;
-    top: 60px;
-    left: 558px;
+    top: 10px;
+    left: 570px;
     width: 211px;
-    height: 253px;
+    height: 267px;
     background-image: url('/assets/lobby/buddy_back/buddy_back_frame_0.png');
-    background-size: 211px 253px;
+    background-size: 211px 267px;
     z-index: 10;
 }
 
@@ -580,59 +585,59 @@ body {
 }
 
 #btn-view-all {
-    top: 364px;
-    left: 77px;
+    top: 245px;
+    left: 38px;
     background-image: url('/assets/lobby/b_gamelist_viewall/b_gamelist_viewall_frame_0.png');
 }
 
 #btn-waiting {
-    top: 364px;
-    left: 172px;
+    top: 245px;
+    left: 132px;
     background-image: url('/assets/lobby/b_gamelist_wait/b_gamelist_wait_frame_0.png');
 }
 
 #btn-friends {
-    top: 364px;
-    left: 258px;
+    top: 246px;
+    left: 366px;
     background-image: url('/assets/lobby/b_gamelist_friend/b_gamelist_friend_frame_0.png');
 }
 
 #btn-goto {
-    top: 364px;
-    left: 535px;
+    top: 246px;
+    left: 464px;
     background-image: url('/assets/lobby/b_gamelist_directgo/b_gamelist_directgo_frame_0.png');
 }
 
 #btn-nav-prev {
-    top: 364px;
-    left: 45px;
+    top: 246px;
+    left: 239px;
     background-image: url('/assets/lobby/b_gamelist_prev/b_gamelist_prev_frame_0.png');
 }
 
 #btn-nav-next {
-    top: 364px;
-    left: 625px;
+    top: 246px;
+    left: 291px;
     background-image: url('/assets/lobby/b_gamelist_next/b_gamelist_next_frame_0.png');
 }
 
 /* Bottom Frames */
 #gamelist-chat {
-    top: 400px;
-    left: 4px;
+    top: 287px;
+    left: 23px;
     width: 549px;
-    height: 140px;
+    height: 259px;
     background-image: url('/assets/lobby/gamelist_chat/gamelist_chat_frame_0.png');
-    background-size: 549px 140px;
+    background-size: 549px 259px;
     z-index: 5;
 }
 
 #gamelist-channel {
-    top: 400px;
-    right: 4px;
+    top: 287px;
+    right: 21px;
     width: 207px;
-    height: 140px;
+    height: 259px;
     background-image: url('/assets/lobby/gamelist_channel/gamelist_channel_frame_0.png');
-    background-size: 207px 140px;
+    background-size: 207px 259px;
     z-index: 5;
 }
 
@@ -664,38 +669,38 @@ body {
 }
 
 #btn-lobby-exit {
-    top: 540px;
-    left: 45px;
+    top: 551px;
+    left: 40px;
     background-image: url('/assets/lobby/b_gamelist_exit/b_gamelist_exit_frame_0.png');
 }
 
 #btn-lobby-buddy {
-    top: 540px;
-    left: 169px;
+    top: 551px;
+    left: 163px;
     background-image: url('/assets/lobby/b_gamelist_buddy/b_gamelist_buddy_frame_0.png');
 }
 
 #btn-lobby-ranking {
-    top: 540px;
-    left: 293px;
+    top: 551px;
+    left: 286px;
     background-image: url('/assets/lobby/b_gamelist_ranking/b_gamelist_ranking_frame_0.png');
 }
 
 #btn-lobby-avatar {
-    top: 540px;
-    left: 417px;
+    top: 551px;
+    left: 409px;
     background-image: url('/assets/lobby/b_gamelist_avatar/b_gamelist_avatar_frame_0.png');
 }
 
 #btn-lobby-create {
-    top: 540px;
-    left: 579px;
+    top: 551px;
+    left: 532px;
     background-image: url('/assets/lobby/b_gamelist_create/b_gamelist_create_frame_0.png');
 }
 
 #btn-lobby-join {
-    top: 540px;
-    left: 696px;
+    top: 551px;
+    left: 655px;
     background-image: url('/assets/lobby/b_gamelist_join/b_gamelist_join_frame_0.png');
 }
 
@@ -805,7 +810,8 @@ body {
     left: 0;
     width: 800px;
     height: 600px;
-    z-index: 20000; /* Above joining overlay and everything else */
+    z-index: 20000;
+    /* Above joining overlay and everything else */
     pointer-events: none;
     overflow: hidden;
     display: none;
@@ -839,6 +845,7 @@ body {
 #screen-transition.closing #transition-top {
     transform: translate(100%, -100%) rotate(-45deg) scale(0.1);
 }
+
 #screen-transition.closing #transition-bottom {
     transform: translate(-100%, 100%) rotate(-45deg) scale(0.1);
 }
@@ -846,6 +853,7 @@ body {
 #screen-transition.opening #transition-top {
     transform: translate(0, 0) rotate(-45deg) scale(1);
 }
+
 #screen-transition.opening #transition-bottom {
     transform: translate(0, 0) rotate(-45deg) scale(1);
 }
@@ -854,6 +862,7 @@ body {
 #screen-transition.closing.run #transition-top {
     transform: translate(0, 0) rotate(-45deg) scale(1);
 }
+
 #screen-transition.closing.run #transition-bottom {
     transform: translate(0, 0) rotate(-45deg) scale(1);
 }
@@ -861,6 +870,7 @@ body {
 #screen-transition.opening.run #transition-top {
     transform: translate(100%, -100%) rotate(-45deg) scale(0.1);
 }
+
 #screen-transition.opening.run #transition-bottom {
     transform: translate(-100%, 100%) rotate(-45deg) scale(0.1);
 }
@@ -876,7 +886,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
+    z-index: 10000; /* Increased to be above game container in all cases */
 }
 
 #auth-container {
@@ -892,7 +902,7 @@ body {
     border-radius: 8px;
     position: relative;
     padding: 15px;
-    box-shadow: inset 0 0 15px #00ffff33, 0 8px 16px rgba(0,0,0,0.5);
+    box-shadow: inset 0 0 15px #00ffff33, 0 8px 16px rgba(0, 0, 0, 0.5);
     display: flex;
     flex-direction: column;
 }
@@ -970,7 +980,7 @@ body {
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.gender-option input:checked + img {
+.gender-option input:checked+img {
     border-color: #00ffff;
     box-shadow: 0 0 10px #00ffffCC;
 }
@@ -1047,8 +1057,15 @@ body {
     font-weight: bold;
 }
 
-#auth-message.error { color: #ff6666; text-shadow: 0 0 5px #000; }
-#auth-message.success { color: #66ff66; text-shadow: 0 0 5px #000; }
+#auth-message.error {
+    color: #ff6666;
+    text-shadow: 0 0 5px #000;
+}
+
+#auth-message.success {
+    color: #66ff66;
+    text-shadow: 0 0 5px #000;
+}
 
 #signup-popup-overlay {
     position: fixed;
@@ -1069,7 +1086,7 @@ body {
     border: 3px solid #1a3a6a;
     border-radius: 8px;
     padding: 20px;
-    box-shadow: inset 0 0 15px #00ffff33, 0 8px 16px rgba(0,0,0,0.5);
+    box-shadow: inset 0 0 15px #00ffff33, 0 8px 16px rgba(0, 0, 0, 0.5);
 }
 
 #signup-popup .popup-header {

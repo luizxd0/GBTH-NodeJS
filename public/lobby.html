@@ -3,10 +3,15 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Gunbound Thor's Hammer - Lobby</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="mobile-fix.css">
     <script src="/socket.io/socket.io.js"></script>
+    <script src="responsive.js"></script>
     <script src="lobby.js"></script>
 </head>
 
@@ -53,9 +58,6 @@
             <button id="btn-friends" class="nav-btn"></button>
             <button id="btn-goto" class="nav-btn"></button>
 
-            <!-- Room List Area -->
-            <div id="rooms-container"></div>
-
             <!-- Main Frames -->
             <div id="gamelist-chat" class="lobby-frame">
                 <input type="text" id="chat-input" maxlength="100">
@@ -71,21 +73,21 @@
             <button id="btn-lobby-create" class="bottom-btn"></button>
             <button id="btn-lobby-join" class="bottom-btn"></button>
         </div>
+    </div>
 
-        <!-- Global Error Popup -->
-        <div id="error-overlay" class="hidden">
-            <div id="error-popup">
-                <div id="error-title">System Error</div>
-                <div id="error-message">An unexpected error occurred. Please try again later.</div>
-                <button id="error-confirm-btn"></button>
-            </div>
+    <!-- Global Error Popup -->
+    <div id="error-overlay" class="hidden">
+        <div id="error-popup">
+            <div id="error-title">System Error</div>
+            <div id="error-message">An unexpected error occurred. Please try again later.</div>
+            <button id="error-confirm-btn"></button>
         </div>
+    </div>
 
-        <!-- Screen Transition Overlay -->
-        <div id="screen-transition">
-            <div id="transition-top" class="transition-bar"></div>
-            <div id="transition-bottom" class="transition-bar"></div>
-        </div>
+    <!-- Screen Transition Overlay -->
+    <div id="screen-transition">
+        <div id="transition-top" class="transition-bar"></div>
+        <div id="transition-bottom" class="transition-bar"></div>
     </div>
 </body>
 

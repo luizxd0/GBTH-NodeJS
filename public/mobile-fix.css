@@ -1,0 +1,67 @@
+/* mobile-fix.css */
+@media (max-width: 600px) {
+    #auth-overlay {
+        background: radial-gradient(circle, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.8) 100%);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+    }
+
+    #auth-container {
+        padding: 10px;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .dragon-box {
+        width: 90% !important;
+        max-width: 320px !important;
+        background: rgba(10, 27, 45, 0.9) !important;
+        border: 2px solid #00ffff !important;
+        box-shadow: 0 0 20px rgba(0, 255, 255, 0.3) !important;
+    }
+
+    .dragon-box-header {
+        font-size: 16px !important;
+        text-align: center;
+    }
+
+    .form-group label {
+        font-size: 14px !important;
+        margin-bottom: 6px !important;
+    }
+
+    .form-group input {
+        padding: 12px 15px !important;
+        font-size: 16px !important;
+        height: 45px !important;
+    }
+
+    .btn-dragon {
+        width: 100% !important;
+        padding: 15px !important;
+        font-size: 18px !important;
+        height: 55px !important;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .gender-selection {
+        gap: 20px !important;
+        padding: 10px 0 !important;
+    }
+
+    .gender-option img {
+        width: 70px !important;
+        height: 70px !important;
+    }
+}
+
+/* Landscape Mobile Adjustments */
+@media (max-height: 500px) and (max-width: 900px) {
+    #auth-container {
+        transform: scale(0.7) translateY(-20px);
+    }
+}
