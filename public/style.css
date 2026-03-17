@@ -625,6 +625,8 @@ body {
     top: 1px;
     left: 13px;
     color: #ffff00;
+    font-family: 'GunboundFont', Arial, sans-serif;
+    font-size: 14px;
 }
 
 #buddy-total-count {
@@ -632,6 +634,82 @@ body {
     top: 1px;
     left: 45px;
     color: #ffff00;
+    font-family: 'GunboundFont', Arial, sans-serif;
+    font-size: 14px;
+}
+ 
+.buddy-item {
+    position: relative;
+    top: 7px;
+    left: 4px;
+    height: 42px;
+    margin-bottom: 2px;
+    cursor: pointer;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+}
+
+.buddy-item.selected {
+    background-image: url('/assets/lobby/buddy_back/buddy_back_frame_1.png');
+}
+ 
+.buddy-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+ 
+.buddy-rank-box {
+    position: absolute;
+    top: 5px;
+    left: 4px;
+    width: 24px;
+    height: 32px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+ 
+.buddy-rank-icon {
+    image-rendering: pixelated;
+}
+ 
+.buddy-info {
+    position: absolute;
+    top: 5px;
+    left: 35px;
+    display: flex;
+    flex-direction: column;
+}
+ 
+.buddy-nickname {
+    position: absolute;
+    top: 14px;
+    left: 0px;
+    color: #fff;
+    font-size: 11px;
+    font-weight: bold;
+    line-height: 14px;
+    height: 14px;
+}
+ 
+.buddy-guild {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    color: #f8a078;
+    font-size: 11px;
+    font-weight: bold;
+    line-height: 14px;
+    height: 14px;
+}
+ 
+.buddy-status {
+    position: absolute;
+    top: 15px;
+    left: 110px;
+}
+ 
+.buddy-logout {
+    image-rendering: pixelated;
 }
 
 .buddy-mini-btn {
@@ -680,6 +758,10 @@ body {
     right: 8px;
     bottom: 8px;
     overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 

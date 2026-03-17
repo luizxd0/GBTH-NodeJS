@@ -17,6 +17,16 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Initial button state
             if (btnServer) btnServer.disabled = true;
+
+            // Identify this session to the server for buddy data immediately
+            const userData = JSON.parse(sessionStorage.getItem('user'));
+            if (userData) {
+                socket.emit('set_user_data', { 
+                    nickname: userData.nickname, 
+                    id: userData.id,
+                    location: 'world_list'
+                });
+            }
         })
         .catch(error => console.error('Error fetching worlds:', error));
 
@@ -139,6 +149,57 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('buddy-list-panel').classList.add('hidden');
         });
     }
+
+    socket.on('buddy_list_data', (data) => {
+        const onlineCountEl = document.getElementById('buddy-online-count');
+        const totalCountEl = document.getElementById('buddy-total-count');
+        const listContent = document.querySelector('.buddy-list-content');
+
+        if (onlineCountEl) onlineCountEl.textContent = data.onlineCount;
+        if (totalCountEl) totalCountEl.textContent = data.totalCount;
+
+        if (listContent) {
+            listContent.innerHTML = '';
+            data.buddies.forEach(buddy => {
+                const item = document.createElement('div');
+                item.className = 'buddy-item';
+                
+                const rankSrc = `/assets/rank1/rank1_frame_${buddy.grade}.png`;
+                
+                let statusFrame = 4; // Default to offline (Logout)
+                if (buddy.online) {
+                    if (buddy.location === 'world_list') statusFrame = 5;
+                    else if (buddy.location === 'channel') statusFrame = 2;
+                    else if (buddy.location === 'in_game') statusFrame = 3;
+                    else if (buddy.location === 'avatar_shop') statusFrame = 6;
+                    else statusFrame = 0; // Default online status
+                }
+                
+                const statusImg = `<img src="/assets/lobby/buddy_back/buddy_back_frame_${statusFrame}.png" class="buddy-logout">`;
+
+                item.innerHTML = `
+                    <div class="buddy-rank-box">
+                        <img src="${rankSrc}" class="buddy-rank-icon">
+                    </div>
+                    <div class="buddy-info">
+                        <div class="buddy-guild">${buddy.guild || ''}</div>
+                        <div class="buddy-nickname">${buddy.nickname}</div>
+                    </div>
+                    <div class="buddy-status">
+                        ${statusImg}
+                    </div>
+                `;
+
+                // Selection logic
+                item.addEventListener('click', (e) => {
+                    document.querySelectorAll('.buddy-item').forEach(el => el.classList.remove('selected'));
+                    item.classList.add('selected');
+                });
+
+                listContent.appendChild(item);
+            });
+        }
+    });
 
     function toggleBuddyPanel() {
         const panel = document.getElementById('buddy-list-panel');

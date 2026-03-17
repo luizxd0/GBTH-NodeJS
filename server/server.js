@@ -240,19 +240,113 @@ io.on('connection', (socket) => {
     socket.on('set_user_data', (data) => {
         if (data && data.nickname) {
             userSockets.set(data.nickname.toLowerCase(), socket.id);
-            socketData.set(socket.id, { nickname: data.nickname, id: data.id });
-            console.log(`[Buddy] Linked ${data.nickname} to ${socket.id}`);
+            socketData.set(socket.id, { 
+                nickname: data.nickname, 
+                id: data.id,
+                location: data.location || 'unknown'
+            });
+            console.log(`[Buddy] Linked ${data.nickname} to ${socket.id} at ${data.location || 'unknown'}`);
             io.emit('playerCountUpdate', userSockets.size);
+            
+            // Automatically send buddy list on identification
+            sendBuddyList(socket, data.id);
+
+            // Notify buddies that this user is now online/changed location
+            notifyBuddiesOfStatusChange(data.id);
         }
     });
+
+    async function sendBuddyList(socket, userId) {
+        try {
+            const connection = await pool.getConnection();
+            try {
+                const [buddies] = await connection.execute(
+                    `SELECT b.Buddy as id, g.Nickname, g.TotalGrade as Grade, g.Guild 
+                     FROM buddylist b
+                     JOIN game g ON b.Buddy = g.Id
+                     WHERE b.Id = ?`,
+                    [userId]
+                );
+
+                const buddyListData = buddies.map(b => {
+                    const buddyNicknameKey = b.Nickname.toLowerCase();
+                    const isOnline = userSockets.has(buddyNicknameKey);
+                    let location = 'offline';
+                    
+                    if (isOnline) {
+                        const buddySocketId = userSockets.get(buddyNicknameKey);
+                        const buddyData = socketData.get(buddySocketId);
+                        location = buddyData ? buddyData.location : 'online';
+                    }
+
+                    return {
+                        nickname: b.Nickname,
+                        grade: b.Grade,
+                        guild: b.Guild,
+                        online: isOnline,
+                        location: location
+                    };
+                });
+
+                const onlineCount = buddyListData.filter(b => b.online).length;
+                const totalCount = buddyListData.length;
+
+                socket.emit('buddy_list_data', {
+                    buddies: buddyListData,
+                    onlineCount,
+                    totalCount
+                });
+            } catch (err) {
+                console.error('[Buddy] Error fetching list:', err);
+            } finally {
+                connection.release();
+            }
+        } catch (error) {
+            console.error('[Buddy] Connection Error:', error);
+        }
+    }
+
+    async function notifyBuddiesOfStatusChange(userId) {
+        try {
+            const connection = await pool.getConnection();
+            try {
+                const [friendsOnline] = await connection.execute(
+                    `SELECT g.Nickname, g.Id
+                     FROM buddylist b
+                     JOIN game g ON b.Id = g.Id
+                     WHERE b.Buddy = ?`,
+                    [userId]
+                );
+
+                for (const friend of friendsOnline) {
+                    const friendSocketId = userSockets.get(friend.Nickname.toLowerCase());
+                    if (friendSocketId) {
+                        const friendSocket = io.sockets.sockets.get(friendSocketId);
+                        if (friendSocket) {
+                            sendBuddyList(friendSocket, friend.Id);
+                        }
+                    }
+                }
+            } finally {
+                connection.release();
+            }
+        } catch (error) {
+            console.error('[Buddy] Error notifying buddies:', error);
+        }
+    }
 
     socket.on('leave_lobby', () => {
         const data = socketData.get(socket.id);
         if (data) {
-            userSockets.delete(data.nickname.toLowerCase());
+            const userId = data.id;
+            const nickname = data.nickname;
+            userSockets.delete(nickname.toLowerCase());
             socketData.delete(socket.id);
-            console.log(`[Buddy] User left lobby: ${data.nickname}`);
+            console.log(`[Buddy] User left lobby: ${nickname}`);
             io.emit('playerCountUpdate', userSockets.size);
+
+            // Notify buddies that this user is now offline/changing screen
+            notifyBuddiesOfStatusChange(userId);
         }
     });
 
@@ -268,6 +362,13 @@ io.on('connection', (socket) => {
             });
         }
         // No specific error if offline, as per user's "wait for answer" requirement
+    });
+
+    socket.on('get_buddy_list', async () => {
+        const user = socketData.get(socket.id);
+        if (user) {
+            sendBuddyList(socket, user.id);
+        }
     });
 
     socket.on('respond_buddy_request', async (data) => {
@@ -321,10 +422,15 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         const data = socketData.get(socket.id);
         if (data) {
-            userSockets.delete(data.nickname.toLowerCase());
+            const userId = data.id;
+            const nickname = data.nickname;
+            userSockets.delete(nickname.toLowerCase());
             socketData.delete(socket.id);
-            console.log(`User disconnected: ${data.nickname}`);
+            console.log(`User disconnected: ${nickname}`);
             io.emit('playerCountUpdate', userSockets.size);
+
+            // Notify buddies that this user is now offline
+            notifyBuddiesOfStatusChange(userId);
         }
     });
 });
