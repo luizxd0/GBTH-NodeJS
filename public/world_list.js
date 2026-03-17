@@ -119,6 +119,83 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const btnBuddy = document.getElementById('btn-buddy');
+    if (btnBuddy) {
+        btnBuddy.addEventListener('click', () => {
+            toggleBuddyPanel();
+        });
+    }
+
+    function toggleBuddyPanel() {
+        const panel = document.getElementById('buddy-list-panel');
+        if (panel) {
+            const isHidden = panel.classList.contains('hidden');
+            if (isHidden) {
+                // Reset to CSS default position before showing
+                panel.style.top = '';
+                panel.style.left = '';
+            }
+            panel.classList.toggle('hidden');
+        }
+    }
+
+    // F10 Toggle for Buddy List
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'F10') {
+            e.preventDefault(); // Prevent browser menu
+            toggleBuddyPanel();
+        }
+    });
+
+    // Make Buddy List Draggable
+    const buddyPanel = document.getElementById('buddy-list-panel');
+    if (buddyPanel) {
+        makeDraggable(buddyPanel);
+    }
+
+    function makeDraggable(el) {
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+        
+        el.onmousedown = dragMouseDown;
+
+        function dragMouseDown(e) {
+            // Only drag if clicking in the top area (Y < 40 relative to element)
+            const rect = el.getBoundingClientRect();
+            const scale = window.currentScale || 1;
+            const relativeY = (e.clientY - rect.top) / scale;
+            
+            if (relativeY > 40) return; 
+
+            e = e || window.event;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            document.onmousemove = elementDrag;
+        }
+
+        function elementDrag(e) {
+            e = e || window.event;
+            e.preventDefault();
+            
+            const scale = window.currentScale || 1;
+            
+            // calculate the new cursor position:
+            pos1 = (pos3 - e.clientX) / scale;
+            pos2 = (pos4 - e.clientY) / scale;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            
+            // set the element's new position:
+            el.style.top = (el.offsetTop - pos2) + "px";
+            el.style.left = (el.offsetLeft - pos1) + "px";
+        }
+
+        function closeDragElement() {
+            document.onmouseup = null;
+            document.onmousemove = null;
+        }
+    }
+
     // Custom Scroll Logic
     const viewport = document.querySelector('.server-list-viewport');
     const scrollUpBtn = document.getElementById('scroll-up');
