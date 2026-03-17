@@ -9,6 +9,10 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
+// Tracking online users for buddy requests
+const userSockets = new Map(); // nickname -> socket.id
+const socketData = new Map(); // socket.id -> { nickname, id }
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
@@ -215,16 +219,114 @@ app.post('/api/login', async (req, res) => {
 
 // ─── WORLDS ──────────────────────────────────
 app.get('/api/worlds', (req, res) => {
-    // Return only 1 world as requested
+    // Return only 1 world as requested, counting only users in the lobby
     res.json([
         {
             server_name: 'Server 1',
             server_description: 'All',
-            server_utilization: io.sockets.sockets.size,
+            server_utilization: userSockets.size,
             server_capacity: 10,
             server_enabled: true
         }
     ]);
+});
+
+io.on('connection', (socket) => {
+    console.log('User connected:', socket.id);
+    
+    // Send current lobby count to new connections (e.g. World List)
+    socket.emit('playerCountUpdate', userSockets.size);
+
+    socket.on('set_user_data', (data) => {
+        if (data && data.nickname) {
+            userSockets.set(data.nickname.toLowerCase(), socket.id);
+            socketData.set(socket.id, { nickname: data.nickname, id: data.id });
+            console.log(`[Buddy] Linked ${data.nickname} to ${socket.id}`);
+            io.emit('playerCountUpdate', userSockets.size);
+        }
+    });
+
+    socket.on('leave_lobby', () => {
+        const data = socketData.get(socket.id);
+        if (data) {
+            userSockets.delete(data.nickname.toLowerCase());
+            socketData.delete(socket.id);
+            console.log(`[Buddy] User left lobby: ${data.nickname}`);
+            io.emit('playerCountUpdate', userSockets.size);
+        }
+    });
+
+    socket.on('send_buddy_request', (targetNickname) => {
+        const sender = socketData.get(socket.id);
+        if (!sender) return;
+
+        const targetSocketId = userSockets.get(targetNickname.toLowerCase());
+        if (targetSocketId && io.sockets.sockets.get(targetSocketId)) {
+            io.to(targetSocketId).emit('incoming_buddy_request', {
+                fromNickname: sender.nickname,
+                fromId: sender.id
+            });
+        }
+        // No specific error if offline, as per user's "wait for answer" requirement
+    });
+
+    socket.on('respond_buddy_request', async (data) => {
+        const { fromNickname, fromId, accepted } = data;
+        const receiver = socketData.get(socket.id);
+        if (!receiver) return;
+
+        const senderSocketId = userSockets.get(fromNickname.toLowerCase());
+
+        if (accepted) {
+            try {
+                const connection = await pool.getConnection();
+                try {
+                    await connection.beginTransaction();
+                    
+                    // Mutual insert into buddylist
+                    // Schema: Id, Category, Buddy
+                    // Assuming Category 'Friend' (0) for now
+                    await connection.execute(
+                        'INSERT IGNORE INTO buddylist (Id, Category, Buddy) VALUES (?, ?, ?)',
+                        [receiver.id, 'Friend', fromId]
+                    );
+                    await connection.execute(
+                        'INSERT IGNORE INTO buddylist (Id, Category, Buddy) VALUES (?, ?, ?)',
+                        [fromId, 'Friend', receiver.id]
+                    );
+                    
+                    await connection.commit();
+                    console.log(`[Buddy] Mutual relationship created for ${receiver.nickname} and ${fromNickname}`);
+
+                    if (senderSocketId) {
+                        io.to(senderSocketId).emit('buddy_request_accepted', { nickname: receiver.nickname });
+                    }
+                } catch (err) {
+                    await connection.rollback();
+                    console.error('[Buddy] DB Error on accept:', err);
+                } finally {
+                    connection.release();
+                }
+            } catch (error) {
+                console.error('[Buddy] Connection Error:', error);
+            }
+        } else {
+            console.log(`[Buddy] ${receiver.nickname} rejected ${fromNickname}`);
+            if (senderSocketId) {
+                io.to(senderSocketId).emit('buddy_request_rejected', { nickname: receiver.nickname });
+            }
+        }
+    });
+
+    socket.on('disconnect', () => {
+        const data = socketData.get(socket.id);
+        if (data) {
+            userSockets.delete(data.nickname.toLowerCase());
+            socketData.delete(socket.id);
+            console.log(`User disconnected: ${data.nickname}`);
+            io.emit('playerCountUpdate', userSockets.size);
+        }
+    });
 });
 
 const PORT = process.env.PORT || 3000;

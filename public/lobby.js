@@ -40,6 +40,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (gpSpan) {
             gpSpan.textContent = (userData.score || 0).toLocaleString() + ' GP';
         }
+
+        // Identify this session to the server for buddy requests
+        socket.emit('set_user_data', { nickname: userData.nickname, id: userData.id });
     }
 
 
@@ -71,6 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.addEventListener('click', () => {
                 console.log(`Button clicked: ${id}`);
                 if (id === 'btn-lobby-exit') {
+                    socket.emit('leave_lobby');
                     window.location.href = 'world_list.html';
                 }
                 if (id === 'btn-lobby-buddy') {
@@ -117,31 +121,47 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (nickname === 'Perry') { // Example simulation for "Already Friends"
                 showBuddyAlert(`'${nickname}' is already your friend.`);
             } else if (nickname !== '') {
-                // Simulation for successful buddy request
+                // Real buddy request emit
+                socket.emit('send_buddy_request', nickname);
                 showBuddyAlert(`You trying to add ${nickname} to the buddy list, wait for an answer.`);
                 document.getElementById('add-buddy-popup').classList.add('hidden');
             }
         });
     }
 
+    let currentAlertCallbacks = { onYes: null, onNo: null };
+
     const btnBuddyAlertYes = document.getElementById('btn-buddy-alert-yes');
+    const btnBuddyAlertNo = document.getElementById('btn-buddy-alert-no');
     if (btnBuddyAlertYes) {
         btnBuddyAlertYes.addEventListener('click', () => {
             document.getElementById('buddy-alert-popup').classList.add('hidden');
+            if (currentAlertCallbacks.onYes) currentAlertCallbacks.onYes();
+        });
+    }
+    if (btnBuddyAlertNo) {
+        btnBuddyAlertNo.addEventListener('click', () => {
+            document.getElementById('buddy-alert-popup').classList.add('hidden');
+            if (currentAlertCallbacks.onNo) currentAlertCallbacks.onNo();
         });
     }
 
-    window.showBuddyAlert = function(message) {
+    window.showBuddyAlert = function(message, options = {}) {
+        const { showNoButton = false, onYes = null, onNo = null } = options;
         const popup = document.getElementById('buddy-alert-popup');
         const parent = document.getElementById('add-buddy-popup');
         const textBox = document.getElementById('buddy-alert-text-box');
+        const btnNo = document.getElementById('btn-buddy-alert-no');
+        const btnYes = document.getElementById('btn-buddy-alert-yes');
         
-        if (popup && textBox && parent) {
+        if (popup && textBox && parent && btnYes && btnNo) {
             textBox.textContent = message;
             popup.classList.remove('hidden');
             
+            // Store callbacks
+            currentAlertCallbacks = { onYes, onNo };
+            
             // Calculate center relative to parent (Add Buddy window)
-            // parent: 253x147, alert: 200x138 (from user CSS adjustments)
             const parentRect = {
                 top: parseInt(parent.style.top) || 226,
                 left: parseInt(parent.style.left) || 273
@@ -152,8 +172,39 @@ document.addEventListener('DOMContentLoaded', () => {
             
             popup.style.top = (parentRect.top + offsetTop) + 'px';
             popup.style.left = (parentRect.left + offsetLeft) + 'px';
+
+            if (showNoButton) {
+                btnNo.classList.remove('hidden');
+                btnNo.style.left = '64px';
+                btnYes.style.left = '128px';
+            } else {
+                btnNo.classList.add('hidden');
+                btnYes.style.left = '128px';
+            }
         }
     };
+
+    // Socket Listeners for Buddy Flow
+    socket.on('incoming_buddy_request', (data) => {
+        showBuddyAlert(`'${data.fromNickname}' Is trying to enter on your buddy list, Do you accept?`, {
+            showNoButton: true,
+            onYes: () => {
+                socket.emit('respond_buddy_request', { fromNickname: data.fromNickname, fromId: data.fromId, accepted: true });
+            },
+            onNo: () => {
+                socket.emit('respond_buddy_request', { fromNickname: data.fromNickname, fromId: data.fromId, accepted: false });
+            }
+        });
+    });
+
+    socket.on('buddy_request_accepted', (data) => {
+        showBuddyAlert(`'${data.nickname}' has accepted your buddy request.`);
+        // Note: Future step could involve refreshing the actual buddy list UI here
+    });
+
+    socket.on('buddy_request_rejected', (data) => {
+        showBuddyAlert(`'${data.nickname}' has rejected your buddy request.`);
+    });
 
     function toggleBuddyPanel() {
         const panel = document.getElementById('buddy-list-panel');

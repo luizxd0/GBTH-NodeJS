@@ -1149,6 +1149,26 @@ body {
     background-image: url('/assets/lobby/b_buddywindow_delyes/b_buddywindow_delyes_frame_3.png');
 }
 
+#btn-buddy-alert-no {
+    position: absolute;
+    top: 106px;
+    left: 101px; /* To be adjusted by JS if necessary, but starting point for 2-button layout */
+    right: auto;
+    background-image: url('/assets/lobby/b_buddywindow_delno/b_buddywindow_delno_frame_0.png');
+}
+
+#btn-buddy-alert-no:hover:not(:disabled) {
+    background-image: url('/assets/lobby/b_buddywindow_delno/b_buddywindow_delno_frame_1.png');
+}
+
+#btn-buddy-alert-no:active:not(:disabled) {
+    background-image: url('/assets/lobby/b_buddywindow_delno/b_buddywindow_delno_frame_2.png');
+}
+
+#btn-buddy-alert-no:disabled {
+    background-image: url('/assets/lobby/b_buddywindow_delno/b_buddywindow_delno_frame_3.png');
+}
+
 /* DragonBound-Style Auth UI Styling */
 #auth-overlay {
     position: fixed;
