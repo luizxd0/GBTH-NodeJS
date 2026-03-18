@@ -45,6 +45,9 @@ document.addEventListener('DOMContentLoaded', () => {
         socket.emit('set_user_data', { 
             nickname: userData.nickname, 
             id: userData.id,
+            gender: userData.gender,
+            grade: userData.grade || 24,
+            guild: userData.guild || '',
             location: 'channel' 
         });
     }
@@ -270,6 +273,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 listContent.appendChild(item);
             });
             setTimeout(updateBuddyScrollButtons, 50);
+        }
+    });
+
+    socket.on('channel_users', (users) => {
+        const channelListContent = document.getElementById('channel-list-content');
+        if (channelListContent) {
+            channelListContent.innerHTML = '';
+            users.forEach(user => {
+                const item = document.createElement('div');
+                item.className = 'channel-item';
+                
+                const genderSrc = user.gender === 0 ? '/assets/avataimsi/avataimsi_frame_1.png' : '/assets/avataimsi/avataimsi_frame_2.png';
+                const rankSrc = `/assets/rank1/rank1_frame_${user.grade || 24}.png`;
+                
+                item.innerHTML = `
+                    <div class="channel-gender-box">
+                        <img src="${genderSrc}" class="channel-gender-icon">
+                    </div>
+                    <div class="channel-rank-box">
+                        <img src="${rankSrc}" class="channel-rank-icon">
+                    </div>
+                    <div class="channel-info">
+                        <div class="channel-guild">${user.guild || ''}</div>
+                        <div class="channel-nickname">${user.nickname}</div>
+                    </div>
+                `;
+                
+                channelListContent.appendChild(item);
+            });
         }
     });
 

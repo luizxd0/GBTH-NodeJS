@@ -254,6 +254,9 @@ io.on('connection', (socket) => {
             socketData.set(socket.id, {
                 nickname: data.nickname,
                 id: data.id,
+                gender: data.gender,
+                grade: data.grade,
+                guild: data.guild,
                 location: data.location || 'unknown',
                 serverId: data.location === 'world_list' ? 0 : 1,
                 channelId: data.location === 'channel' ? 1 : (data.location === 'in_game' ? (data.roomId || 1) : 0)
@@ -267,8 +270,30 @@ io.on('connection', (socket) => {
             // Notify buddies that this user is now online/changed location
             // Delay = 0 means immediate update and cancel any pending "offline" notice
             notifyBuddiesOfStatusChange(data.id, 0);
+
+            broadcastChannelUsers();
         }
     });
+
+    function broadcastChannelUsers() {
+        const channelUsers = [];
+        for (const [sId, data] of socketData.entries()) {
+            if (data.location === 'channel') {
+                channelUsers.push({
+                    id: data.id,
+                    nickname: data.nickname,
+                    gender: data.gender,
+                    grade: data.grade,
+                    guild: data.guild
+                });
+            }
+        }
+        for (const [sId, data] of socketData.entries()) {
+            if (data.location === 'channel') {
+                io.to(sId).emit('channel_users', channelUsers);
+            }
+        }
+    }
 
     async function sendBuddyList(socket, userId) {
         try {
@@ -383,6 +408,7 @@ io.on('connection', (socket) => {
 
             // Removing immediate notification here. 
             // The disconnect handler will trigger a delayed notification instead.
+            broadcastChannelUsers();
         }
     });
 
@@ -518,6 +544,7 @@ io.on('connection', (socket) => {
             // Notify buddies that this user is now offline with a short delay (100ms)
             // This allows for seamless page transitions without flickering "LOG OUT"
             notifyBuddiesOfStatusChange(userId, 100);
+            broadcastChannelUsers();
         }
     });
 });
