@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        if (rankingValue) rankingValue.textContent = (userData.rank || '1').toLocaleString();
+        if (rankingValue) rankingValue.textContent = (userData.rank !== undefined ? userData.rank : '1').toLocaleString();
 
         // Rank mapping to assets (Thor's Hammer 1-24 grade system)
         if (rankIcon) {
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        if (rankingValue) rankingValue.textContent = (data.rank || '1').toLocaleString();
+        if (rankingValue) rankingValue.textContent = (data.rank !== undefined ? data.rank : '1').toLocaleString();
 
         if (rankIcon) {
             const grade = data.grade || 24;
