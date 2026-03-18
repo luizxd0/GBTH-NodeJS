@@ -69,6 +69,11 @@
 
             <!-- Main Frames -->
             <div id="gamelist-chat" class="lobby-frame">
+                <div id="chat-messages-content"></div>
+                <div class="chat-scroll-controls">
+                    <button class="chat-scroll-button btn-chat-scroll-up disabled"></button>
+                    <button class="chat-scroll-button btn-chat-scroll-down disabled"></button>
+                </div>
                 <input type="text" id="chat-input" maxlength="100" autocomplete="off">
                 <div id="chat-cursor"></div>
                 <!-- Hidden span to measure text width for cursor positioning -->
@@ -77,6 +82,10 @@
 
             <div id="gamelist-channel" class="lobby-frame">
                 <div id="channel-list-content"></div>
+                <div class="channel-scroll-controls">
+                    <button class="channel-scroll-button btn-channel-scroll-up disabled"></button>
+                    <button class="channel-scroll-button btn-channel-scroll-down disabled"></button>
+                </div>
             </div>
 
             <!-- Bottom Action Buttons -->

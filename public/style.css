@@ -1611,6 +1611,214 @@ body {
 }
 
 .btn-buddy-scroll-down.disabled {
+    pointer-events: none;
+}
+
+/* Channel Scroll Controls */
+.channel-scroll-controls {
+    position: absolute;
+    right: 4px;
+    top: 35px;
+    bottom: 8px;
+    width: 20px;
+    z-index: 15;
+}
+
+.channel-scroll-controls::before {
+    content: '';
+    position: absolute;
+    top: 18px;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    background-color: #004261;
+    z-index: -1;
+}
+
+.channel-scroll-button {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border: none;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: auto;
+    outline: none;
+    cursor: url('/assets/cursor/cursor_frame_0.png') 0 0, auto;
+}
+
+.btn-channel-scroll-up {
+    top: 0;
+    left: 1px;
+    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_0.png');
+}
+
+.btn-channel-scroll-up:hover:not(.disabled) {
+    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_1.png');
+}
+
+.btn-channel-scroll-up:active:not(.disabled) {
+    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_2.png');
+}
+
+.btn-channel-scroll-up.disabled {
+    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_3.png');
+    pointer-events: none;
+}
+
+.btn-channel-scroll-down {
+    bottom: 5px;
+    left: 1px;
+    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_0.png');
+}
+
+.btn-channel-scroll-down:hover:not(.disabled) {
+    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_1.png');
+}
+
+.btn-channel-scroll-down:active:not(.disabled) {
+    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_2.png');
+}
+
+.btn-channel-scroll-down.disabled {
+    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_3.png');
+    pointer-events: none;
+}
+
+/* Chat Messages and Scroll Controls */
+#chat-messages-content {
+    position: absolute;
+    top: 40px;
+    left: 22px;
+    bottom: 30px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    scrollbar-width: none; /* Hide default scrollbar */
+    -ms-overflow-style: none;
+}
+
+#chat-messages-content::-webkit-scrollbar {
+    display: none;
+}
+
+.chat-message {
+    font-size: 11px;
+    line-height: 14px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-family: Arial, sans-serif;
+    text-shadow: 1px 1px 1px #000;
+}
+
+.chat-message.system {
+    color: #00ffff;
+}
+
+.chat-message.orange {
+    color: #ff6600;
+}
+
+.chat-message.green {
+    color: #00ff00;
+}
+
+.chat-message.yellow {
+    color: #ffff00;
+}
+
+.chat-message.user {
+    color: #f8fcf8;
+}
+
+.chat-message .chat-guild {
+    color: #f8fcf8;
+    text-shadow: 
+        -1px -1px 0 #0000f8,
+         1px -1px 0 #0000f8,
+        -1px  1px 0 #0000f8,
+         1px  1px 0 #0000f8;
+    font-weight: bold;
+}
+
+.chat-message .nickname {
+    font-weight: bold;
+    color: #f8fcf8;
+    margin-right: 2px;
+}
+
+.chat-scroll-controls {
+    position: absolute;
+    right: 4px;
+    top: 6px;
+    bottom: 30px;
+    width: 20px;
+    z-index: 15;
+}
+
+.chat-scroll-controls::before {
+    content: '';
+    position: absolute;
+    top: 18px;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    background-color: #004261;
+    z-index: -1;
+}
+
+.chat-scroll-button {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border: none;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: auto;
+    outline: none;
+    cursor: url('/assets/cursor/cursor_frame_0.png') 0 0, auto;
+}
+
+.btn-chat-scroll-up {
+    top: 0;
+    left: 1px;
+    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_0.png');
+}
+
+.btn-chat-scroll-up:hover:not(.disabled) {
+    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_1.png');
+}
+
+.btn-chat-scroll-up:active:not(.disabled) {
+    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_2.png');
+}
+
+.btn-chat-scroll-up.disabled {
+    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_3.png');
+    pointer-events: none;
+}
+
+.btn-chat-scroll-down {
+    bottom: 5px;
+    left: 1px;
+    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_0.png');
+}
+
+.btn-chat-scroll-down:hover:not(.disabled) {
+    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_1.png');
+}
+
+.btn-chat-scroll-down:active:not(.disabled) {
+    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_2.png');
+}
+
+.btn-chat-scroll-down.disabled {
     background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_3.png');
     pointer-events: none;
 }

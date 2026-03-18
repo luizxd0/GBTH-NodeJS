@@ -276,6 +276,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    socket.on('lobby_message', (data) => {
+        const messagesContent = document.getElementById('chat-messages-content');
+        if (messagesContent) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `chat-message ${data.type} ${data.color || ''}`;
+            
+            if (data.type === 'user') {
+                const guildHtml = data.guild ? `<span class="chat-guild">${data.guild}</span>` : '';
+                msgDiv.innerHTML = `${guildHtml}<span class="nickname">${data.nickname}]</span> ${data.message}`;
+            } else {
+                msgDiv.textContent = (data.icon ? data.icon + ' ' : '') + data.message;
+            }
+            
+            messagesContent.appendChild(msgDiv);
+            
+            // Auto-scroll to bottom if we were already at the bottom
+            const isAtBottom = messagesContent.scrollHeight - messagesContent.scrollTop <= messagesContent.clientHeight + 40;
+            if (isAtBottom) {
+                messagesContent.scrollTop = messagesContent.scrollHeight;
+            }
+            
+            setTimeout(updateChatScrollButtons, 50);
+        }
+    });
+
     socket.on('channel_users', (users) => {
         const channelListContent = document.getElementById('channel-list-content');
         if (channelListContent) {
@@ -302,6 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 channelListContent.appendChild(item);
             });
+            setTimeout(updateChannelScrollButtons, 50);
         }
     });
 
@@ -403,6 +429,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // Initial position
         updateCursor();
         
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const message = chatInput.value.trim();
+                if (message !== '') {
+                    socket.emit('lobby_message', message);
+                    chatInput.value = '';
+                    updateCursor();
+                }
+            }
+        });
+
         // Ensure cursor is always updated even if window focus changes
         window.addEventListener('focus', updateCursor);
     }
@@ -518,4 +555,149 @@ document.addEventListener('DOMContentLoaded', () => {
             document.onmousemove = null;
         }
     }
+
+    // Scroll Logic for Buddy and Channel Lists
+    const buddyViewport = document.querySelector('.buddy-list-content');
+    const buddyScrollUpBtn = document.querySelector('.btn-buddy-scroll-up');
+    const buddyScrollDownBtn = document.querySelector('.btn-buddy-scroll-down');
+    
+    const channelViewport = document.getElementById('channel-list-content');
+    const channelScrollUpBtn = document.querySelector('.btn-channel-scroll-up');
+    const channelScrollDownBtn = document.querySelector('.btn-channel-scroll-down');
+    
+    const scrollAmount = 30;
+
+    function updateBuddyScrollButtons() {
+        if (!buddyViewport || !buddyScrollUpBtn || !buddyScrollDownBtn) return;
+        if (buddyViewport.scrollTop <= 0) {
+            buddyScrollUpBtn.classList.add('disabled');
+        } else {
+            buddyScrollUpBtn.classList.remove('disabled');
+        }
+        if (buddyViewport.scrollTop + buddyViewport.clientHeight >= buddyViewport.scrollHeight - 2) {
+            buddyScrollDownBtn.classList.add('disabled');
+        } else {
+            buddyScrollDownBtn.classList.remove('disabled');
+        }
+    }
+
+    function updateChannelScrollButtons() {
+        if (!channelViewport || !channelScrollUpBtn || !channelScrollDownBtn) return;
+        if (channelViewport.scrollTop <= 0) {
+            channelScrollUpBtn.classList.add('disabled');
+        } else {
+            channelScrollUpBtn.classList.remove('disabled');
+        }
+        if (channelViewport.scrollTop + channelViewport.clientHeight >= channelViewport.scrollHeight - 2) {
+            channelScrollDownBtn.classList.add('disabled');
+        } else {
+            channelScrollDownBtn.classList.remove('disabled');
+        }
+    }
+
+    if (buddyScrollUpBtn) {
+        buddyScrollUpBtn.addEventListener('click', () => {
+            buddyViewport.scrollBy({ top: -scrollAmount, behavior: 'smooth' });
+        });
+    }
+    if (buddyScrollDownBtn) {
+        buddyScrollDownBtn.addEventListener('click', () => {
+            buddyViewport.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+        });
+    }
+    if (buddyViewport) {
+        buddyViewport.addEventListener('scroll', updateBuddyScrollButtons);
+    }
+
+    if (channelScrollUpBtn) {
+        channelScrollUpBtn.addEventListener('click', () => {
+            channelViewport.scrollBy({ top: -scrollAmount, behavior: 'smooth' });
+        });
+    }
+    if (channelScrollDownBtn) {
+        channelScrollDownBtn.addEventListener('click', () => {
+            channelViewport.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+        });
+    }
+    if (channelViewport) {
+        channelViewport.addEventListener('scroll', updateChannelScrollButtons);
+    }
+
+    const chatViewport = document.getElementById('chat-messages-content');
+    const chatScrollUpBtn = document.querySelector('.btn-chat-scroll-up');
+    const chatScrollDownBtn = document.querySelector('.btn-chat-scroll-down');
+
+    function updateChatScrollButtons() {
+        if (!chatViewport || !chatScrollUpBtn || !chatScrollDownBtn) return;
+        if (chatViewport.scrollTop <= 0) {
+            chatScrollUpBtn.classList.add('disabled');
+        } else {
+            chatScrollUpBtn.classList.remove('disabled');
+        }
+        if (chatViewport.scrollTop + chatViewport.clientHeight >= chatViewport.scrollHeight - 2) {
+            chatScrollDownBtn.classList.add('disabled');
+        } else {
+            chatScrollDownBtn.classList.remove('disabled');
+        }
+    }
+
+    if (chatScrollUpBtn) {
+        chatScrollUpBtn.addEventListener('click', () => {
+            chatViewport.scrollBy({ top: -scrollAmount, behavior: 'smooth' });
+        });
+    }
+    if (chatScrollDownBtn) {
+        chatScrollDownBtn.addEventListener('click', () => {
+            chatViewport.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+        });
+    }
+    if (chatViewport) {
+        chatViewport.addEventListener('scroll', updateChatScrollButtons);
+    }
+
+    function sendSystemWelcome() {
+        if (!chatViewport) return;
+        const nickname = userData ? userData.nickname : 'Player';
+        const now = new Date();
+        
+        // UK Style Timestamp: DD/MM/YYYY HH:mm:ss
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const year = now.getFullYear();
+        const timeStr = now.toTimeString().split(' ')[0];
+        const ukDateStr = `${day}/${month}/${year} ${timeStr}`;
+        
+        // Dynamic Greeting based on Hour
+        const hour = now.getHours();
+        let greeting = "Good night";
+        if (hour >= 5 && hour < 12) greeting = "Good morning";
+        else if (hour >= 12 && hour < 18) greeting = "Good afternoon";
+        else if (hour >= 18 && hour < 22) greeting = "Good evening";
+        
+        const systemMessages = [
+            { message: "GunBound Classic Thor's Hammer", color: 'orange' },
+            { message: `${greeting} ${nickname}`, color: 'green' },
+            { message: `Requesting SVC_CHANNEL_JOIN 1 at ${ukDateStr}`, color: 'yellow' }
+        ];
+
+        systemMessages.forEach((msg, index) => {
+            setTimeout(() => {
+                const div = document.createElement('div');
+                div.className = `chat-message ${msg.color}`;
+                div.textContent = msg.message;
+                chatViewport.appendChild(div);
+                updateChatScrollButtons();
+                chatViewport.scrollTop = chatViewport.scrollHeight;
+            }, index * 100);
+        });
+    }
+
+    // Initial check
+    window.setTimeout(() => {
+        updateBuddyScrollButtons();
+        updateChannelScrollButtons();
+        updateChatScrollButtons();
+        
+        sendSystemWelcome();
+    }, 100);
 });

@@ -275,6 +275,20 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('lobby_message', (message) => {
+        const user = socketData.get(socket.id);
+        if (user && message && message.trim() !== '') {
+            // Broadcasting to everyone in the lobby for now. 
+            // In a multi-channel setup, we would filter by location/channel.
+            io.emit('lobby_message', {
+                nickname: user.nickname,
+                guild: user.guild,
+                message: message.trim(),
+                type: 'user'
+            });
+        }
+    });
+
     function broadcastChannelUsers() {
         const channelUsers = [];
         for (const [sId, data] of socketData.entries()) {
