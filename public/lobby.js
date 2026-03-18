@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     else statusFrame = 0; // Default online status
                 }
                 
-                const statusImg = `<img src="/assets/lobby/buddy_back/buddy_back_frame_${statusFrame}.png" class="buddy-logout">`;
+                const statusImg = `<img src="/assets/lobby/buddy_back/buddy_back_frame_${statusFrame}.png" class="buddy-status-img status-${statusFrame} buddy-logout">`;
 
                 item.innerHTML = `
                     <div class="buddy-rank-box">
@@ -269,6 +269,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Reset to CSS default position before showing
                 panel.style.top = '';
                 panel.style.left = '';
+                // Clear selection when opening
+                document.querySelectorAll('.buddy-item').forEach(el => el.classList.remove('selected'));
             }
             panel.classList.toggle('hidden');
         }

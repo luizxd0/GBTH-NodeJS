@@ -645,7 +645,7 @@ body {
     width: 160px;
     height: 28px;
     margin-bottom: 2px;
-    cursor: pointer;
+    
     /* Removed transform and z-index on parent to let ::before z-index: -1 work relative to parent content */
 }
 
@@ -677,10 +677,13 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    box-sizing: border-box;
+    z-index: 2;
 }
  
 .buddy-rank-icon {
     image-rendering: pixelated;
+    background-color: black;
 }
  
 .buddy-info {
@@ -715,8 +718,18 @@ body {
  
 .buddy-status {
     position: absolute;
-    top: 7px;
-    left: 115px;
+    top: 1px;
+    left: 109px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px; /* Match row height to help centering */
+    z-index: 5;
+}
+
+.buddy-status-img.status-5 {
+    position: relative;
+    top: 1px; /* Offset for World List to center it better */
 }
  
 .buddy-logout {
