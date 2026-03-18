@@ -14,6 +14,16 @@ const userSockets = new Map(); // nickname -> socket.id
 const socketData = new Map(); // socket.id -> { nickname, id }
 const pendingNotifications = new Map(); // userId -> timeoutId
 
+function getActivePlayerCount() {
+    let count = 0;
+    for (const data of socketData.values()) {
+        if (data.location !== 'world_list') {
+            count++;
+        }
+    }
+    return count;
+}
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
@@ -225,7 +235,7 @@ app.get('/api/worlds', (req, res) => {
         {
             server_name: 'Server 1',
             server_description: 'All',
-            server_utilization: userSockets.size,
+            server_utilization: getActivePlayerCount(),
             server_capacity: 10,
             server_enabled: true
         }
@@ -247,7 +257,7 @@ io.on('connection', (socket) => {
                 location: data.location || 'unknown'
             });
             console.log(`[Buddy] Linked ${data.nickname} to ${socket.id} at ${data.location || 'unknown'}`);
-            io.emit('playerCountUpdate', userSockets.size);
+            io.emit('playerCountUpdate', getActivePlayerCount());
 
             // Automatically send buddy list on identification
             sendBuddyList(socket, data.id);
@@ -360,7 +370,7 @@ io.on('connection', (socket) => {
             userSockets.delete(nickname.toLowerCase());
             socketData.delete(socket.id);
             console.log(`[Buddy] User left lobby: ${nickname}`);
-            io.emit('playerCountUpdate', userSockets.size);
+            io.emit('playerCountUpdate', getActivePlayerCount());
 
             // Removing immediate notification here. 
             // The disconnect handler will trigger a delayed notification instead.
@@ -444,9 +454,9 @@ io.on('connection', (socket) => {
             userSockets.delete(nickname.toLowerCase());
             socketData.delete(socket.id);
             console.log(`User disconnected: ${nickname}`);
-            io.emit('playerCountUpdate', userSockets.size);
+            io.emit('playerCountUpdate', getActivePlayerCount());
 
-            // Notify buddies that this user is now offline with a short delay (1s)
+            // Notify buddies that this user is now offline with a short delay (100ms)
             // This allows for seamless page transitions without flickering "LOG OUT"
             notifyBuddiesOfStatusChange(userId, 100);
         }
