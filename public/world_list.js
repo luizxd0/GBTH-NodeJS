@@ -206,6 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 listContent.appendChild(item);
             });
+            setTimeout(updateBuddyScrollButtons, 50);
         }
     });
 
@@ -357,4 +358,53 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // playTransition removed
+
+    // Buddy List Scroll Logic
+    const buddyViewport = document.querySelector('.buddy-list-content');
+    const buddyScrollUpBtn = document.querySelector('.btn-buddy-scroll-up');
+    const buddyScrollDownBtn = document.querySelector('.btn-buddy-scroll-down');
+    const buddyScrollAmount = 30; // roughly one buddy row height + gap
+
+    function updateBuddyScrollButtons() {
+        if (!buddyViewport || !buddyScrollUpBtn || !buddyScrollDownBtn) return;
+        
+        // Disable up button if at top
+        if (buddyViewport.scrollTop <= 0) {
+            buddyScrollUpBtn.classList.add('disabled');
+        } else {
+            buddyScrollUpBtn.classList.remove('disabled');
+        }
+
+        // Disable down button if at bottom (or if no scroll needed)
+        // Adding a small 2px margin of error
+        if (buddyViewport.scrollTop + buddyViewport.clientHeight >= buddyViewport.scrollHeight - 2) {
+            buddyScrollDownBtn.classList.add('disabled');
+        } else {
+            buddyScrollDownBtn.classList.remove('disabled');
+        }
+    }
+
+    if (buddyScrollUpBtn) {
+        buddyScrollUpBtn.addEventListener('click', () => {
+            if (buddyViewport) {
+                buddyViewport.scrollBy({ top: -buddyScrollAmount, behavior: 'smooth' });
+                // We shouldn't rely only on smooth scroll finishing for the UI update, but the scroll event itself handles it.
+            }
+        });
+    }
+
+    if (buddyScrollDownBtn) {
+        buddyScrollDownBtn.addEventListener('click', () => {
+            if (buddyViewport) {
+                buddyViewport.scrollBy({ top: buddyScrollAmount, behavior: 'smooth' });
+            }
+        });
+    }
+
+    if (buddyViewport) {
+        buddyViewport.addEventListener('scroll', updateBuddyScrollButtons);
+        // Initial check
+        window.setTimeout(updateBuddyScrollButtons, 100);
+    }
+
 });

@@ -269,6 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 listContent.appendChild(item);
             });
+            setTimeout(updateBuddyScrollButtons, 50);
         }
     });
 
