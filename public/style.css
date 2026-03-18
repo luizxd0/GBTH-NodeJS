@@ -481,8 +481,8 @@ body {
 
 .name-guild-group {
     position: absolute;
-    top: 3px;
-    left: 30px;
+    top: 5px;
+    left: 27px;
 }
 
 #lobby-guild {
@@ -1611,13 +1611,14 @@ body {
 }
 
 .btn-buddy-scroll-down.disabled {
+    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_3.png');
     pointer-events: none;
 }
 
 /* Channel Scroll Controls */
 .channel-scroll-controls {
     position: absolute;
-    right: 4px;
+    right: 9px;
     top: 35px;
     bottom: 8px;
     width: 20px;
@@ -1850,7 +1851,9 @@ body {
 
 .channel-item {
     position: relative;
-    width: 175px;
+    top: 5px;
+    left: 0px;
+    width: 160px;
     height: 28px;
     display: flex;
     align-items: center;
@@ -1862,6 +1865,9 @@ body {
 }
 
 .channel-gender-box {
+    position: relative;
+    top: 0px;
+    left: 0px;
     width: auto;
     min-width: 20px;
     height: 28px;
@@ -1876,6 +1882,9 @@ body {
 }
 
 .channel-rank-box {
+    position: relative;
+    top: 0px;
+    left: -3px;
     width: auto;
     min-width: 24px;
     height: 28px;
@@ -1893,6 +1902,8 @@ body {
 
 .channel-info {
     position: relative;
+    top: 3px;
+    left: -10px;
     margin-left: 6px;
     width: 110px;
     height: 28px;

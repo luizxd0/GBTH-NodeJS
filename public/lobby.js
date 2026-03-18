@@ -53,6 +53,40 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Handle fresh user data from server (sync with DB)
+    socket.on('user_info_update', (data) => {
+        console.log('Received user info update from server', data);
+        sessionStorage.setItem('user', JSON.stringify(data));
+        updateUserUI(data);
+    });
+
+    function updateUserUI(data) {
+        if (!data) return;
+        if (nicknameSpan) nicknameSpan.textContent = data.nickname;
+
+        if (guildSpan) {
+            if (data.guild && data.guild.trim() !== '') {
+                guildSpan.textContent = data.guild + ' [ 1/ 1]';
+            } else {
+                guildSpan.textContent = '';
+            }
+        }
+
+        if (rankingValue) rankingValue.textContent = (data.rank || '1').toLocaleString();
+
+        if (rankIcon) {
+            const grade = data.grade || 24;
+            rankIcon.src = `/assets/rank1/rank1_frame_${grade}.png`;
+        }
+
+        if (goldSpan) goldSpan.textContent = 'GOLD : ' + (data.gold || 0).toLocaleString();
+        if (cashSpan) cashSpan.textContent = 'CASH : ' + (data.cash || 0).toLocaleString();
+
+        if (gpSpan) {
+            gpSpan.textContent = (data.score || 0).toLocaleString() + ' GP';
+        }
+    }
+
 
     // Custom Animated Cursor Logic (same as world_list)
     let cursorFrame = 0;

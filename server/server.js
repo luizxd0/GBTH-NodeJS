@@ -69,7 +69,21 @@ app.post('/api/signup', async (req, res) => {
             );
 
             await connection.commit();
-            res.status(201).json({ message: 'Account created successfully' });
+            res.status(201).json({
+                message: 'Account created successfully',
+                user: {
+                    id: username,
+                    nickname: nickname,
+                    guild: '',
+                    authority: authority,
+                    gender: parseInt(gender),
+                    gold: gold,
+                    cash: cash,
+                    score: score,
+                    grade: grade,
+                    rank: 0
+                }
+            });
         } catch (err) {
             await connection.rollback();
             if (err.code === 'ER_DUP_ENTRY') {
@@ -119,7 +133,7 @@ async function updateRanks() {
         for (const player of rows) {
             // GM Authority check
             if (player.Authority === 100) {
-                fixedRankUpdates.push({ Id: player.Id, Grade: 20, Rank: 0 });
+                fixedRankUpdates.push({ Id: player.Id, Grade: 25, Rank: 0 });
                 continue;
             }
 
@@ -248,29 +262,61 @@ io.on('connection', (socket) => {
     // Send current lobby count to new connections (e.g. World List)
     socket.emit('playerCountUpdate', userSockets.size);
 
-    socket.on('set_user_data', (data) => {
+    socket.on('set_user_data', async (data) => {
         if (data && data.nickname) {
-            userSockets.set(data.nickname.toLowerCase(), socket.id);
-            socketData.set(socket.id, {
-                nickname: data.nickname,
-                id: data.id,
-                gender: data.gender,
-                grade: data.grade,
-                guild: data.guild,
-                authority: data.authority || 0,
-                location: data.location || 'unknown',
-                serverId: data.location === 'world_list' ? 0 : 1,
-                channelId: data.location === 'channel' ? 1 : (data.location === 'in_game' ? (data.roomId || 1) : 0)
-            });
+            // Fetch latest data from DB to ensure sync
+            try {
+                const [rows] = await pool.execute(
+                    `SELECT u.UserId, u.Authority, u.Gender, g.Nickname, g.Guild, g.Gold, g.Cash, g.TotalScore, g.TotalGrade, g.TotalRank 
+                     FROM user u
+                     JOIN game g ON u.UserId = g.Id
+                     WHERE g.Nickname = ?`,
+                    [data.nickname]
+                );
+
+                if (rows.length > 0) {
+                    const dbUser = rows[0];
+                    userSockets.set(dbUser.Nickname.toLowerCase(), socket.id);
+                    socketData.set(socket.id, {
+                        nickname: dbUser.Nickname,
+                        id: dbUser.UserId,
+                        gender: dbUser.Gender,
+                        grade: dbUser.TotalGrade,
+                        guild: dbUser.Guild,
+                        authority: dbUser.Authority,
+                        location: data.location || 'unknown',
+                        serverId: data.location === 'world_list' ? 0 : 1,
+                        channelId: data.location === 'channel' ? 1 : (data.location === 'in_game' ? (data.roomId || 1) : 0)
+                    });
+
+                    // Send updated user info back to client
+                    socket.emit('user_info_update', {
+                        id: dbUser.UserId,
+                        nickname: dbUser.Nickname,
+                        guild: dbUser.Guild,
+                        authority: dbUser.Authority,
+                        gender: dbUser.Gender,
+                        gold: dbUser.Gold,
+                        cash: dbUser.Cash,
+                        score: dbUser.TotalScore,
+                        grade: dbUser.TotalGrade,
+                        rank: dbUser.TotalRank
+                    });
+                }
+            } catch (err) {
+                console.error('[UserSync] Error fetching latest data:', err);
+            }
+
             console.log(`[Buddy] Linked ${data.nickname} to ${socket.id} at ${data.location || 'unknown'} (Auth: ${data.authority || 0})`);
             io.emit('playerCountUpdate', getActivePlayerCount());
 
             // Automatically send buddy list on identification
-            sendBuddyList(socket, data.id);
-
-            // Notify buddies that this user is now online/changed location
-            // Delay = 0 means immediate update and cancel any pending "offline" notice
-            notifyBuddiesOfStatusChange(data.id, 0);
+            // Wait, we need the user id, which we now have from dbUser
+            const currentData = socketData.get(socket.id);
+            if (currentData) {
+                sendBuddyList(socket, currentData.id);
+                notifyBuddiesOfStatusChange(currentData.id, 0);
+            }
 
             broadcastChannelUsers();
         }
@@ -280,7 +326,7 @@ io.on('connection', (socket) => {
         const user = socketData.get(socket.id);
         if (user && message && message.trim() !== '') {
             const trimmedMessage = message.trim();
-            
+
             // Check for commands
             if (trimmedMessage.startsWith('/')) {
                 const Commands = require('./commands');
