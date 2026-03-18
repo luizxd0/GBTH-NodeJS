@@ -640,29 +640,40 @@ body {
  
 .buddy-item {
     position: relative;
-    top: 7px;
-    left: 4px;
-    height: 42px;
+    top: 9px;
+    left: 6px;
+    width: 160px;
+    height: 28px;
     margin-bottom: 2px;
     cursor: pointer;
-    background-repeat: no-repeat;
-    background-size: 100% 100%;
+    /* Removed transform and z-index on parent to let ::before z-index: -1 work relative to parent content */
 }
 
-.buddy-item.selected {
+.buddy-item.selected::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background-image: url('/assets/lobby/buddy_back/buddy_back_frame_1.png');
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    z-index: -1;
 }
+
+/* Selection background handled by ::before pseudo-element */
  
-.buddy-item:hover {
+.buddy-item:hover:not(.selected) {
     background-color: rgba(255, 255, 255, 0.1);
 }
  
 .buddy-rank-box {
     position: absolute;
-    top: 5px;
+    top: 0px;
     left: 4px;
     width: 24px;
-    height: 32px;
+    height: 28px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -674,7 +685,7 @@ body {
  
 .buddy-info {
     position: absolute;
-    top: 5px;
+    top: 0px;
     left: 35px;
     display: flex;
     flex-direction: column;
@@ -682,7 +693,7 @@ body {
  
 .buddy-nickname {
     position: absolute;
-    top: 14px;
+    top: 12px;
     left: 0px;
     color: #fff;
     font-size: 11px;
@@ -704,8 +715,8 @@ body {
  
 .buddy-status {
     position: absolute;
-    top: 15px;
-    left: 110px;
+    top: 7px;
+    left: 115px;
 }
  
 .buddy-logout {
