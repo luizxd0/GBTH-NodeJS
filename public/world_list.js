@@ -98,7 +98,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectedServer) {
             showJoiningAnimation(() => {
                 socket.emit('joinWorld');
-                window.location.href = 'lobby.html';
+                window.playTransition('closing', () => {
+                    window.location.href = 'lobby.html';
+                });
             });
         } else {
             window.showError("Server Access Error", "Please select a server first to join.");

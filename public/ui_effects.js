@@ -1,0 +1,101 @@
+/**
+ * UI Effects Utility
+ * Handles global UI sound effects like button hovers, screen transitions, and persistent BGM.
+ */
+
+window.playTransition = function(type, callback) {
+    const transition = document.getElementById('screen-transition');
+    if (!transition) {
+        if (callback) callback();
+        return;
+    }
+
+    transition.classList.remove('opening', 'closing', 'run');
+    transition.classList.add('active', type);
+    
+    // Force reflow
+    transition.offsetHeight;
+
+    transition.classList.add('run');
+
+    setTimeout(() => {
+        if (type === 'opening') {
+            transition.classList.remove('active', 'opening', 'run');
+        }
+        if (callback) callback();
+    }, 700); 
+};
+
+(function() {
+    // Persistent BGM Logic for channel.mp3
+    const isMusicPage = window.location.pathname.includes('world_list.html') || window.location.pathname.includes('lobby.html');
+    let bgm = null;
+
+    if (isMusicPage) {
+        bgm = new Audio('/assets/sounds/channel.mp3');
+        bgm.loop = true;
+        bgm.volume = 0.5;
+        
+        // Load saved position
+        const savedTime = sessionStorage.getItem('channelBgmTime');
+        if (savedTime) {
+            bgm.currentTime = parseFloat(savedTime);
+        }
+        
+        bgm.play().catch(e => console.log('BGM blocked:', e));
+
+        // Save position on any navigation
+        window.addEventListener('beforeunload', () => {
+            if (bgm) {
+                sessionStorage.setItem('channelBgmTime', bgm.currentTime);
+            }
+        });
+    }
+
+    // Initial opening transition on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        window.playTransition('opening');
+    });
+
+    const hoverSound = new Audio('/assets/sounds/bselect1.ogg');
+    hoverSound.preload = 'auto';
+    hoverSound.volume = 0.5;
+
+    const clickSound = new Audio('/assets/sounds/bpush1.ogg');
+    clickSound.preload = 'auto';
+    clickSound.volume = 0.5;
+
+    let lastHoveredElement = null;
+
+    document.addEventListener('mouseover', (e) => {
+        // Find the closest interactive element
+        const target = e.target.closest('button, a, .btn, .nav-btn, .nav-btn-mini, .bottom-btn, .buddy-mini-btn, .server-item, .buddy-item, .buddy-scroll-button, .chat-scroll-button, .channel-scroll-button');
+        
+        if (target && target !== lastHoveredElement) {
+            // Check if it's not disabled
+            if (!target.disabled && !target.classList.contains('disabled')) {
+                // Play hover sound
+                const soundClone = hoverSound.cloneNode();
+                soundClone.volume = hoverSound.volume;
+                soundClone.play().catch(() => {});
+            }
+            lastHoveredElement = target;
+        }
+    }, true);
+
+    document.addEventListener('mouseout', (e) => {
+        const target = e.target.closest('button, a, .btn, .nav-btn, .nav-btn-mini, .bottom-btn, .buddy-mini-btn, .server-item, .buddy-item, .buddy-scroll-button, .chat-scroll-button, .channel-scroll-button');
+        if (target === lastHoveredElement) {
+            lastHoveredElement = null;
+        }
+    }, true);
+
+    document.addEventListener('click', (e) => {
+        const target = e.target.closest('button, a, .btn, .nav-btn, .nav-btn-mini, .bottom-btn, .buddy-mini-btn, .server-item, .buddy-item, .buddy-scroll-button, .chat-scroll-button, .channel-scroll-button');
+        if (target && !target.disabled && !target.classList.contains('disabled')) {
+            const soundClone = clickSound.cloneNode();
+            soundClone.volume = clickSound.volume;
+            soundClone.play().catch(() => {});
+        }
+    }, true);
+})();

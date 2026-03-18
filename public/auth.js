@@ -20,6 +20,25 @@ document.addEventListener('DOMContentLoaded', () => {
         authMessage.textContent = '';
     });
 
+    // Audio Logic
+    let bgm = new Audio('/assets/sounds/title.mp3');
+    bgm.loop = false;
+    bgm.preload = 'auto';
+
+    // Pre-unlock audio on first user gesture
+    function unlockAudio() {
+        bgm.play().then(() => {
+            bgm.pause();
+            bgm.currentTime = 0;
+        }).catch(e => {});
+        document.removeEventListener('click', unlockAudio);
+        document.removeEventListener('keydown', unlockAudio);
+    }
+    document.addEventListener('click', unlockAudio);
+    document.addEventListener('keydown', unlockAudio);
+
+    // Signup Submission
+
     // Signup Submission
     const signupForm = document.getElementById('signup-form');
     signupForm.addEventListener('submit', async (e) => {
@@ -40,15 +59,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Store user data dynamically
                 sessionStorage.setItem('user', JSON.stringify(result.user));
                 
-                // Play closing transition before redirect
-                playTransition('closing', () => {
-                    window.location.href = 'world_list.html';
+                // Play intro sound and wait for it to end before navigating
+                bgm.play().catch(e => {
+                    console.log('Audio play failed:', e);
+                    window.playTransition('closing', () => {
+                        window.location.href = 'world_list.html';
+                    });
                 });
+
+                bgm.onended = () => {
+                    window.playTransition('closing', () => {
+                        window.location.href = 'world_list.html';
+                    });
+                };
             } else {
-                showMessage(result.error || 'Signup failed', 'error');
+                showError('Signup Error', result.error || 'Signup failed');
             }
         } catch (error) {
-            showMessage('Connection error', 'error');
+            showError('Connection Error', 'Could not connect to the server.');
         }
     });
 
@@ -72,15 +100,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Store user data dynamically
                 sessionStorage.setItem('user', JSON.stringify(result.user));
                 
-                // Play closing transition before redirect
-                playTransition('closing', () => {
-                    window.location.href = 'world_list.html';
+                // Play intro sound and wait for it to end before navigating
+                bgm.play().catch(e => {
+                    console.log('Audio play failed:', e);
+                    window.playTransition('closing', () => {
+                        window.location.href = 'world_list.html';
+                    });
                 });
+
+                bgm.onended = () => {
+                    window.playTransition('closing', () => {
+                        window.location.href = 'world_list.html';
+                    });
+                };
             } else {
-                showMessage(result.error || 'Login failed', 'error');
+                showError('Login Error', result.error || 'Login failed');
             }
         } catch (error) {
-            showMessage('Connection error', 'error');
+            showError('Connection Error', 'Could not connect to the server.');
         }
     });
 
@@ -89,26 +126,22 @@ document.addEventListener('DOMContentLoaded', () => {
         authMessage.className = type;
     }
 
-    function playTransition(type, callback) {
-        const transition = document.getElementById('screen-transition');
-        if (!transition) {
-            if (callback) callback();
-            return;
-        }
+    function showError(title, message) {
+        const errorOverlay = document.getElementById('error-overlay');
+        const errorTitle = document.getElementById('error-title');
+        const errorMessage = document.getElementById('error-message');
+        const errorBtn = document.getElementById('error-confirm-btn');
 
-        transition.classList.remove('opening', 'closing', 'run');
-        transition.classList.add('active', type);
-        
-        // Force reflow
-        transition.offsetHeight;
-
-        transition.classList.add('run');
-
-        setTimeout(() => {
-            if (type === 'opening') {
-                transition.classList.remove('active', 'opening', 'run');
+        if (errorOverlay && errorTitle && errorMessage) {
+            errorTitle.textContent = title;
+            errorMessage.textContent = message;
+            errorOverlay.classList.remove('hidden');
+            
+            if (errorBtn) {
+                errorBtn.onclick = () => {
+                    errorOverlay.classList.add('hidden');
+                };
             }
-            if (callback) callback();
-        }, 700); 
+        }
     }
 });

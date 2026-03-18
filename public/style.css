@@ -23,9 +23,45 @@ body {
     width: 100vw;
     height: 100vh;
     overflow: auto;
+    z-index: 9999;
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+/* Screen Transitions */
+#screen-transition {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #000;
+    z-index: 10000;
+    pointer-events: none;
+    opacity: 0;
+}
+
+#screen-transition.active {
+    pointer-events: auto;
+}
+
+#screen-transition.active.closing.run {
+    animation: fade-in 0.7s forwards;
+}
+
+#screen-transition.active.opening.run {
+    animation: fade-out 0.7s forwards;
+}
+
+@keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
 }
 
 #game-container {

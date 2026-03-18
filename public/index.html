@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=800, initial-scale=1.0">
     <title>Gunbound Thor's Hammer</title>
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
     <link rel="stylesheet" href="style.css?v=123">
 </head>
 <body class="title-screen">
     <div id="game-container"></div>
+    <div id="screen-transition" class="active opening run"></div>
     <div id="auth-overlay">
         <div id="auth-container">
             <!-- Login Box -->
@@ -79,6 +81,16 @@
         </div>
     </div>
 
+    <!-- Global Error Popup -->
+    <div id="error-overlay" class="hidden">
+        <div id="error-popup">
+            <div id="error-title">System Error</div>
+            <div id="error-message">An unexpected error occurred. Please try again later.</div>
+            <button id="error-confirm-btn"></button>
+        </div>
+    </div>
+
+    <script src="ui_effects.js"></script>
     <script src="auth.js"></script>
 </body>
 </html>
