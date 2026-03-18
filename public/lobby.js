@@ -1,12 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Transition removed for instant load
     const socket = io();
-    
+
     console.log('Lobby screen loaded');
-    
+
     // Populate User Info (Dynamically from session)
     const userData = JSON.parse(sessionStorage.getItem('user'));
-    
+
     const nicknameSpan = document.getElementById('lobby-nickname');
     const guildSpan = document.getElementById('lobby-guild');
     const rankIcon = document.getElementById('lobby-rank-icon');
@@ -14,10 +14,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const goldSpan = document.getElementById('lobby-gold');
     const cashSpan = document.getElementById('lobby-cash');
     const gpSpan = document.getElementById('lobby-gp');
-    
+
     if (userData) {
         if (nicknameSpan) nicknameSpan.textContent = userData.nickname;
-        
+
         if (guildSpan) {
             if (userData.guild && userData.guild.trim() !== '') {
                 guildSpan.textContent = userData.guild + ' [ 1/ 1]';
@@ -25,9 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 guildSpan.textContent = '';
             }
         }
-        
+
         if (rankingValue) rankingValue.textContent = (userData.rank || '1').toLocaleString();
-        
+
         // Rank mapping to assets (Thor's Hammer 1-24 grade system)
         if (rankIcon) {
             const grade = userData.grade || 24;
@@ -36,19 +36,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (goldSpan) goldSpan.textContent = 'GOLD : ' + (userData.gold || 0).toLocaleString();
         if (cashSpan) cashSpan.textContent = 'CASH : ' + (userData.cash || 0).toLocaleString();
-        
+
         if (gpSpan) {
             gpSpan.textContent = (userData.score || 0).toLocaleString() + ' GP';
         }
 
         // Identify this session to the server for buddy requests
-        socket.emit('set_user_data', { 
-            nickname: userData.nickname, 
+        socket.emit('set_user_data', {
+            nickname: userData.nickname,
             id: userData.id,
             gender: userData.gender,
             grade: userData.grade || 24,
             guild: userData.guild || '',
-            location: 'channel' 
+            location: 'channel'
         });
     }
 
@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Custom Animated Cursor Logic (same as world_list)
     let cursorFrame = 0;
     let lastMoveTime = 0;
-    
+
     document.documentElement.style.cursor = `url('/assets/cursor/cursor_frame_0.png') 0 0, auto`;
 
     document.addEventListener('mousemove', () => {
@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const buttons = [
-        'btn-lobby-exit', 'btn-lobby-buddy', 'btn-lobby-ranking', 
+        'btn-lobby-exit', 'btn-lobby-buddy', 'btn-lobby-ranking',
         'btn-lobby-avatar', 'btn-lobby-create', 'btn-lobby-join',
         'btn-view-all', 'btn-waiting', 'btn-friends', 'btn-goto',
         'btn-nav-prev', 'btn-nav-next'
@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Reset position to center if it was moved
                 addBuddyPopup.style.top = '226px';
                 addBuddyPopup.style.left = '273px';
-                
+
                 // Reset and Focus input
                 if (addBuddyInput) {
                     addBuddyInput.value = '';
@@ -153,30 +153,30 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    window.showBuddyAlert = function(message, options = {}) {
+    window.showBuddyAlert = function (message, options = {}) {
         const { showNoButton = false, onYes = null, onNo = null } = options;
         const popup = document.getElementById('buddy-alert-popup');
         const parent = document.getElementById('add-buddy-popup');
         const textBox = document.getElementById('buddy-alert-text-box');
         const btnNo = document.getElementById('btn-buddy-alert-no');
         const btnYes = document.getElementById('btn-buddy-alert-yes');
-        
+
         if (popup && textBox && parent && btnYes && btnNo) {
             textBox.textContent = message;
             popup.classList.remove('hidden');
-            
+
             // Store callbacks
             currentAlertCallbacks = { onYes, onNo };
-            
+
             // Calculate center relative to parent (Add Buddy window)
             const parentRect = {
                 top: parseInt(parent.style.top) || 226,
                 left: parseInt(parent.style.left) || 273
             };
-            
+
             const offsetTop = (147 - 138) / 2;
             const offsetLeft = (253 - 200) / 2;
-            
+
             popup.style.top = (parentRect.top + offsetTop) + 'px';
             popup.style.left = (parentRect.left + offsetLeft) + 'px';
 
@@ -226,9 +226,9 @@ document.addEventListener('DOMContentLoaded', () => {
             data.buddies.forEach(buddy => {
                 const item = document.createElement('div');
                 item.className = 'buddy-item';
-                
+
                 const rankSrc = `/assets/rank1/rank1_frame_${buddy.grade}.png`;
-                
+
                 item.dataset.id = buddy.id;
                 item.dataset.nickname = buddy.nickname;
 
@@ -240,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     else if (buddy.location === 'avatar_shop') statusFrame = 6;
                     else statusFrame = 0; // Default online status
                 }
-                
+
                 const statusImg = `<img src="/assets/lobby/buddy_back/buddy_back_frame_${statusFrame}.png" class="buddy-status-img status-${statusFrame} buddy-logout">`;
 
                 item.innerHTML = `
@@ -281,22 +281,22 @@ document.addEventListener('DOMContentLoaded', () => {
         if (messagesContent) {
             const msgDiv = document.createElement('div');
             msgDiv.className = `chat-message ${data.type} ${data.color || ''}`;
-            
+
             if (data.type === 'user') {
                 const guildHtml = data.guild ? `<span class="chat-guild">${data.guild}</span>` : '';
                 msgDiv.innerHTML = `${guildHtml}<span class="nickname">${data.nickname}]</span> ${data.message}`;
             } else {
                 msgDiv.textContent = (data.icon ? data.icon + ' ' : '') + data.message;
             }
-            
+
             messagesContent.appendChild(msgDiv);
-            
+
             // Auto-scroll to bottom if we were already at the bottom
             const isAtBottom = messagesContent.scrollHeight - messagesContent.scrollTop <= messagesContent.clientHeight + 40;
             if (isAtBottom) {
                 messagesContent.scrollTop = messagesContent.scrollHeight;
             }
-            
+
             setTimeout(updateChatScrollButtons, 50);
         }
     });
@@ -308,10 +308,10 @@ document.addEventListener('DOMContentLoaded', () => {
             users.forEach(user => {
                 const item = document.createElement('div');
                 item.className = 'channel-item';
-                
+
                 const genderSrc = user.gender === 0 ? '/assets/avataimsi/avataimsi_frame_1.png' : '/assets/avataimsi/avataimsi_frame_2.png';
                 const rankSrc = `/assets/rank1/rank1_frame_${user.grade || 24}.png`;
-                
+
                 item.innerHTML = `
                     <div class="channel-gender-box">
                         <img src="${genderSrc}" class="channel-gender-icon">
@@ -324,7 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="channel-nickname">${user.nickname}</div>
                     </div>
                 `;
-                
+
                 channelListContent.appendChild(item);
             });
             setTimeout(updateChannelScrollButtons, 50);
@@ -369,7 +369,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorMessage = document.getElementById('error-message');
     const errorConfirmBtn = document.getElementById('error-confirm-btn');
 
-    window.showError = function(title, message) {
+    window.showError = function (title, message) {
         if (!errorOverlay || !errorTitle || !errorMessage) return;
         errorTitle.textContent = title;
         errorMessage.textContent = message;
@@ -394,10 +394,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const text = chatInput.value;
             const selectionStart = chatInput.selectionStart;
             const textBeforeCursor = text.substring(0, selectionStart);
-            
+
             ghostSpan.textContent = textBeforeCursor;
             const width = ghostSpan.offsetWidth;
-            
+
             // 23px is the base left offset of the input
             chatCursor.style.left = (23 + width) + 'px';
         }
@@ -407,7 +407,7 @@ document.addEventListener('DOMContentLoaded', () => {
         chatInput.addEventListener('click', updateCursor);
         chatInput.addEventListener('focus', updateCursor);
         chatInput.addEventListener('blur', updateCursor);
-        
+
         // Global key listener to auto-focus chat
         document.addEventListener('keydown', (e) => {
             // If we're not already typing in an input, and it's a printable character or backspace
@@ -416,7 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete') {
                     const addBuddyPopup = document.getElementById('add-buddy-popup');
                     const isAddBuddyVisible = addBuddyPopup && !addBuddyPopup.classList.contains('hidden');
-                    
+
                     if (isAddBuddyVisible && addBuddyInput) {
                         addBuddyInput.focus();
                     } else if (chatInput) {
@@ -428,7 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Initial position
         updateCursor();
-        
+
         chatInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 const message = chatInput.value.trim();
@@ -454,10 +454,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const text = addBuddyInput.value;
             const selectionStart = addBuddyInput.selectionStart;
             const textBeforeCursor = text.substring(0, selectionStart);
-            
+
             addBuddyGhostSpan.textContent = textBeforeCursor;
             const width = addBuddyGhostSpan.offsetWidth;
-            
+
             // Now relative to the same container as the input
             addBuddyCursor.style.left = (addBuddyInput.offsetLeft + 5 + width) + 'px';
             addBuddyCursor.style.top = (addBuddyInput.offsetTop + 4) + 'px';
@@ -473,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnBuddyExit = document.getElementById('btn-buddy-exit');
     if (btnBuddyExit) {
         btnBuddyExit.addEventListener('click', () => {
-             document.getElementById('buddy-list-panel').classList.add('hidden');
+            document.getElementById('buddy-list-panel').classList.add('hidden');
         });
     }
 
@@ -487,7 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const nickname = selected.dataset.nickname;
             const targetId = selected.dataset.id;
-            
+
             if (nickname && targetId) {
                 showBuddyAlert(`Are you sure you want to delete '${nickname}'?`, {
                     showNoButton: true,
@@ -517,7 +517,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function makeDraggable(el) {
         let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-        
+
         el.onmousedown = dragMouseDown;
 
         function dragMouseDown(e) {
@@ -525,7 +525,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (e.target.tagName.toLowerCase() === 'button') return;
 
             e = e || window.event;
-            
+
             pos3 = e.clientX;
             pos4 = e.clientY;
             document.onmouseup = closeDragElement;
@@ -536,15 +536,15 @@ document.addEventListener('DOMContentLoaded', () => {
         function elementDrag(e) {
             e = e || window.event;
             e.preventDefault();
-            
+
             const scale = window.currentScale || 1;
-            
+
             // calculate the new cursor position:
             pos1 = (pos3 - e.clientX) / scale;
             pos2 = (pos4 - e.clientY) / scale;
             pos3 = e.clientX;
             pos4 = e.clientY;
-            
+
             // set the element's new position:
             el.style.top = (el.offsetTop - pos2) + "px";
             el.style.left = (el.offsetLeft - pos1) + "px";
@@ -560,11 +560,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const buddyViewport = document.querySelector('.buddy-list-content');
     const buddyScrollUpBtn = document.querySelector('.btn-buddy-scroll-up');
     const buddyScrollDownBtn = document.querySelector('.btn-buddy-scroll-down');
-    
+
     const channelViewport = document.getElementById('channel-list-content');
     const channelScrollUpBtn = document.querySelector('.btn-channel-scroll-up');
     const channelScrollDownBtn = document.querySelector('.btn-channel-scroll-down');
-    
+
     const scrollAmount = 30;
 
     function updateBuddyScrollButtons() {
@@ -659,25 +659,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!chatViewport) return;
         const nickname = userData ? userData.nickname : 'Player';
         const now = new Date();
-        
+
         // UK Style Timestamp: DD/MM/YYYY HH:mm:ss
         const day = String(now.getDate()).padStart(2, '0');
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const year = now.getFullYear();
         const timeStr = now.toTimeString().split(' ')[0];
         const ukDateStr = `${day}/${month}/${year} ${timeStr}`;
-        
+
         // Dynamic Greeting based on Hour
         const hour = now.getHours();
         let greeting = "Good night";
         if (hour >= 5 && hour < 12) greeting = "Good morning";
         else if (hour >= 12 && hour < 18) greeting = "Good afternoon";
         else if (hour >= 18 && hour < 22) greeting = "Good evening";
-        
+
         const systemMessages = [
             { message: "GunBound Classic Thor's Hammer", color: 'orange' },
             { message: `${greeting} ${nickname}`, color: 'green' },
-            { message: `Requesting SVC_CHANNEL_JOIN 1 at ${ukDateStr}`, color: 'yellow' }
+            { message: `Joined Channel 1 at ${ukDateStr}`, color: 'yellow' }
         ];
 
         systemMessages.forEach((msg, index) => {
@@ -697,7 +697,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateBuddyScrollButtons();
         updateChannelScrollButtons();
         updateChatScrollButtons();
-        
+
         sendSystemWelcome();
     }, 100);
 });
