@@ -827,12 +827,18 @@ body {
     top: 35px;
     left: 8px;
     right: 28px;
-    bottom: 8px;
+    bottom: 12px;
     overflow-y: auto;
     overflow-x: hidden;
     display: flex;
     flex-direction: column;
     gap: 2px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.buddy-list-content::-webkit-scrollbar {
+    display: none;
 }
 
 
@@ -922,6 +928,7 @@ body {
     background-image: url('/assets/lobby/gamelist_chat/gamelist_chat_frame_0.png');
     background-size: 549px 259px;
     z-index: 5;
+    overflow: hidden;
 }
 
 #gamelist-channel {
@@ -932,6 +939,7 @@ body {
     background-image: url('/assets/lobby/gamelist_channel/gamelist_channel_frame_0.png');
     background-size: 207px 259px;
     z-index: 5;
+    overflow: hidden;
 }
 
 #chat-input {
@@ -1270,18 +1278,18 @@ body {
 }
 
 .buddy-alert-btn {
-    width: 63px;
-    height: 24px;
+    width: 61px;
+    height: 32px;
     border: none;
     background-color: transparent;
-    background-size: 63px 24px;
+    background-size: 61px 32px;
     cursor: url('/assets/cursor/cursor_frame_0.png') 0 0, auto;
     outline: none;
 }
 
 #btn-buddy-alert-yes {
     position: absolute;
-    top: 106px;
+    top: 102px;
     left: 128px;
     right: auto;
     background-image: url('/assets/lobby/b_buddywindow_delyes/b_buddywindow_delyes_frame_0.png');
@@ -1841,12 +1849,18 @@ body {
     top: 32px;
     left: 7px;
     right: 20px;
-    bottom: 8px;
+    bottom: 12px;
     overflow-y: auto;
     overflow-x: hidden;
     display: flex;
     flex-direction: column;
     gap: 2px;
+    scrollbar-width: none;               /* Hide default scrollbar for Firefox */
+    -ms-overflow-style: none;            /* Hide default scrollbar for IE/Edge */
+}
+
+#channel-list-content::-webkit-scrollbar {
+    display: none;                         /* Hide default scrollbar for Chrome/Safari/Edge */
 }
 
 .channel-item {
