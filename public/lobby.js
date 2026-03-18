@@ -179,8 +179,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (showNoButton) {
                 btnNo.classList.remove('hidden');
-                btnNo.style.left = '64px';
-                btnYes.style.left = '128px';
+                btnYes.style.left = '64px';
+                btnNo.style.left = '128px';
             } else {
                 btnNo.classList.add('hidden');
                 btnYes.style.left = '128px';
@@ -226,6 +226,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const rankSrc = `/assets/rank1/rank1_frame_${buddy.grade}.png`;
                 
+                item.dataset.id = buddy.id;
+                item.dataset.nickname = buddy.nickname;
+
                 let statusFrame = 4; // Default to offline (Logout)
                 if (buddy.online) {
                     if (buddy.location === 'world_list') statusFrame = 5;
@@ -401,6 +404,28 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnBuddyExit) {
         btnBuddyExit.addEventListener('click', () => {
              document.getElementById('buddy-list-panel').classList.add('hidden');
+        });
+    }
+
+    const btnBuddyDel = document.getElementById('btn-buddy-del');
+    if (btnBuddyDel) {
+        btnBuddyDel.addEventListener('click', () => {
+            const selected = document.querySelector('.buddy-item.selected');
+            if (!selected) {
+                showBuddyAlert("Please select a buddy to delete.");
+                return;
+            }
+            const nickname = selected.dataset.nickname;
+            const targetId = selected.dataset.id;
+            
+            if (nickname && targetId) {
+                showBuddyAlert(`Are you sure you want to delete '${nickname}'?`, {
+                    showNoButton: true,
+                    onYes: () => {
+                        socket.emit('delete_buddy', targetId);
+                    }
+                });
+            }
         });
     }
 

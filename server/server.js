@@ -298,6 +298,7 @@ io.on('connection', (socket) => {
                     }
 
                     return {
+                        id: b.id,
                         nickname: b.Nickname,
                         grade: b.Grade,
                         guild: b.Guild,
@@ -434,6 +435,12 @@ io.on('connection', (socket) => {
                     await connection.commit();
                     console.log(`[Buddy] Mutual relationship created for ${receiver.nickname} and ${fromNickname}`);
 
+                    // Refresh buddy list instantly
+                    sendBuddyList(socket, receiver.id);
+                    if (senderSocketId && io.sockets.sockets.get(senderSocketId)) {
+                        sendBuddyList(io.sockets.sockets.get(senderSocketId), fromId);
+                    }
+
                     if (senderSocketId) {
                         io.to(senderSocketId).emit('buddy_request_accepted', { nickname: receiver.nickname });
                     }
@@ -451,6 +458,50 @@ io.on('connection', (socket) => {
             if (senderSocketId) {
                 io.to(senderSocketId).emit('buddy_request_rejected', { nickname: receiver.nickname });
             }
+        }
+    });
+
+    socket.on('delete_buddy', async (targetId) => {
+        const user = socketData.get(socket.id);
+        if (!user) return;
+
+        try {
+            const connection = await pool.getConnection();
+            try {
+                await connection.beginTransaction();
+
+                await connection.execute(
+                    'DELETE FROM buddylist WHERE (Id = ? AND Buddy = ?) OR (Id = ? AND Buddy = ?)',
+                    [user.id, targetId, targetId, user.id]
+                );
+
+                await connection.commit();
+                console.log(`[Buddy] Deleted relationship between ${user.nickname} and ID ${targetId}`);
+
+                // Send updated list to the user who deleted
+                sendBuddyList(socket, user.id);
+
+                // Find the target's socket
+                let targetSocketId = null;
+                for (const [sId, data] of socketData.entries()) {
+                    if (data.id === targetId) {
+                        targetSocketId = sId;
+                        break;
+                    }
+                }
+
+                if (targetSocketId && io.sockets.sockets.get(targetSocketId)) {
+                    sendBuddyList(io.sockets.sockets.get(targetSocketId), targetId);
+                }
+
+            } catch (err) {
+                await connection.rollback();
+                console.error('[Buddy] DB Error on delete:', err);
+            } finally {
+                connection.release();
+            }
+        } catch (error) {
+            console.error('[Buddy] Connection Error:', error);
         }
     });
 
