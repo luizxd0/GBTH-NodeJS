@@ -1715,6 +1715,16 @@ body {
     word-break: break-all;
     font-family: Arial, sans-serif;
     text-shadow: 1px 1px 1px #000;
+    display: flex;
+    align-items: center;
+}
+
+.gm-chat-icon {
+    width: 14px;
+    height: 14px;
+    margin-right: 2px;
+    image-rendering: pixelated;
+    flex-shrink: 0;
 }
 
 .chat-message.system {

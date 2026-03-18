@@ -257,11 +257,12 @@ io.on('connection', (socket) => {
                 gender: data.gender,
                 grade: data.grade,
                 guild: data.guild,
+                authority: data.authority || 0,
                 location: data.location || 'unknown',
                 serverId: data.location === 'world_list' ? 0 : 1,
                 channelId: data.location === 'channel' ? 1 : (data.location === 'in_game' ? (data.roomId || 1) : 0)
             });
-            console.log(`[Buddy] Linked ${data.nickname} to ${socket.id} at ${data.location || 'unknown'}`);
+            console.log(`[Buddy] Linked ${data.nickname} to ${socket.id} at ${data.location || 'unknown'} (Auth: ${data.authority || 0})`);
             io.emit('playerCountUpdate', getActivePlayerCount());
 
             // Automatically send buddy list on identification
@@ -278,12 +279,22 @@ io.on('connection', (socket) => {
     socket.on('lobby_message', (message) => {
         const user = socketData.get(socket.id);
         if (user && message && message.trim() !== '') {
+            const trimmedMessage = message.trim();
+            
+            // Check for commands
+            if (trimmedMessage.startsWith('/')) {
+                const Commands = require('./commands');
+                Commands.handle(io, socket, user, trimmedMessage);
+                return;
+            }
+
             // Broadcasting to everyone in the lobby for now. 
             // In a multi-channel setup, we would filter by location/channel.
             io.emit('lobby_message', {
                 nickname: user.nickname,
                 guild: user.guild,
-                message: message.trim(),
+                message: trimmedMessage,
+                authority: user.authority,
                 type: 'user'
             });
         }

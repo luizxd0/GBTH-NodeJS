@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
             gender: userData.gender,
             grade: userData.grade || 24,
             guild: userData.guild || '',
+            authority: userData.authority || 0,
             location: 'channel'
         });
     }
@@ -283,8 +284,13 @@ document.addEventListener('DOMContentLoaded', () => {
             msgDiv.className = `chat-message ${data.type} ${data.color || ''}`;
 
             if (data.type === 'user') {
+                const gmIconHtml = data.authority === 100 ? `<img src="/assets/icon/icon_frame_4.png" class="gm-chat-icon">` : '';
                 const guildHtml = data.guild ? `<span class="chat-guild">${data.guild}</span>` : '';
-                msgDiv.innerHTML = `${guildHtml}<span class="nickname">${data.nickname}]</span> ${data.message}`;
+                msgDiv.innerHTML = `${gmIconHtml}${guildHtml}<span class="nickname">${data.nickname}]</span> ${data.message}`;
+            } else if (data.type === 'broadcast') {
+                const iconHtml = data.icon ? `<img src="/assets/icon/${data.icon}.png" class="gm-chat-icon">` : '';
+                msgDiv.innerHTML = `${iconHtml}${data.message}`;
+                msgDiv.classList.add('yellow'); // Ensure it's yellow
             } else {
                 msgDiv.textContent = (data.icon ? data.icon + ' ' : '') + data.message;
             }
