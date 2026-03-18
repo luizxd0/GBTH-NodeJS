@@ -94,6 +94,20 @@ body {
     /* Chrome, Safari, etc. */
 }
 
+.buddy-list-content {
+    position: relative;
+    padding: 0px 5px;
+    height: 140px;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    cursor: default;
+}
+
+.buddy-list-content::-webkit-scrollbar {
+    display: none;
+}
+
 /* Custom Scroll Controls */
 .scroll-controls {
     position: absolute;
@@ -734,6 +748,38 @@ body {
  
 .buddy-logout {
     image-rendering: pixelated;
+}
+
+/* New Server/Channel Status Labels */
+.buddy-server-status, .buddy-channel-status {
+    position: absolute;
+    left: 27px; /* Nudge left to align with screenshot */
+    display: flex;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.buddy-server-status {
+    top: 2px;
+}
+
+.buddy-channel-status {
+    top: 16px;
+}
+
+.buddy-status-label {
+    color: #3fe0e0; /* Cyan/Teal like the screenshot */
+    font-size: 10px;
+    font-weight: bold;
+    width: 60px;
+    text-align: left;
+}
+
+.buddy-status-value {
+    color: #fff;
+    font-size: 10px;
+    font-weight: bold;
+    margin-left: 5px;
 }
 
 .buddy-mini-btn {

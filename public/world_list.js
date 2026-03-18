@@ -187,6 +187,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <div class="buddy-status">
                         ${statusImg}
+                        ${buddy.online && buddy.location !== 'world_list' ? `
+                            <div class="buddy-server-status">
+                                <span class="buddy-status-value server">${buddy.serverId}</span>
+                            </div>
+                            <div class="buddy-channel-status">
+                                <span class="buddy-status-value channel">${buddy.channelId}</span>
+                            </div>
+                        ` : ''}
                     </div>
                 `;
 

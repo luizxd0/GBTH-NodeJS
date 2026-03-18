@@ -254,7 +254,9 @@ io.on('connection', (socket) => {
             socketData.set(socket.id, {
                 nickname: data.nickname,
                 id: data.id,
-                location: data.location || 'unknown'
+                location: data.location || 'unknown',
+                serverId: data.location === 'world_list' ? 0 : 1,
+                channelId: data.location === 'channel' ? 1 : (data.location === 'in_game' ? (data.roomId || 1) : 0)
             });
             console.log(`[Buddy] Linked ${data.nickname} to ${socket.id} at ${data.location || 'unknown'}`);
             io.emit('playerCountUpdate', getActivePlayerCount());
@@ -284,11 +286,15 @@ io.on('connection', (socket) => {
                     const buddyNicknameKey = b.Nickname.toLowerCase();
                     const isOnline = userSockets.has(buddyNicknameKey);
                     let location = 'offline';
+                    let serverId = 0;
+                    let channelId = 0;
 
                     if (isOnline) {
                         const buddySocketId = userSockets.get(buddyNicknameKey);
                         const buddyData = socketData.get(buddySocketId);
                         location = buddyData ? buddyData.location : 'online';
+                        serverId = buddyData ? buddyData.serverId : 0;
+                        channelId = buddyData ? buddyData.channelId : 0;
                     }
 
                     return {
@@ -296,7 +302,9 @@ io.on('connection', (socket) => {
                         grade: b.Grade,
                         guild: b.Guild,
                         online: isOnline,
-                        location: location
+                        location: location,
+                        serverId: serverId || 0,
+                        channelId: channelId || 0
                     };
                 });
 
