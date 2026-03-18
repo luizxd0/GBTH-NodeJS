@@ -1765,8 +1765,8 @@ body {
 .chat-scroll-controls::before {
     content: '';
     position: absolute;
-    top: 18px;
-    bottom: 18px;
+    top: 38px;
+    bottom: -6px;
     left: 50%;
     transform: translateX(-50%);
     width: 2px;
@@ -1788,7 +1788,7 @@ body {
 }
 
 .btn-chat-scroll-up {
-    top: 0;
+    top: 29px;
     left: 1px;
     background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_0.png');
 }
@@ -1807,7 +1807,7 @@ body {
 }
 
 .btn-chat-scroll-down {
-    bottom: 5px;
+    bottom: -15px;
     left: 1px;
     background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_0.png');
 }
