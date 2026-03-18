@@ -12,6 +12,7 @@ const io = new Server(server);
 // Tracking online users for buddy requests
 const userSockets = new Map(); // nickname -> socket.id
 const socketData = new Map(); // socket.id -> { nickname, id }
+const pendingNotifications = new Map(); // userId -> timeoutId
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
@@ -147,7 +148,7 @@ async function updateRanks() {
                     distributed += toAdd;
                     currentInnerRank++;
                 }
-                
+
                 while (grades.length < numDynamic) {
                     grades.push(7 + 5); // Grade 12
                 }
@@ -233,26 +234,27 @@ app.get('/api/worlds', (req, res) => {
 
 io.on('connection', (socket) => {
     console.log('User connected:', socket.id);
-    
+
     // Send current lobby count to new connections (e.g. World List)
     socket.emit('playerCountUpdate', userSockets.size);
 
     socket.on('set_user_data', (data) => {
         if (data && data.nickname) {
             userSockets.set(data.nickname.toLowerCase(), socket.id);
-            socketData.set(socket.id, { 
-                nickname: data.nickname, 
+            socketData.set(socket.id, {
+                nickname: data.nickname,
                 id: data.id,
                 location: data.location || 'unknown'
             });
             console.log(`[Buddy] Linked ${data.nickname} to ${socket.id} at ${data.location || 'unknown'}`);
             io.emit('playerCountUpdate', userSockets.size);
-            
+
             // Automatically send buddy list on identification
             sendBuddyList(socket, data.id);
 
             // Notify buddies that this user is now online/changed location
-            notifyBuddiesOfStatusChange(data.id);
+            // Delay = 0 means immediate update and cancel any pending "offline" notice
+            notifyBuddiesOfStatusChange(data.id, 0);
         }
     });
 
@@ -272,7 +274,7 @@ io.on('connection', (socket) => {
                     const buddyNicknameKey = b.Nickname.toLowerCase();
                     const isOnline = userSockets.has(buddyNicknameKey);
                     let location = 'offline';
-                    
+
                     if (isOnline) {
                         const buddySocketId = userSockets.get(buddyNicknameKey);
                         const buddyData = socketData.get(buddySocketId);
@@ -306,7 +308,22 @@ io.on('connection', (socket) => {
         }
     }
 
-    async function notifyBuddiesOfStatusChange(userId) {
+    async function notifyBuddiesOfStatusChange(userId, delay = 0) {
+        // Clear any pending notification for this user if we are sending an update (immediate or delayed)
+        if (pendingNotifications.has(userId)) {
+            clearTimeout(pendingNotifications.get(userId));
+            pendingNotifications.delete(userId);
+        }
+
+        if (delay > 0) {
+            const timeoutId = setTimeout(() => {
+                pendingNotifications.delete(userId);
+                notifyBuddiesOfStatusChange(userId, 0); // Execute immediately after delay
+            }, delay);
+            pendingNotifications.set(userId, timeoutId);
+            return;
+        }
+
         try {
             const connection = await pool.getConnection();
             try {
@@ -345,8 +362,8 @@ io.on('connection', (socket) => {
             console.log(`[Buddy] User left lobby: ${nickname}`);
             io.emit('playerCountUpdate', userSockets.size);
 
-            // Notify buddies that this user is now offline/changing screen
-            notifyBuddiesOfStatusChange(userId);
+            // Removing immediate notification here. 
+            // The disconnect handler will trigger a delayed notification instead.
         }
     });
 
@@ -383,7 +400,7 @@ io.on('connection', (socket) => {
                 const connection = await pool.getConnection();
                 try {
                     await connection.beginTransaction();
-                    
+
                     // Mutual insert into buddylist
                     // Schema: Id, Category, Buddy
                     // Assuming Category 'Friend' (0) for now
@@ -395,7 +412,7 @@ io.on('connection', (socket) => {
                         'INSERT IGNORE INTO buddylist (Id, Category, Buddy) VALUES (?, ?, ?)',
                         [fromId, 'Friend', receiver.id]
                     );
-                    
+
                     await connection.commit();
                     console.log(`[Buddy] Mutual relationship created for ${receiver.nickname} and ${fromNickname}`);
 
@@ -429,8 +446,9 @@ io.on('connection', (socket) => {
             console.log(`User disconnected: ${nickname}`);
             io.emit('playerCountUpdate', userSockets.size);
 
-            // Notify buddies that this user is now offline
-            notifyBuddiesOfStatusChange(userId);
+            // Notify buddies that this user is now offline with a short delay (1s)
+            // This allows for seamless page transitions without flickering "LOG OUT"
+            notifyBuddiesOfStatusChange(userId, 100);
         }
     });
 });
