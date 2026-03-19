@@ -188,6 +188,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 toggleBuddyPanel();
             }
             if (id === 'btn-lobby-avatar') {
+                if (userData) {
+                    socket.emit('set_user_data', {
+                        nickname: userData.nickname,
+                        id: userData.id,
+                        gender: userData.gender,
+                        grade: userData.grade || 24,
+                        guild: userData.guild || '',
+                        authority: userData.authority || 0,
+                        location: 'avatar_shop'
+                    });
+                }
                 window.playTransition('closing', () => {
                     window.location.href = 'avatar_shop.html';
                 });

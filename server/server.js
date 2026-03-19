@@ -523,7 +523,11 @@ io.on('connection', (socket) => {
         if (data) {
             const userId = data.id;
             const nickname = data.nickname;
-            userSockets.delete(nickname.toLowerCase());
+            const nicknameKey = nickname.toLowerCase();
+            const linkedSocketId = userSockets.get(nicknameKey);
+            if (linkedSocketId === socket.id) {
+                userSockets.delete(nicknameKey);
+            }
             socketData.delete(socket.id);
             console.log(`[Buddy] User left lobby: ${nickname}`);
             io.emit('playerCountUpdate', getActivePlayerCount());
@@ -656,14 +660,23 @@ io.on('connection', (socket) => {
         if (data) {
             const userId = data.id;
             const nickname = data.nickname;
-            userSockets.delete(nickname.toLowerCase());
+            const nicknameKey = nickname.toLowerCase();
+            const linkedSocketId = userSockets.get(nicknameKey);
+            const isCurrentLinkedSocket = linkedSocketId === socket.id;
+
+            if (isCurrentLinkedSocket) {
+                userSockets.delete(nicknameKey);
+            }
+
             socketData.delete(socket.id);
             console.log(`User disconnected: ${nickname}`);
             io.emit('playerCountUpdate', getActivePlayerCount());
 
-            // Notify buddies that this user is now offline with a short delay (100ms)
-            // This allows for seamless page transitions without flickering "LOG OUT"
-            notifyBuddiesOfStatusChange(userId, 100);
+            // Only notify offline if this socket is still the active mapping for that nickname.
+            // This prevents page-transition races from clearing a newer socket status.
+            if (isCurrentLinkedSocket) {
+                notifyBuddiesOfStatusChange(userId, 100);
+            }
             broadcastChannelUsers(data.channelId);
         }
     });
