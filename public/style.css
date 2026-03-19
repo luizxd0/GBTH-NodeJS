@@ -55,13 +55,23 @@ body {
 }
 
 @keyframes fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes fade-out {
-    from { opacity: 1; }
-    to { opacity: 0; }
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
 }
 
 #game-container {
@@ -535,7 +545,8 @@ body {
 
 #lobby-nickname {
     position: absolute;
-    top: 16px; /* Fixed vertical offset, never move */
+    top: 16px;
+    /* Fixed vertical offset, never move */
     left: 0;
     color: #fff;
     font-size: 11px;
@@ -688,7 +699,7 @@ body {
     font-family: 'GunboundFont', Arial, sans-serif;
     font-size: 14px;
 }
- 
+
 .buddy-item {
     position: relative;
     top: 13px;
@@ -696,7 +707,7 @@ body {
     width: 160px;
     height: 28px;
     margin-bottom: 2px;
-    
+
     /* Removed transform and z-index on parent to let ::before z-index: -1 work relative to parent content */
 }
 
@@ -714,11 +725,11 @@ body {
 }
 
 /* Selection background handled by ::before pseudo-element */
- 
+
 .buddy-item:hover:not(.selected) {
     background-color: rgba(255, 255, 255, 0.1);
 }
- 
+
 .buddy-rank-box {
     position: absolute;
     top: 0px;
@@ -731,12 +742,12 @@ body {
     box-sizing: border-box;
     z-index: 2;
 }
- 
+
 .buddy-rank-icon {
     image-rendering: pixelated;
     background-color: black;
 }
- 
+
 .buddy-info {
     position: absolute;
     top: 2px;
@@ -744,7 +755,7 @@ body {
     display: flex;
     flex-direction: column;
 }
- 
+
 .buddy-nickname {
     position: absolute;
     top: 12px;
@@ -755,7 +766,7 @@ body {
     line-height: 14px;
     height: 14px;
 }
- 
+
 .buddy-guild {
     position: absolute;
     top: 0px;
@@ -766,7 +777,7 @@ body {
     line-height: 14px;
     height: 14px;
 }
- 
+
 .buddy-status {
     position: absolute;
     top: 1px;
@@ -774,23 +785,27 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 28px; /* Match row height to help centering */
+    height: 28px;
+    /* Match row height to help centering */
     z-index: 5;
 }
 
 .buddy-status-img.status-5 {
     position: relative;
-    top: 1px; /* Offset for World List to center it better */
+    top: 1px;
+    /* Offset for World List to center it better */
 }
- 
+
 .buddy-logout {
     image-rendering: pixelated;
 }
 
 /* New Server/Channel Status Labels */
-.buddy-server-status, .buddy-channel-status {
+.buddy-server-status,
+.buddy-channel-status {
     position: absolute;
-    left: 27px; /* Nudge left to align with screenshot */
+    left: 27px;
+    /* Nudge left to align with screenshot */
     display: flex;
     white-space: nowrap;
     pointer-events: none;
@@ -805,7 +820,8 @@ body {
 }
 
 .buddy-status-label {
-    color: #3fe0e0; /* Cyan/Teal like the screenshot */
+    color: #3fe0e0;
+    /* Cyan/Teal like the screenshot */
     font-size: 10px;
     font-weight: bold;
     width: 60px;
@@ -832,21 +848,33 @@ body {
     outline: none;
 }
 
-#btn-buddy-plus { 
+#btn-buddy-plus {
     top: 6px;
     right: 70px;
-    background-image: url('/assets/lobby/b_buddy_plus/b_buddy_plus_frame_0.png'); 
+    background-image: url('/assets/lobby/b_buddy_plus/b_buddy_plus_frame_0.png');
 }
-#btn-buddy-plus:hover { background-image: url('/assets/lobby/b_buddy_plus/b_buddy_plus_frame_1.png'); }
-#btn-buddy-plus:active { background-image: url('/assets/lobby/b_buddy_plus/b_buddy_plus_frame_2.png'); }
 
-#btn-buddy-del { 
+#btn-buddy-plus:hover {
+    background-image: url('/assets/lobby/b_buddy_plus/b_buddy_plus_frame_1.png');
+}
+
+#btn-buddy-plus:active {
+    background-image: url('/assets/lobby/b_buddy_plus/b_buddy_plus_frame_2.png');
+}
+
+#btn-buddy-del {
     top: 6px;
     right: 32px;
-    background-image: url('/assets/lobby/b_buddy_del/b_buddy_del_frame_0.png'); 
+    background-image: url('/assets/lobby/b_buddy_del/b_buddy_del_frame_0.png');
 }
-#btn-buddy-del:hover { background-image: url('/assets/lobby/b_buddy_del/b_buddy_del_frame_1.png'); }
-#btn-buddy-del:active { background-image: url('/assets/lobby/b_buddy_del/b_buddy_del_frame_2.png'); }
+
+#btn-buddy-del:hover {
+    background-image: url('/assets/lobby/b_buddy_del/b_buddy_del_frame_1.png');
+}
+
+#btn-buddy-del:active {
+    background-image: url('/assets/lobby/b_buddy_del/b_buddy_del_frame_2.png');
+}
 
 #btn-buddy-exit {
     top: 6px;
@@ -855,8 +883,14 @@ body {
     height: 22px;
     background-image: url('/assets/lobby/b_buddy_exit/b_buddy_exit_frame_0.png');
 }
-#btn-buddy-exit:hover { background-image: url('/assets/lobby/b_buddy_exit/b_buddy_exit_frame_1.png'); }
-#btn-buddy-exit:active { background-image: url('/assets/lobby/b_buddy_exit/b_buddy_exit_frame_2.png'); }
+
+#btn-buddy-exit:hover {
+    background-image: url('/assets/lobby/b_buddy_exit/b_buddy_exit_frame_1.png');
+}
+
+#btn-buddy-exit:active {
+    background-image: url('/assets/lobby/b_buddy_exit/b_buddy_exit_frame_2.png');
+}
 
 .buddy-list-content {
     position: absolute;
@@ -906,54 +940,108 @@ body {
     left: 38px;
     background-image: url('/assets/lobby/b_gamelist_viewall/b_gamelist_viewall_frame_0.png');
 }
-#btn-view-all:hover:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_viewall/b_gamelist_viewall_frame_1.png'); }
-#btn-view-all:active:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_viewall/b_gamelist_viewall_frame_2.png'); }
-#btn-view-all:disabled { background-image: url('/assets/lobby/b_gamelist_viewall/b_gamelist_viewall_frame_3.png'); }
+
+#btn-view-all:hover:not(:disabled) {
+    background-image: url('/assets/lobby/b_gamelist_viewall/b_gamelist_viewall_frame_1.png');
+}
+
+#btn-view-all:active:not(:disabled) {
+    background-image: url('/assets/lobby/b_gamelist_viewall/b_gamelist_viewall_frame_2.png');
+}
+
+#btn-view-all:disabled {
+    background-image: url('/assets/lobby/b_gamelist_viewall/b_gamelist_viewall_frame_3.png');
+}
 
 #btn-waiting {
     top: 245px;
     left: 133px;
     background-image: url('/assets/lobby/b_gamelist_wait/b_gamelist_wait_frame_0.png');
 }
-#btn-waiting:hover:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_wait/b_gamelist_wait_frame_1.png'); }
-#btn-waiting:active:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_wait/b_gamelist_wait_frame_2.png'); }
-#btn-waiting:disabled { background-image: url('/assets/lobby/b_gamelist_wait/b_gamelist_wait_frame_3.png'); }
+
+#btn-waiting:hover:not(:disabled) {
+    background-image: url('/assets/lobby/b_gamelist_wait/b_gamelist_wait_frame_1.png');
+}
+
+#btn-waiting:active:not(:disabled) {
+    background-image: url('/assets/lobby/b_gamelist_wait/b_gamelist_wait_frame_2.png');
+}
+
+#btn-waiting:disabled {
+    background-image: url('/assets/lobby/b_gamelist_wait/b_gamelist_wait_frame_3.png');
+}
 
 #btn-nav-prev {
     top: 245px;
     left: 240px;
     background-image: url('/assets/lobby/b_gamelist_prev/b_gamelist_prev_frame_0.png');
 }
-#btn-nav-prev:hover:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_prev/b_gamelist_prev_frame_1.png'); }
-#btn-nav-prev:active:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_prev/b_gamelist_prev_frame_2.png'); }
-#btn-nav-prev:disabled { background-image: url('/assets/lobby/b_gamelist_prev/b_gamelist_prev_frame_3.png'); }
+
+#btn-nav-prev:hover:not(:disabled) {
+    background-image: url('/assets/lobby/b_gamelist_prev/b_gamelist_prev_frame_1.png');
+}
+
+#btn-nav-prev:active:not(:disabled) {
+    background-image: url('/assets/lobby/b_gamelist_prev/b_gamelist_prev_frame_2.png');
+}
+
+#btn-nav-prev:disabled {
+    background-image: url('/assets/lobby/b_gamelist_prev/b_gamelist_prev_frame_3.png');
+}
 
 #btn-nav-next {
     top: 245px;
     left: 292px;
     background-image: url('/assets/lobby/b_gamelist_next/b_gamelist_next_frame_0.png');
 }
-#btn-nav-next:hover:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_next/b_gamelist_next_frame_1.png'); }
-#btn-nav-next:active:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_next/b_gamelist_next_frame_2.png'); }
-#btn-nav-next:disabled { background-image: url('/assets/lobby/b_gamelist_next/b_gamelist_next_frame_3.png'); }
+
+#btn-nav-next:hover:not(:disabled) {
+    background-image: url('/assets/lobby/b_gamelist_next/b_gamelist_next_frame_1.png');
+}
+
+#btn-nav-next:active:not(:disabled) {
+    background-image: url('/assets/lobby/b_gamelist_next/b_gamelist_next_frame_2.png');
+}
+
+#btn-nav-next:disabled {
+    background-image: url('/assets/lobby/b_gamelist_next/b_gamelist_next_frame_3.png');
+}
 
 #btn-friends {
     top: 245px;
     left: 370px;
     background-image: url('/assets/lobby/b_gamelist_friend/b_gamelist_friend_frame_0.png');
 }
-#btn-friends:hover:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_friend/b_gamelist_friend_frame_1.png'); }
-#btn-friends:active:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_friend/b_gamelist_friend_frame_2.png'); }
-#btn-friends:disabled { background-image: url('/assets/lobby/b_gamelist_friend/b_gamelist_friend_frame_3.png'); }
+
+#btn-friends:hover:not(:disabled) {
+    background-image: url('/assets/lobby/b_gamelist_friend/b_gamelist_friend_frame_1.png');
+}
+
+#btn-friends:active:not(:disabled) {
+    background-image: url('/assets/lobby/b_gamelist_friend/b_gamelist_friend_frame_2.png');
+}
+
+#btn-friends:disabled {
+    background-image: url('/assets/lobby/b_gamelist_friend/b_gamelist_friend_frame_3.png');
+}
 
 #btn-goto {
     top: 245px;
     left: 460px;
     background-image: url('/assets/lobby/b_gamelist_directgo/b_gamelist_directgo_frame_0.png');
 }
-#btn-goto:hover:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_directgo/b_gamelist_directgo_frame_1.png'); }
-#btn-goto:active:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_directgo/b_gamelist_directgo_frame_2.png'); }
-#btn-goto:disabled { background-image: url('/assets/lobby/b_gamelist_directgo/b_gamelist_directgo_frame_3.png'); }
+
+#btn-goto:hover:not(:disabled) {
+    background-image: url('/assets/lobby/b_gamelist_directgo/b_gamelist_directgo_frame_1.png');
+}
+
+#btn-goto:active:not(:disabled) {
+    background-image: url('/assets/lobby/b_gamelist_directgo/b_gamelist_directgo_frame_2.png');
+}
+
+#btn-goto:disabled {
+    background-image: url('/assets/lobby/b_gamelist_directgo/b_gamelist_directgo_frame_3.png');
+}
 
 /* Bottom Frames */
 #gamelist-chat {
@@ -990,7 +1078,8 @@ body {
     outline: none;
     font-family: Arial, sans-serif;
     font-size: 11px;
-    caret-color: transparent; /* Hide native caret, using custom one */
+    caret-color: transparent;
+    /* Hide native caret, using custom one */
     z-index: 6;
 }
 
@@ -1007,8 +1096,16 @@ body {
 }
 
 @keyframes cursor-blink {
-    0%, 49% { opacity: 1; }
-    50%, 100% { opacity: 0; }
+
+    0%,
+    49% {
+        opacity: 1;
+    }
+
+    50%,
+    100% {
+        opacity: 0;
+    }
 }
 
 /* Bottom Action Buttons */
@@ -1029,54 +1126,108 @@ body {
     left: 40px;
     background-image: url('/assets/lobby/b_gamelist_exit/b_gamelist_exit_frame_0.png');
 }
-#btn-lobby-exit:hover:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_exit/b_gamelist_exit_frame_1.png'); }
-#btn-lobby-exit:active:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_exit/b_gamelist_exit_frame_2.png'); }
-#btn-lobby-exit:disabled { background-image: url('/assets/lobby/b_gamelist_exit/b_gamelist_exit_frame_3.png'); }
+
+#btn-lobby-exit:hover:not(:disabled) {
+    background-image: url('/assets/lobby/b_gamelist_exit/b_gamelist_exit_frame_1.png');
+}
+
+#btn-lobby-exit:active:not(:disabled) {
+    background-image: url('/assets/lobby/b_gamelist_exit/b_gamelist_exit_frame_2.png');
+}
+
+#btn-lobby-exit:disabled {
+    background-image: url('/assets/lobby/b_gamelist_exit/b_gamelist_exit_frame_3.png');
+}
 
 #btn-lobby-buddy {
     top: 551px;
     left: 163px;
     background-image: url('/assets/lobby/b_gamelist_buddy/b_gamelist_buddy_frame_0.png');
 }
-#btn-lobby-buddy:hover:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_buddy/b_gamelist_buddy_frame_1.png'); }
-#btn-lobby-buddy:active:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_buddy/b_gamelist_buddy_frame_2.png'); }
-#btn-lobby-buddy:disabled { background-image: url('/assets/lobby/b_gamelist_buddy/b_gamelist_buddy_frame_3.png'); }
+
+#btn-lobby-buddy:hover:not(:disabled) {
+    background-image: url('/assets/lobby/b_gamelist_buddy/b_gamelist_buddy_frame_1.png');
+}
+
+#btn-lobby-buddy:active:not(:disabled) {
+    background-image: url('/assets/lobby/b_gamelist_buddy/b_gamelist_buddy_frame_2.png');
+}
+
+#btn-lobby-buddy:disabled {
+    background-image: url('/assets/lobby/b_gamelist_buddy/b_gamelist_buddy_frame_3.png');
+}
 
 #btn-lobby-ranking {
     top: 551px;
     left: 286px;
     background-image: url('/assets/lobby/b_gamelist_ranking/b_gamelist_ranking_frame_0.png');
 }
-#btn-lobby-ranking:hover:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_ranking/b_gamelist_ranking_frame_1.png'); }
-#btn-lobby-ranking:active:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_ranking/b_gamelist_ranking_frame_2.png'); }
-#btn-lobby-ranking:disabled { background-image: url('/assets/lobby/b_gamelist_ranking/b_gamelist_ranking_frame_3.png'); }
+
+#btn-lobby-ranking:hover:not(:disabled) {
+    background-image: url('/assets/lobby/b_gamelist_ranking/b_gamelist_ranking_frame_1.png');
+}
+
+#btn-lobby-ranking:active:not(:disabled) {
+    background-image: url('/assets/lobby/b_gamelist_ranking/b_gamelist_ranking_frame_2.png');
+}
+
+#btn-lobby-ranking:disabled {
+    background-image: url('/assets/lobby/b_gamelist_ranking/b_gamelist_ranking_frame_3.png');
+}
 
 #btn-lobby-avatar {
     top: 551px;
     left: 409px;
     background-image: url('/assets/lobby/b_gamelist_avatar/b_gamelist_avatar_frame_0.png');
 }
-#btn-lobby-avatar:hover:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_avatar/b_gamelist_avatar_frame_1.png'); }
-#btn-lobby-avatar:active:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_avatar/b_gamelist_avatar_frame_2.png'); }
-#btn-lobby-avatar:disabled { background-image: url('/assets/lobby/b_gamelist_avatar/b_gamelist_avatar_frame_3.png'); }
+
+#btn-lobby-avatar:hover:not(:disabled) {
+    background-image: url('/assets/lobby/b_gamelist_avatar/b_gamelist_avatar_frame_1.png');
+}
+
+#btn-lobby-avatar:active:not(:disabled) {
+    background-image: url('/assets/lobby/b_gamelist_avatar/b_gamelist_avatar_frame_2.png');
+}
+
+#btn-lobby-avatar:disabled {
+    background-image: url('/assets/lobby/b_gamelist_avatar/b_gamelist_avatar_frame_3.png');
+}
 
 #btn-lobby-create {
     top: 551px;
     left: 532px;
     background-image: url('/assets/lobby/b_gamelist_create/b_gamelist_create_frame_0.png');
 }
-#btn-lobby-create:hover:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_create/b_gamelist_create_frame_1.png'); }
-#btn-lobby-create:active:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_create/b_gamelist_create_frame_2.png'); }
-#btn-lobby-create:disabled { background-image: url('/assets/lobby/b_gamelist_create/b_gamelist_create_frame_3.png'); }
+
+#btn-lobby-create:hover:not(:disabled) {
+    background-image: url('/assets/lobby/b_gamelist_create/b_gamelist_create_frame_1.png');
+}
+
+#btn-lobby-create:active:not(:disabled) {
+    background-image: url('/assets/lobby/b_gamelist_create/b_gamelist_create_frame_2.png');
+}
+
+#btn-lobby-create:disabled {
+    background-image: url('/assets/lobby/b_gamelist_create/b_gamelist_create_frame_3.png');
+}
 
 #btn-lobby-join {
     top: 551px;
     left: 655px;
     background-image: url('/assets/lobby/b_gamelist_join/b_gamelist_join_frame_0.png');
 }
-#btn-lobby-join:hover:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_join/b_gamelist_join_frame_1.png'); }
-#btn-lobby-join:active:not(:disabled) { background-image: url('/assets/lobby/b_gamelist_join/b_gamelist_join_frame_2.png'); }
-#btn-lobby-join:disabled { background-image: url('/assets/lobby/b_gamelist_join/b_gamelist_join_frame_3.png'); }
+
+#btn-lobby-join:hover:not(:disabled) {
+    background-image: url('/assets/lobby/b_gamelist_join/b_gamelist_join_frame_1.png');
+}
+
+#btn-lobby-join:active:not(:disabled) {
+    background-image: url('/assets/lobby/b_gamelist_join/b_gamelist_join_frame_2.png');
+}
+
+#btn-lobby-join:disabled {
+    background-image: url('/assets/lobby/b_gamelist_join/b_gamelist_join_frame_3.png');
+}
 
 /* Redundant Hover States removed to allow :not(:disabled) guards to work correctly */
 
@@ -1165,8 +1316,10 @@ body {
 /* Add Buddy Popup Styling */
 #add-buddy-popup {
     position: absolute;
-    top: 226px; /* Centered in 800x600 lobby (600-147)/2 */
-    left: 273px; /* Centered in 800x600 lobby (800-253)/2 */
+    top: 226px;
+    /* Centered in 800x600 lobby (600-147)/2 */
+    left: 273px;
+    /* Centered in 800x600 lobby (800-253)/2 */
     width: 253px;
     height: 147px;
     background-image: url('/assets/lobby/buddy_window_back/buddy_window_back_frame_1.png');
@@ -1251,12 +1404,15 @@ body {
     right: auto;
     background-image: url('/assets/lobby/b_buddywindow_friendplus/b_buddywindow_friendplus_frame_0.png');
 }
+
 #btn-add-buddy-ok:hover:not(:disabled) {
     background-image: url('/assets/lobby/b_buddywindow_friendplus/b_buddywindow_friendplus_frame_1.png');
 }
+
 #btn-add-buddy-ok:active:not(:disabled) {
     background-image: url('/assets/lobby/b_buddywindow_friendplus/b_buddywindow_friendplus_frame_2.png');
 }
+
 #btn-add-buddy-ok:disabled {
     background-image: url('/assets/lobby/b_buddywindow_friendplus/b_buddywindow_friendplus_frame_3.png');
 }
@@ -1264,16 +1420,20 @@ body {
 #btn-add-buddy-close {
     position: absolute;
     top: 107px;
-    left: 134px; /* 37 + 82 + 15 */
+    left: 134px;
+    /* 37 + 82 + 15 */
     right: auto;
     background-image: url('/assets/lobby/b_buddywindow_friendclose/b_buddywindow_friendclose_frame_0.png');
 }
+
 #btn-add-buddy-close:hover:not(:disabled) {
     background-image: url('/assets/lobby/b_buddywindow_friendclose/b_buddywindow_friendclose_frame_1.png');
 }
+
 #btn-add-buddy-close:active:not(:disabled) {
     background-image: url('/assets/lobby/b_buddywindow_friendclose/b_buddywindow_friendclose_frame_2.png');
 }
+
 #btn-add-buddy-close:disabled {
     background-image: url('/assets/lobby/b_buddywindow_friendclose/b_buddywindow_friendclose_frame_3.png');
 }
@@ -1301,9 +1461,11 @@ body {
     width: 173px;
     height: 34px;
     /* background-color: #032a31; */
-    /* border: 1px solid #00f0ff; */ /* Added teal border */
+    /* border: 1px solid #00f0ff; */
+    /* Added teal border */
     border-radius: 10px;
-    padding: 8px 10px; /* Adjusted padding */
+    padding: 8px 10px;
+    /* Adjusted padding */
     box-sizing: border-box;
     display: flex;
     align-items: center;
@@ -1346,7 +1508,8 @@ body {
 #btn-buddy-alert-no {
     position: absolute;
     top: 102px;
-    left: 101px; /* To be adjusted by JS if necessary, but starting point for 2-button layout */
+    left: 101px;
+    /* To be adjusted by JS if necessary, but starting point for 2-button layout */
     right: auto;
     background-image: url('/assets/lobby/b_buddywindow_delno/b_buddywindow_delno_frame_0.png');
 }
@@ -1374,7 +1537,8 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 10000; /* Increased to be above game container in all cases */
+    z-index: 10000;
+    /* Increased to be above game container in all cases */
 }
 
 #auth-container {
@@ -1586,6 +1750,7 @@ body {
     text-transform: uppercase;
     text-align: center;
 }
+
 /* Buddy Scroll Controls */
 .buddy-scroll-controls {
     position: absolute;
@@ -1744,7 +1909,8 @@ body {
     display: flex;
     flex-direction: column;
     gap: 1px;
-    scrollbar-width: none; /* Hide default scrollbar */
+    scrollbar-width: none;
+    /* Hide default scrollbar */
     -ms-overflow-style: none;
     z-index: 10;
 }
@@ -1794,11 +1960,11 @@ body {
 
 .chat-message .chat-guild {
     color: #f8fcf8;
-    text-shadow: 
+    text-shadow:
         -1px -1px 0 #0000f8,
-         1px -1px 0 #0000f8,
-        -1px  1px 0 #0000f8,
-         1px  1px 0 #0000f8;
+        1px -1px 0 #0000f8,
+        -1px 1px 0 #0000f8,
+        1px 1px 0 #0000f8;
     font-weight: bold;
 }
 
@@ -1891,12 +2057,15 @@ body {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    scrollbar-width: none;               /* Hide default scrollbar for Firefox */
-    -ms-overflow-style: none;            /* Hide default scrollbar for IE/Edge */
+    scrollbar-width: none;
+    /* Hide default scrollbar for Firefox */
+    -ms-overflow-style: none;
+    /* Hide default scrollbar for IE/Edge */
 }
 
 #channel-list-content::-webkit-scrollbar {
-    display: none;                         /* Hide default scrollbar for Chrome/Safari/Edge */
+    display: none;
+    /* Hide default scrollbar for Chrome/Safari/Edge */
 }
 
 .channel-item {
@@ -1989,7 +2158,8 @@ body {
 }
 
 /* Global Overlays (System Messages) */
-#error-overlay, #joining-overlay {
+#error-overlay,
+#joining-overlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -2087,16 +2257,6 @@ body {
     pointer-events: none;
 }
 
-#buddy-chat-to-label {
-    position: absolute;
-    top: 10px;
-    left: 35px;
-    color: #00f0ff;
-    font-family: Arial, sans-serif;
-    font-size: 11px;
-    font-weight: bold;
-}
-
 #buddy-chat-nickname {
     position: absolute;
     top: 10px;
@@ -2109,9 +2269,9 @@ body {
 
 #btn-buddy-chat-close {
     position: absolute;
-    top: 6px;
+    top: 5px; /* Moved down 1px to hide defect below */
     right: 8px;
-    width: 22px;
+    width: 25px;
     height: 22px;
     background-image: url('/assets/lobby/b_buddy_exit/b_buddy_exit_frame_0.png');
     background-size: contain;
@@ -2123,8 +2283,13 @@ body {
     outline: none;
 }
 
-#btn-buddy-chat-close:hover { background-image: url('/assets/lobby/b_buddy_exit/b_buddy_exit_frame_1.png'); }
-#btn-buddy-chat-close:active { background-image: url('/assets/lobby/b_buddy_exit/b_buddy_exit_frame_2.png'); }
+#btn-buddy-chat-close:hover {
+    background-image: url('/assets/lobby/b_buddy_exit/b_buddy_exit_frame_1.png');
+}
+
+#btn-buddy-chat-close:active {
+    background-image: url('/assets/lobby/b_buddy_exit/b_buddy_exit_frame_2.png');
+}
 
 .buddy-chat-content {
     position: absolute;
@@ -2137,7 +2302,9 @@ body {
     -ms-overflow-style: none;
 }
 
-.buddy-chat-content::-webkit-scrollbar { display: none; }
+.buddy-chat-content::-webkit-scrollbar {
+    display: none;
+}
 
 #buddy-chat-messages {
     display: flex;
@@ -2151,11 +2318,13 @@ body {
     font-family: Arial, sans-serif;
     white-space: pre-wrap;
     word-wrap: break-word;
-    color: #fff; /* Messages should be white */
+    color: #fff;
+    /* Messages should be white */
 }
 
 .buddy-chat-msg .sender {
-    color: #fff; /* Sender name also white according to image "Luluzera] Testing message" */
+    color: #fff;
+    /* Sender name also white according to image "Luluzera] Testing message" */
     font-weight: bold;
     margin-right: 2px;
 }
@@ -2176,11 +2345,13 @@ body {
     bottom: 18px;
     left: 50%;
     transform: translateX(-50%);
-    width: 2px;
-    background-color: #004261;
+    width: 4px; /* Solid 4px bar */
+    background-color: #0c3d4a; /* Dark solid blue track */
+    opacity: 1; /* Explicitly solid */
 }
 
-.buddy-chat-scroll-up, .buddy-chat-scroll-down {
+.buddy-chat-scroll-up,
+.buddy-chat-scroll-down {
     position: absolute;
     width: 18px;
     height: 18px;
@@ -2198,24 +2369,44 @@ body {
     left: 1px;
     background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_0.png');
 }
-.buddy-chat-scroll-up:hover:not(.disabled) { background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_1.png'); }
-.buddy-chat-scroll-up:active:not(.disabled) { background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_2.png'); }
-.buddy-chat-scroll-up.disabled { background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_3.png'); pointer-events: none; }
+
+.buddy-chat-scroll-up:hover:not(.disabled) {
+    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_1.png');
+}
+
+.buddy-chat-scroll-up:active:not(.disabled) {
+    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_2.png');
+}
+
+.buddy-chat-scroll-up.disabled {
+    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_3.png');
+    pointer-events: none;
+}
 
 .buddy-chat-scroll-down {
     bottom: -1px;
     left: 1px;
     background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_0.png');
 }
-.buddy-chat-scroll-down:hover:not(.disabled) { background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_1.png'); }
-.buddy-chat-scroll-down:active:not(.disabled) { background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_2.png'); }
-.buddy-chat-scroll-down.disabled { background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_3.png'); pointer-events: none; }
+
+.buddy-chat-scroll-down:hover:not(.disabled) {
+    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_1.png');
+}
+
+.buddy-chat-scroll-down:active:not(.disabled) {
+    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_2.png');
+}
+
+.buddy-chat-scroll-down.disabled {
+    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_3.png');
+    pointer-events: none;
+}
 
 .buddy-chat-input-container {
     position: absolute;
-    bottom: 11px;
-    left: 14px;
-    width: 220px;
+    bottom: 10px;
+    left: 15px;
+    width: 217px;
     height: 18px;
 }
 

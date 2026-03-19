@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=800, initial-scale=1.0">
@@ -10,16 +11,17 @@
     <script src="ui_effects.js"></script>
     <script src="world_list.js"></script>
 </head>
+
 <body>
     <div id="screen-transition" class="active opening run"></div>
     <div id="game-container">
         <div id="world-list-screen">
             <!-- Background container -->
             <div id="server-back"></div>
-            
+
             <div id="world-selection-container">
                 <!-- Inner frame -->
-                
+
                 <div class="server-list-viewport">
                     <div id="server-list">
                         <!-- Servers will be injected here -->
@@ -30,13 +32,13 @@
                     <button id="scroll-up" class="scroll-button"></button>
                     <button id="scroll-down" class="scroll-button"></button>
                 </div>
-                
+
                 <div class="internal-controls">
                     <button id="btn-all" class="game-button"></button>
                     <button id="btn-friend" class="game-button"></button>
                 </div>
             </div>
-            
+
             <div id="buddy-list-panel" class="lobby-panel hidden">
                 <div class="buddy-header">
                     <div class="buddy-icon"></div>
@@ -56,37 +58,37 @@
                 </div>
             </div>
 
-            </div>
-            
-            <!-- Buddy Chat Window -->
-            <div id="buddy-chat-window" class="hidden">
-                <div class="buddy-chat-header">
-                    <span id="buddy-chat-to-label">To</span>
-                    <span id="buddy-chat-nickname"></span>
-                    <button id="btn-buddy-chat-close"></button>
-                </div>
-                <div class="buddy-chat-content">
-                    <div id="buddy-chat-messages"></div>
-                </div>
-                <div class="buddy-chat-scroll-controls">
-                    <button class="buddy-chat-scroll-up disabled"></button>
-                    <button class="buddy-chat-scroll-down disabled"></button>
-                </div>
-                <div class="buddy-chat-input-container">
-                    <input type="text" id="buddy-chat-input" maxlength="100" autocomplete="off">
-                    <div id="buddy-chat-cursor"></div>
-                    <span id="buddy-chat-input-ghost" style="visibility: hidden; white-space: pre; position: absolute; font-family: Arial, sans-serif; font-size: 11px;"></span>
-                </div>
-            </div>
+        </div>
 
-            <div class="external-controls">
-                <button id="btn-exit" class="game-button"></button>
-                <button id="btn-buddy" class="game-button"></button>
-                <button id="btn-server" class="game-button"></button>
+        <!-- Buddy Chat Window -->
+        <div id="buddy-chat-window" class="hidden">
+            <div class="buddy-chat-header">
+                <span id="buddy-chat-nickname"></span>
+                <button id="btn-buddy-chat-close"></button>
+            </div>
+            <div class="buddy-chat-content">
+                <div id="buddy-chat-messages"></div>
+            </div>
+            <div class="buddy-chat-scroll-controls">
+                <button class="buddy-chat-scroll-up disabled"></button>
+                <button class="buddy-chat-scroll-down disabled"></button>
+            </div>
+            <div class="buddy-chat-input-container">
+                <input type="text" id="buddy-chat-input" maxlength="100" autocomplete="off">
+                <div id="buddy-chat-cursor"></div>
+                <span id="buddy-chat-input-ghost"
+                    style="visibility: hidden; white-space: pre; position: absolute; font-family: Arial, sans-serif; font-size: 11px;"></span>
             </div>
         </div>
+
+        <div class="external-controls">
+            <button id="btn-exit" class="game-button"></button>
+            <button id="btn-buddy" class="game-button"></button>
+            <button id="btn-server" class="game-button"></button>
+        </div>
     </div>
-    
+    </div>
+
     <!-- Joining Animation Overlay -->
     <div id="joining-overlay" class="hidden">
         <div id="wait-message"></div>
@@ -96,10 +98,12 @@
     <div id="error-overlay" class="hidden">
         <div id="error-popup">
             <div id="error-title">Server Access Error</div>
-            <div id="error-message">Can't access the server you required. Please use another server or try again later.</div>
+            <div id="error-message">Can't access the server you required. Please use another server or try again later.
+            </div>
             <button id="error-confirm-btn"></button>
         </div>
     </div>
 
 </body>
+
 </html>
