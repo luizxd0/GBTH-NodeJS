@@ -680,9 +680,7 @@ body {
     left: 5px;
     width: 20px;
     height: 20px;
-    background-image: url('/assets/shared/buddy/buddy_icon.png');
-    background-size: contain;
-    background-repeat: no-repeat;
+    display: none;
     pointer-events: none;
 }
 
@@ -1439,6 +1437,424 @@ body {
 
 #btn-lobby-join:disabled {
     background-image: url('/assets/screens/lobby/b_gamelist_join/b_gamelist_join_frame_3.png');
+}
+
+/* Avatar Shop Screen */
+#avatar-shop-screen {
+    width: 800px;
+    height: 600px;
+    background-image: url('/assets/screens/avatar_shop/store_back/store_back_frame_0.png');
+    background-size: 800px 600px;
+    position: relative;
+}
+
+#avatar-shop-header-info {
+    position: absolute;
+    top: 8px;
+    left: 160px;
+    width: 330px;
+    height: 40px;
+    font-family: var(--gbth-ui-font);
+    font-size: 11px;
+    color: #fff;
+    text-shadow: 1px 1px 1px #000;
+    pointer-events: none;
+    z-index: 25;
+}
+
+#avatar-shop-nickname {
+    position: absolute;
+    top: 4px;
+    left: 10px;
+    color: #fff;
+    font-weight: bold;
+}
+
+#avatar-shop-gp {
+    position: absolute;
+    top: 4px;
+    right: 8px;
+    color: #fff;
+    font-weight: bold;
+}
+
+#avatar-shop-gold {
+    position: absolute;
+    top: 22px;
+    left: 10px;
+    color: #00ffff;
+    font-weight: bold;
+}
+
+#avatar-shop-cash {
+    position: absolute;
+    top: 22px;
+    right: 8px;
+    color: #ffff00;
+    font-weight: bold;
+}
+
+#avatar-shop-myavatar-frame {
+    position: absolute;
+    top: 37px;
+    left: 550px;
+    width: 244px;
+    height: 545px;
+    background-image: url('/assets/screens/avatar_shop/store_myavatar/store_myavatar_frame_0.png');
+    background-repeat: no-repeat;
+    pointer-events: none;
+    z-index: 10;
+}
+
+#avatar-shop-exitem-frame {
+    position: absolute;
+    top: 349px;
+    left: 552px;
+    width: 240px;
+    height: 198px;
+    background-image: url('/assets/screens/avatar_shop/store_window_exitem/store_window_exitem_frame_0.png');
+    background-repeat: no-repeat;
+    pointer-events: none;
+    z-index: 11;
+}
+
+.avatar-shop-btn {
+    position: absolute;
+    border: none;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-position: top left;
+    cursor: inherit;
+    outline: none;
+    z-index: 30;
+}
+
+#btn-store-cashcharge {
+    top: 7px;
+    left: 485px;
+    width: 55px;
+    height: 46px;
+    background-image: url('/assets/screens/avatar_shop/b_store_cashcharge/b_store_cashcharge_frame_0.png');
+}
+
+#btn-store-cashcharge:hover:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_store_cashcharge/b_store_cashcharge_frame_1.png');
+}
+
+#btn-store-cashcharge:active:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_store_cashcharge/b_store_cashcharge_frame_2.png');
+}
+
+#btn-store-cashcharge:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_store_cashcharge/b_store_cashcharge_frame_3.png');
+}
+
+#btn-store-main-up,
+#btn-store-main-down {
+    width: 16px;
+    height: 48px;
+}
+
+#btn-store-main-up {
+    top: 80px;
+    left: 517px;
+    background-image: url('/assets/screens/avatar_shop/b_store_up/b_store_up_frame_0.png');
+}
+
+#btn-store-main-up:hover:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_store_up/b_store_up_frame_1.png');
+}
+
+#btn-store-main-up:active:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_store_up/b_store_up_frame_2.png');
+}
+
+#btn-store-main-up:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_store_up/b_store_up_frame_3.png');
+}
+
+#btn-store-main-down {
+    top: 488px;
+    left: 517px;
+    background-image: url('/assets/screens/avatar_shop/b_store_down/b_store_down_frame_0.png');
+}
+
+#btn-store-main-down:hover:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_store_down/b_store_down_frame_1.png');
+}
+
+#btn-store-main-down:active:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_store_down/b_store_down_frame_2.png');
+}
+
+#btn-store-main-down:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_store_down/b_store_down_frame_3.png');
+}
+
+#btn-store-cloth,
+#btn-store-cap,
+#btn-store-glasse,
+#btn-store-flag {
+    top: 556px;
+    width: 49px;
+    height: 32px;
+}
+
+#btn-store-cloth {
+    left: 35px;
+    background-image: url('/assets/screens/avatar_shop/b_store_cloth/b_store_cloth_frame_0.png');
+}
+
+#btn-store-cloth:hover:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/avatar_shop/b_store_cloth/b_store_cloth_frame_1.png');
+}
+
+#btn-store-cloth:active:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/avatar_shop/b_store_cloth/b_store_cloth_frame_2.png');
+}
+
+#btn-store-cloth:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_store_cloth/b_store_cloth_frame_3.png');
+}
+
+#btn-store-cloth.active {
+    background-image: url('/assets/screens/avatar_shop/b_store_cloth/b_store_cloth_frame_4.png');
+}
+
+#btn-store-cap {
+    left: 88px;
+    background-image: url('/assets/screens/avatar_shop/b_store_cap/b_store_cap_frame_0.png');
+}
+
+#btn-store-cap:hover:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/avatar_shop/b_store_cap/b_store_cap_frame_1.png');
+}
+
+#btn-store-cap:active:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/avatar_shop/b_store_cap/b_store_cap_frame_2.png');
+}
+
+#btn-store-cap:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_store_cap/b_store_cap_frame_3.png');
+}
+
+#btn-store-cap.active {
+    background-image: url('/assets/screens/avatar_shop/b_store_cap/b_store_cap_frame_4.png');
+}
+
+#btn-store-glasse {
+    left: 141px;
+    background-image: url('/assets/screens/avatar_shop/b_store_glasse/b_store_glasse_frame_0.png');
+}
+
+#btn-store-glasse:hover:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/avatar_shop/b_store_glasse/b_store_glasse_frame_1.png');
+}
+
+#btn-store-glasse:active:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/avatar_shop/b_store_glasse/b_store_glasse_frame_2.png');
+}
+
+#btn-store-glasse:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_store_glasse/b_store_glasse_frame_3.png');
+}
+
+#btn-store-glasse.active {
+    background-image: url('/assets/screens/avatar_shop/b_store_glasse/b_store_glasse_frame_4.png');
+}
+
+#btn-store-flag {
+    left: 194px;
+    background-image: url('/assets/screens/avatar_shop/b_store_flag/b_store_flag_frame_0.png');
+}
+
+#btn-store-flag:hover:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/avatar_shop/b_store_flag/b_store_flag_frame_1.png');
+}
+
+#btn-store-flag:active:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/avatar_shop/b_store_flag/b_store_flag_frame_2.png');
+}
+
+#btn-store-flag:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_store_flag/b_store_flag_frame_3.png');
+}
+
+#btn-store-flag.active {
+    background-image: url('/assets/screens/avatar_shop/b_store_flag/b_store_flag_frame_4.png');
+}
+
+#btn-store-event01 {
+    left: 258px;
+    background-image: url('/assets/screens/avatar_shop/b_store_event01/b_store_event01_frame_0.png');
+}
+
+#btn-store-event01:hover:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/avatar_shop/b_store_event01/b_store_event01_frame_1.png');
+}
+
+#btn-store-event01:active:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/avatar_shop/b_store_event01/b_store_event01_frame_2.png');
+}
+
+#btn-store-event01:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_store_event01/b_store_event01_frame_3.png');
+}
+
+#btn-store-event01.active {
+    background-image: url('/assets/screens/avatar_shop/b_store_event01/b_store_event01_frame_4.png');
+}
+
+#btn-store-event02 {
+    left: 317px;
+    background-image: url('/assets/screens/avatar_shop/b_store_event02/b_store_event02_frame_0.png');
+}
+
+#btn-store-event02:hover:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/avatar_shop/b_store_event02/b_store_event02_frame_1.png');
+}
+
+#btn-store-event02:active:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/avatar_shop/b_store_event02/b_store_event02_frame_2.png');
+}
+
+#btn-store-event02:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_store_event02/b_store_event02_frame_3.png');
+}
+
+#btn-store-event02.active {
+    background-image: url('/assets/screens/avatar_shop/b_store_event02/b_store_event02_frame_4.png');
+}
+
+#btn-store-puton,
+#btn-store-buy {
+    top: 556px;
+    width: 81px;
+    height: 33px;
+}
+
+#btn-store-puton {
+    left: 359px;
+    background-image: url('/assets/screens/avatar_shop/b_store_puton/b_store_puton_frame_0.png');
+}
+
+#btn-store-puton:hover:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_store_puton/b_store_puton_frame_1.png');
+}
+
+#btn-store-puton:active:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_store_puton/b_store_puton_frame_2.png');
+}
+
+#btn-store-puton:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_store_puton/b_store_puton_frame_3.png');
+}
+
+#btn-store-buy {
+    left: 448px;
+    background-image: url('/assets/screens/avatar_shop/b_store_buy/b_store_buy_frame_0.png');
+}
+
+#btn-store-buy:hover:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_store_buy/b_store_buy_frame_1.png');
+}
+
+#btn-store-buy:active:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_store_buy/b_store_buy_frame_2.png');
+}
+
+#btn-store-buy:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_store_buy/b_store_buy_frame_3.png');
+}
+
+#btn-store-setitem,
+#btn-store-exitem {
+    top: 370px;
+    width: 49px;
+    height: 32px;
+}
+
+#btn-store-setitem {
+    left: 569px;
+    background-image: url('/assets/screens/avatar_shop/b_store_setitem/b_store_setitem_frame_0.png');
+}
+
+#btn-store-setitem:hover:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/avatar_shop/b_store_setitem/b_store_setitem_frame_1.png');
+}
+
+#btn-store-setitem:active:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/avatar_shop/b_store_setitem/b_store_setitem_frame_2.png');
+}
+
+#btn-store-setitem:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_store_setitem/b_store_setitem_frame_3.png');
+}
+
+#btn-store-setitem.active {
+    background-image: url('/assets/screens/avatar_shop/b_store_setitem/b_store_setitem_frame_4.png');
+}
+
+#btn-store-exitem {
+    left: 622px;
+    background-image: url('/assets/screens/avatar_shop/b_store_exitem/b_store_exitem_frame_0.png');
+}
+
+#btn-store-exitem:hover:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/avatar_shop/b_store_exitem/b_store_exitem_frame_1.png');
+}
+
+#btn-store-exitem:active:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/avatar_shop/b_store_exitem/b_store_exitem_frame_2.png');
+}
+
+#btn-store-exitem:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_store_exitem/b_store_exitem_frame_3.png');
+}
+
+#btn-store-exitem.active {
+    background-image: url('/assets/screens/avatar_shop/b_store_exitem/b_store_exitem_frame_4.png');
+}
+
+#btn-store-exit,
+#btn-store-buddy {
+    top: 550px;
+    width: 107px;
+    height: 45px;
+}
+
+#btn-store-exit {
+    left: 562px;
+    background-image: url('/assets/screens/avatar_shop/b_store_exit/b_store_exit_frame_0.png');
+}
+
+#btn-store-exit:hover:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_store_exit/b_store_exit_frame_1.png');
+}
+
+#btn-store-exit:active:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_store_exit/b_store_exit_frame_2.png');
+}
+
+#btn-store-exit:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_store_exit/b_store_exit_frame_3.png');
+}
+
+#btn-store-buddy {
+    left: 680px;
+    background-image: url('/assets/screens/avatar_shop/b_store_buddygame/b_store_buddygame_frame_0.png');
+}
+
+#btn-store-buddy:hover:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_store_buddygame/b_store_buddygame_frame_1.png');
+}
+
+#btn-store-buddy:active:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_store_buddygame/b_store_buddygame_frame_2.png');
+}
+
+#btn-store-buddy:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_store_buddygame/b_store_buddygame_frame_3.png');
 }
 
 /* Redundant Hover States removed to allow :not(:disabled) guards to work correctly */

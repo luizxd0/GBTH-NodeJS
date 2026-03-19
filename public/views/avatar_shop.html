@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=800, initial-scale=1.0">
+    <title>Gunbound Thor's Hammer - Avatar Shop</title>
+    <link rel="icon" type="image/x-icon" href="/assets/shared/favicon.ico">
+    <link rel="stylesheet" href="/styles/style.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/scripts/shared/ui_common.js"></script>
+    <script src="/scripts/ui_effects.js"></script>
+    <script src="/scripts/avatar_shop.js"></script>
+</head>
+
+<body>
+    <div id="game-container">
+        <div id="screen-transition" class="active opening run"></div>
+
+        <div id="avatar-shop-screen">
+            <div id="avatar-shop-header-info">
+                <span id="avatar-shop-nickname"></span>
+                <span id="avatar-shop-gp"></span>
+                <span id="avatar-shop-gold"></span>
+                <span id="avatar-shop-cash"></span>
+            </div>
+
+            <div id="avatar-shop-myavatar-frame"></div>
+            <div id="avatar-shop-exitem-frame"></div>
+
+            <button id="btn-store-cashcharge" class="avatar-shop-btn"></button>
+            <button id="btn-store-main-up" class="avatar-shop-btn"></button>
+            <button id="btn-store-main-down" class="avatar-shop-btn"></button>
+
+            <button id="btn-store-cloth" class="avatar-shop-btn avatar-shop-toggle active"></button>
+            <button id="btn-store-cap" class="avatar-shop-btn avatar-shop-toggle"></button>
+            <button id="btn-store-glasse" class="avatar-shop-btn avatar-shop-toggle"></button>
+            <button id="btn-store-flag" class="avatar-shop-btn avatar-shop-toggle"></button>
+
+            <button id="btn-store-puton" class="avatar-shop-btn"></button>
+            <button id="btn-store-buy" class="avatar-shop-btn"></button>
+
+            <button id="btn-store-exit" class="avatar-shop-btn"></button>
+            <button id="btn-store-buddy" class="avatar-shop-btn"></button>
+        </div>
+    </div>
+</body>
+
+</html>

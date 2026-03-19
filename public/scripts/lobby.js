@@ -187,6 +187,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (id === 'btn-lobby-buddy') {
                 toggleBuddyPanel();
             }
+            if (id === 'btn-lobby-avatar') {
+                window.playTransition('closing', () => {
+                    window.location.href = 'avatar_shop.html';
+                });
+            }
         });
     });
 

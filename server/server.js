@@ -37,6 +37,7 @@ const viewRedirects = {
     '/index.html': '/views/index.html',
     '/world_list.html': '/views/world_list.html',
     '/lobby.html': '/views/lobby.html',
+    '/avatar_shop.html': '/views/avatar_shop.html',
     '/create_account.html': '/views/create_account.html'
 };
 

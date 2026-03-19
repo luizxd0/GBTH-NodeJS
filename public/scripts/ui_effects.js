@@ -29,20 +29,21 @@ window.playTransition = function(type, callback) {
 (function() {
     /**
      * PERSISTENT BGM LOGIC
-     * channel.mp3 only starts from the Lobby.
+     * channel.mp3 starts from the Lobby or Avatar Shop.
      * Once started, it remains persistent even when returning to the World List.
      */
     const isLobby = window.location.pathname.includes('lobby.html');
+    const isAvatarShop = window.location.pathname.includes('avatar_shop.html');
     const isWorldList = window.location.pathname.includes('world_list.html');
     
     // Check if BGM should be active
-    if (isLobby) {
+    if (isLobby || isAvatarShop) {
         sessionStorage.setItem('bgmActive', 'true');
     }
     
     const bgmActive = sessionStorage.getItem('bgmActive') === 'true';
 
-    if (isLobby || (isWorldList && bgmActive)) {
+    if (isLobby || isAvatarShop || (isWorldList && bgmActive)) {
         const bgm = new Audio('/assets/shared/sounds/channel.mp3');
         bgm.loop = true;
         bgm.volume = 0.5;
