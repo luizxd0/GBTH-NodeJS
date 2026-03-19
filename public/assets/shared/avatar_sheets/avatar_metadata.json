@@ -1,21 +1,6 @@
 {
   "version": 1,
-  "spritesheets": {
-    "default_male": {
-      "image": "/assets/shared/avatar_sheets/default_male/default_male_sheet.png",
-      "mode": "grid",
-      "cycle_ticks": 20,
-      "columns": 5,
-      "cell": {
-        "w": 32,
-        "h": 44
-      },
-      "bounds": {
-        "min_x": -9,
-        "min_y": -24
-      }
-    }
-  },
+  "spritesheets": {},
   "atlases": {
     "db_fh00011": {
       "image": "/assets/shared/avatar_sheets/dragonbound/fh00011.png",

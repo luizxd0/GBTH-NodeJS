@@ -109,7 +109,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function createAvatarPreviewAnimator(hostElement, userData) {
-    const manifest = await loadAvatarManifest();
     const isFemale = Number(userData?.gender) === 1;
     const state = {
         tick: 0,
@@ -160,6 +159,7 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
         };
     }
 
+    const manifest = await loadAvatarManifest();
     const layerElements = {};
     SLOT_ORDER.forEach(({ key, back, z }) => {
         const layerKey = toLayerKey(key, back);
