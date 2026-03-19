@@ -36,7 +36,7 @@
             </div>
             <div class="buddy-status">
                 ${statusImg}
-                ${entry.online && entry.location !== 'world_list' ? `
+                ${entry.online && (entry.location === 'channel' || entry.location === 'in_game') ? `
                     <div class="buddy-server-status">
                         <span class="buddy-status-value server">${entry.serverId}</span>
                     </div>
