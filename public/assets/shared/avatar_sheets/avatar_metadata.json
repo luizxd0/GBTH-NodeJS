@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "spritesheets": {
+    "default_male": {
+      "image": "/assets/shared/avatar_sheets/default_male/default_male_sheet.png",
+      "mode": "grid",
+      "cycle_ticks": 20,
+      "columns": 5,
+      "cell": {
+        "w": 32,
+        "h": 44
+      },
+      "bounds": {
+        "min_x": -9,
+        "min_y": -24
+      }
+    }
+  },
+  "atlases": {
+    "db_fh00011": {
+      "image": "/assets/shared/avatar_sheets/dragonbound/fh00011.png",
+      "x": 0,
+      "y": 0,
+      "g": [
+        [36, 36, 0, 32],
+        [36, 36, 2, 32],
+        [40, 35, 7, 32],
+        [41, 35, 8, 32],
+        [40, 36, 8, 33],
+        [41, 35, 9, 33],
+        1,
+        [40, 35, 9, 33],
+        1,
+        [41, 35, 10, 33],
+        [41, 36, 10, 33],
+        [37, 41, 4, 36],
+        [36, 40, 3, 35],
+        1,
+        [37, 40, 3, 35],
+        [36, 40, 2, 35],
+        2,
+        [36, 39, 2, 34],
+        3
+      ]
+    },
+    "db_fb00011": {
+      "image": "/assets/shared/avatar_sheets/dragonbound/fb00011.png",
+      "x": 0,
+      "y": 0,
+      "g": [
+        [23, 25, 7, 6],
+        2,
+        [22, 25, 7, 6],
+        7
+      ]
+    },
+    "db_mb00005": {
+      "image": "/assets/shared/avatar_sheets/dragonbound/mb00005.png",
+      "x": 0,
+      "y": 0,
+      "g": [
+        [26, 26, 9, 6],
+        [25, 26, 9, 6],
+        [25, 27, 9, 7],
+        3,
+        [26, 27, 9, 7],
+        9,
+        [26, 26, 9, 6],
+        [25, 26, 9, 6],
+        3,
+        [26, 26, 9, 6]
+      ]
+    },
+    "db_mh00006": {
+      "image": "/assets/shared/avatar_sheets/dragonbound/mh00006.png",
+      "x": 0,
+      "y": 0,
+      "g": [
+        [32, 36, 3, 36],
+        [28, 36, 3, 36],
+        [27, 36, 3, 36],
+        1,
+        [27, 37, 3, 36],
+        [27, 37, 4, 36],
+        1,
+        [27, 36, 4, 35],
+        3,
+        [34, 35, 5, 35],
+        1,
+        [33, 35, 5, 35],
+        [33, 36, 5, 36],
+        7
+      ]
+    }
+  },
+  "tests": {
+    "dragonbound_random_avatar": {
+      "layers": [
+        {
+          "atlas": "db_mb00005",
+          "slot": "body",
+          "loop": "pingpong",
+          "z": 6
+        },
+        {
+          "atlas": "db_mh00006",
+          "slot": "head",
+          "loop": "avatar",
+          "z": 7
+        }
+      ]
+    }
+  }
+}

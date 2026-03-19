@@ -1521,7 +1521,11 @@ body {
     position: absolute;
     top: 0;
     left: 0;
-    image-rendering: pixelated;
+    pointer-events: none;
+}
+
+.avatar-preview-sheet {
+    position: absolute;
     pointer-events: none;
 }
 

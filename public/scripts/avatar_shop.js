@@ -1,8 +1,10 @@
 const AVATAR_ANIMATION_FPS = 10;
 const PREVIEW_ANCHOR_X = 31;
 const PREVIEW_ANCHOR_Y = 58;
-const PREVIEW_OFFSET_X = 22;
-const PREVIEW_OFFSET_Y = 12;
+const PREVIEW_NUDGE_X = 0;
+const PREVIEW_NUDGE_Y = 12;
+const AVATAR_ATLAS_METADATA_URL = '/assets/shared/avatar_sheets/avatar_metadata.json';
+const AVATAR_SHEET_TEST_MODE = 'dragonbound_random_avatar';
 const SLOT_ORDER = [
     { key: 'flag', back: true, z: 1 },
     { key: 'body', back: true, z: 2 },
@@ -115,16 +117,48 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
         layerState: {},
         avatar: {
             gender: isFemale ? 'f' : 'm',
-            head: parseOptionalInt(firstDefined(userData?.head, userData?.ahead), 0),
-            body: parseOptionalInt(firstDefined(userData?.body, userData?.abody), 0),
-            eyes: parseOptionalInt(firstDefined(userData?.eyes, userData?.aeyes), null),
-            flag: parseOptionalInt(firstDefined(userData?.flag, userData?.aflag), null)
+            // Shop preview should default to naked base when avatar slots are not provided.
+            head: parseAvatarItemId(userData?.ahead, 0, true),
+            body: parseAvatarItemId(userData?.abody, 0, true),
+            eyes: parseAvatarItemId(userData?.aeyes, null, false),
+            flag: parseAvatarItemId(userData?.aflag, null, false)
         }
     };
 
     const root = document.createElement('div');
     root.id = 'avatar-shop-character-preview';
     hostElement.appendChild(root);
+
+    const testRuntime = await tryCreateTestRuntime(root, state);
+    if (testRuntime) {
+        const tickMs = Math.floor(1000 / AVATAR_ANIMATION_FPS);
+        testRuntime.render(state.tick);
+        state.timer = window.setInterval(() => {
+            testRuntime.render(state.tick);
+            state.tick += 1;
+        }, tickMs);
+
+        return {
+            setEquip(slot, itemId) {
+                if (!['head', 'body', 'eyes', 'flag'].includes(slot)) return;
+                if (slot === 'eyes' || slot === 'flag') {
+                    state.avatar[slot] = parseAvatarItemId(itemId, null, false);
+                    return;
+                }
+                state.avatar[slot] = parseAvatarItemId(itemId, 0, true);
+            },
+            setGender(genderValue) {
+                state.avatar.gender = Number(genderValue) === 1 || genderValue === 'f' ? 'f' : 'm';
+            },
+            destroy() {
+                if (state.timer) {
+                    window.clearInterval(state.timer);
+                }
+                testRuntime.destroy();
+                root.remove();
+            }
+        };
+    }
 
     const layerElements = {};
     SLOT_ORDER.forEach(({ key, back, z }) => {
@@ -213,8 +247,8 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
             const anchor = (Array.isArray(folderInfo.anchors) && folderInfo.anchors[frameIndex])
                 ? folderInfo.anchors[frameIndex]
                 : { x: 0, y: 0 };
-            const left = PREVIEW_ANCHOR_X + PREVIEW_OFFSET_X + Number(anchor.x || 0);
-            const top = PREVIEW_ANCHOR_Y + PREVIEW_OFFSET_Y + Number(anchor.y || 0);
+            const left = PREVIEW_ANCHOR_X + PREVIEW_NUDGE_X + Number(anchor.x || 0);
+            const top = PREVIEW_ANCHOR_Y + PREVIEW_NUDGE_Y + Number(anchor.y || 0);
 
             if (layerSlotState.currentLeft !== left) {
                 img.style.left = `${left}px`;
@@ -238,7 +272,11 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
     return {
         setEquip(slot, itemId) {
             if (!['head', 'body', 'eyes', 'flag'].includes(slot)) return;
-            state.avatar[slot] = parseOptionalInt(itemId, null);
+            if (slot === 'eyes' || slot === 'flag') {
+                state.avatar[slot] = parseAvatarItemId(itemId, null, false);
+                return;
+            }
+            state.avatar[slot] = parseAvatarItemId(itemId, 0, true);
         },
         setGender(genderValue) {
             state.avatar.gender = Number(genderValue) === 1 || genderValue === 'f' ? 'f' : 'm';
@@ -367,18 +405,280 @@ function computeAvatarSpecialFrameIndex(frameCount, tick, layerState, noReverse,
     return { index: isSpecial ? step : step + half, isSpecial };
 }
 
-function parseOptionalInt(value, fallback) {
+function parseAvatarItemId(value, fallback, allowZero) {
     const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : fallback;
+    if (!Number.isFinite(parsed)) {
+        return fallback;
+    }
+    if (!allowZero && parsed <= 0) {
+        return fallback;
+    }
+    if (allowZero && parsed < 0) {
+        return fallback;
+    }
+    return parsed;
 }
 
-function firstDefined(...values) {
-    for (const value of values) {
-        if (value !== undefined && value !== null) {
-            return value;
+let atlasMetadataPromise = null;
+const preloadedImagePromises = new Map();
+
+async function loadAtlasMetadata() {
+    if (!atlasMetadataPromise) {
+        atlasMetadataPromise = (async () => {
+            const response = await fetch(`${AVATAR_ATLAS_METADATA_URL}?v=${Date.now()}`, { cache: 'no-store' });
+            if (!response.ok) {
+                throw new Error(`Unable to load avatar atlas metadata (${response.status})`);
+            }
+            return response.json();
+        })();
+    }
+    return atlasMetadataPromise;
+}
+
+function preloadImage(src) {
+    if (!preloadedImagePromises.has(src)) {
+        preloadedImagePromises.set(src, new Promise((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = () => reject(new Error(`Failed to load image: ${src}`));
+            image.src = src;
+        }));
+    }
+    return preloadedImagePromises.get(src);
+}
+
+function isDefaultMaleAvatar(avatarState) {
+    return avatarState.gender === 'm'
+        && Number(avatarState.head) === 0
+        && Number(avatarState.body) === 0
+        && (avatarState.eyes === null || avatarState.eyes === undefined)
+        && (avatarState.flag === null || avatarState.flag === undefined);
+}
+
+async function tryCreateTestRuntime(root, state) {
+    if (AVATAR_SHEET_TEST_MODE === 'dragonbound_random_avatar') {
+        return tryCreateDragonboundAtlasRuntime(root);
+    }
+    if (AVATAR_SHEET_TEST_MODE === 'default_male' || (AVATAR_SHEET_TEST_MODE === '' && isDefaultMaleAvatar(state.avatar))) {
+        return tryCreateDefaultMaleSheetRuntime(root, state);
+    }
+    return null;
+}
+
+async function tryCreateDefaultMaleSheetRuntime(root, state) {
+    if (!isDefaultMaleAvatar(state.avatar)) {
+        return null;
+    }
+
+    try {
+        const meta = await loadAtlasMetadata();
+        const sheetDef = meta?.spritesheets?.default_male;
+        if (!sheetDef || sheetDef.mode !== 'grid' || !sheetDef.cell) {
+            return null;
+        }
+
+        const imageUrl = String(sheetDef.image || '').trim();
+        if (!imageUrl) {
+            return null;
+        }
+        await preloadImage(imageUrl);
+
+        const sprite = document.createElement('div');
+        sprite.className = 'avatar-preview-sheet';
+        sprite.style.position = 'absolute';
+        sprite.style.pointerEvents = 'none';
+        sprite.style.backgroundImage = `url('${imageUrl}')`;
+        sprite.style.backgroundRepeat = 'no-repeat';
+        root.appendChild(sprite);
+
+        const fixedLeft = PREVIEW_ANCHOR_X + PREVIEW_NUDGE_X + Number(sheetDef.bounds?.min_x || 0);
+        const fixedTop = PREVIEW_ANCHOR_Y + PREVIEW_NUDGE_Y + Number(sheetDef.bounds?.min_y || 0);
+        sprite.style.left = `${fixedLeft}px`;
+        sprite.style.top = `${fixedTop}px`;
+
+        const columns = Math.max(1, Number(sheetDef.columns) || 1);
+        const cellW = Math.max(1, Number(sheetDef.cell.w) || 1);
+        const cellH = Math.max(1, Number(sheetDef.cell.h) || 1);
+        const cycleTicks = Math.max(1, Number(sheetDef.cycle_ticks) || 1);
+
+        return {
+            render(tick) {
+                const frame = ((tick % cycleTicks) + cycleTicks) % cycleTicks;
+                const col = frame % columns;
+                const row = Math.floor(frame / columns);
+                sprite.style.width = `${cellW}px`;
+                sprite.style.height = `${cellH}px`;
+                sprite.style.backgroundPosition = `-${col * cellW}px -${row * cellH}px`;
+                sprite.style.display = '';
+            },
+            destroy() {
+                sprite.remove();
+            }
+        };
+    } catch (error) {
+        console.warn('[AvatarShop] Default sheet runtime disabled (fallback to layered):', error);
+        return null;
+    }
+}
+
+function decompressGraphics(graphicsList) {
+    const out = [];
+    let previousFrame = null;
+    for (const entry of graphicsList || []) {
+        if (typeof entry === 'number' && previousFrame && out.length > 0) {
+            for (let i = 0; i < entry; i += 1) {
+                out.push(previousFrame);
+            }
+            continue;
+        }
+        if (Array.isArray(entry)) {
+            previousFrame = entry;
+            out.push(entry);
         }
     }
-    return undefined;
+    return out;
+}
+
+function expandAtlasFrames(atlasDef) {
+    const decompressed = decompressGraphics(atlasDef?.g);
+    const frames = [];
+    let cursorX = Number(atlasDef?.x || 0);
+    let cursorY = Number(atlasDef?.y || 0);
+
+    for (const src of decompressed) {
+        const w = Number(src[0] || 0);
+        const h = Number(src[1] || 0);
+        const cx = Number(src[2] || 0);
+        const cy = Number(src[3] || 0);
+        const ox = Number(src[4] || 0);
+        const oy = Number(src[5] || 0);
+
+        let sx;
+        let sy;
+        if (src.length >= 8) {
+            sx = Number(src[6] || 0);
+            sy = Number(src[7] || 0);
+        } else if (src.length >= 7) {
+            sx = Number(src[6] || 0);
+            sy = cursorY;
+        } else {
+            sx = cursorX;
+            sy = cursorY;
+        }
+
+        frames.push({ w, h, cx, cy, ox, oy, sx, sy });
+
+        if (src.length < 7) {
+            cursorX += w + 1;
+        }
+    }
+
+    return frames;
+}
+
+function computeIndexByLoop(loopName, frameCount, tick, layerState, forcedSpecial) {
+    if (loopName === 'avatar') {
+        return computeAvatarSpecialFrameIndex(frameCount, tick, layerState, false, forcedSpecial);
+    }
+    if (loopName === 'avatar_no_reverse') {
+        return computeAvatarSpecialFrameIndex(frameCount, tick, layerState, true, forcedSpecial);
+    }
+    if (loopName === 'normal') {
+        return { index: tick % Math.max(1, frameCount), isSpecial: false };
+    }
+    return { index: computePingPongFrameIndex(frameCount, tick), isSpecial: false };
+}
+
+async function tryCreateDragonboundAtlasRuntime(root) {
+    try {
+        const meta = await loadAtlasMetadata();
+        const testDef = meta?.tests?.dragonbound_random_avatar;
+        if (!testDef || !Array.isArray(testDef.layers) || testDef.layers.length === 0) {
+            return null;
+        }
+
+        const runtimeLayers = [];
+        for (const layerDef of testDef.layers) {
+            const atlasName = layerDef?.atlas;
+            const atlasDef = meta?.atlases?.[atlasName];
+            if (!atlasName || !atlasDef?.image) {
+                continue;
+            }
+            const frames = expandAtlasFrames(atlasDef);
+            if (!frames.length) {
+                continue;
+            }
+            await preloadImage(atlasDef.image);
+
+            const layerEl = document.createElement('div');
+            layerEl.className = 'avatar-preview-sheet';
+            layerEl.style.position = 'absolute';
+            layerEl.style.pointerEvents = 'none';
+            layerEl.style.backgroundImage = `url('${atlasDef.image}')`;
+            layerEl.style.backgroundRepeat = 'no-repeat';
+            layerEl.style.zIndex = String(Number(layerDef.z || 6));
+            root.appendChild(layerEl);
+
+            runtimeLayers.push({
+                slot: String(layerDef.slot || ''),
+                loop: String(layerDef.loop || 'pingpong'),
+                offsetX: Number(layerDef.offsetX || 0),
+                offsetY: Number(layerDef.offsetY || 0),
+                frames,
+                el: layerEl,
+                state: { turnCycle: undefined }
+            });
+        }
+
+        if (!runtimeLayers.length) {
+            return null;
+        }
+
+        return {
+            render(tick) {
+                let headSpecial = null;
+                const headLayer = runtimeLayers.find((layer) => layer.slot === 'head');
+                if (headLayer) {
+                    const headResult = computeIndexByLoop(
+                        headLayer.loop,
+                        headLayer.frames.length,
+                        tick,
+                        headLayer.state
+                    );
+                    headSpecial = headResult.isSpecial;
+                }
+
+                runtimeLayers.forEach((layer) => {
+                    const forcedSpecial = layer.slot === 'eyes' ? headSpecial : null;
+                    const result = computeIndexByLoop(
+                        layer.loop,
+                        layer.frames.length,
+                        tick,
+                        layer.state,
+                        forcedSpecial
+                    );
+                    const clampedIndex = Math.max(0, Math.min(result.index, layer.frames.length - 1));
+                    const frame = layer.frames[clampedIndex];
+                    if (!frame) return;
+
+                    const left = PREVIEW_ANCHOR_X + PREVIEW_NUDGE_X + layer.offsetX - frame.cx;
+                    const top = PREVIEW_ANCHOR_Y + PREVIEW_NUDGE_Y + layer.offsetY - frame.cy;
+                    layer.el.style.left = `${left}px`;
+                    layer.el.style.top = `${top}px`;
+                    layer.el.style.width = `${frame.w}px`;
+                    layer.el.style.height = `${frame.h}px`;
+                    layer.el.style.backgroundPosition = `-${frame.sx}px -${frame.sy}px`;
+                    layer.el.style.display = '';
+                });
+            },
+            destroy() {
+                runtimeLayers.forEach((layer) => layer.el.remove());
+            }
+        };
+    } catch (error) {
+        console.warn('[AvatarShop] DragonBound test runtime disabled (fallback to layered):', error);
+        return null;
+    }
 }
 
 function randomInt(min, max) {
@@ -388,3 +688,4 @@ function randomInt(min, max) {
 function toLayerKey(slot, back) {
     return `${slot}:${back ? 'back' : 'front'}`;
 }
+
