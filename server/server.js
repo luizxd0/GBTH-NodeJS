@@ -346,6 +346,20 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('private_message', (data) => {
+        const { toNickname, message } = data;
+        const sender = socketData.get(socket.id);
+        if (!sender || !toNickname || !message || message.trim() === '') return;
+
+        const targetSocketId = userSockets.get(toNickname.toLowerCase());
+        if (targetSocketId) {
+            io.to(targetSocketId).emit('private_message', {
+                fromNickname: sender.nickname,
+                message: message.trim()
+            });
+        }
+    });
+
     function broadcastChannelUsers() {
         const channelUsers = [];
         for (const [sId, data] of socketData.entries()) {

@@ -305,6 +305,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     item.classList.add('selected');
                 });
 
+                item.addEventListener('dblclick', () => {
+                    if (buddy.nickname) {
+                        window.openBuddyChat(buddy.nickname);
+                    }
+                });
+
                 listContent.appendChild(item);
             });
             setTimeout(updateBuddyScrollButtons, 50);
@@ -364,6 +370,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="channel-nickname">${user.nickname}</div>
                     </div>
                 `;
+
+                item.addEventListener('dblclick', () => {
+                    if (user.nickname) {
+                        window.openBuddyChat(user.nickname);
+                    }
+                });
 
                 channelListContent.appendChild(item);
             });
@@ -457,7 +469,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     const addBuddyPopup = document.getElementById('add-buddy-popup');
                     const isAddBuddyVisible = addBuddyPopup && !addBuddyPopup.classList.contains('hidden');
 
-                    if (isAddBuddyVisible && addBuddyInput) {
+                    const buddyChatWindow = document.getElementById('buddy-chat-window');
+                    const isBuddyChatVisible = buddyChatWindow && !buddyChatWindow.classList.contains('hidden');
+
+                    if (isBuddyChatVisible && buddyChatInput) {
+                        buddyChatInput.focus();
+                    } else if (isAddBuddyVisible && addBuddyInput) {
                         addBuddyInput.focus();
                     } else if (chatInput) {
                         chatInput.focus();
@@ -553,6 +570,133 @@ document.addEventListener('DOMContentLoaded', () => {
     const buddyAlertPopup = document.getElementById('buddy-alert-popup');
     if (buddyAlertPopup) {
         makeDraggable(buddyAlertPopup);
+    }
+
+    const buddyChatWindow = document.getElementById('buddy-chat-window');
+    if (buddyChatWindow) {
+        makeDraggable(buddyChatWindow);
+    }
+
+    // Buddy Chat Logic
+    const buddyChatInput = document.getElementById('buddy-chat-input');
+    const buddyChatCursor = document.getElementById('buddy-chat-cursor');
+    const buddyChatGhostSpan = document.getElementById('buddy-chat-input-ghost');
+    const buddyChatNickname = document.getElementById('buddy-chat-nickname');
+    const buddyChatMessages = document.getElementById('buddy-chat-messages');
+    const buddyChatContent = document.querySelector('.buddy-chat-content');
+    const btnBuddyChatClose = document.getElementById('btn-buddy-chat-close');
+
+    function updateBuddyChatCursor() {
+        if (!buddyChatInput || !buddyChatCursor || !buddyChatGhostSpan) return;
+        const text = buddyChatInput.value;
+        const selectionStart = buddyChatInput.selectionStart;
+        const textBeforeCursor = text.substring(0, selectionStart);
+
+        buddyChatGhostSpan.textContent = textBeforeCursor;
+        const width = buddyChatGhostSpan.offsetWidth;
+
+        buddyChatCursor.style.left = (width) + 'px';
+    }
+
+    if (buddyChatInput) {
+        buddyChatInput.addEventListener('input', updateBuddyChatCursor);
+        buddyChatInput.addEventListener('keyup', updateBuddyChatCursor);
+        buddyChatInput.addEventListener('click', updateBuddyChatCursor);
+        buddyChatInput.addEventListener('focus', updateBuddyChatCursor);
+        buddyChatInput.addEventListener('blur', updateBuddyChatCursor);
+
+        buddyChatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const message = buddyChatInput.value.trim();
+                const toNickname = buddyChatNickname.textContent;
+                if (message !== '' && toNickname !== '') {
+                    socket.emit('private_message', { toNickname, message });
+                    appendBuddyChatMessage(userData.nickname, message);
+                    buddyChatInput.value = '';
+                    updateBuddyChatCursor();
+                }
+            }
+        });
+    }
+
+    if (btnBuddyChatClose) {
+        btnBuddyChatClose.addEventListener('click', () => {
+            buddyChatWindow.classList.add('hidden');
+        });
+    }
+
+    function appendBuddyChatMessage(sender, message) {
+        if (!buddyChatMessages) return;
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'buddy-chat-msg';
+        msgDiv.innerHTML = `<span class="sender">${sender}]</span> ${message}`;
+        buddyChatMessages.appendChild(msgDiv);
+
+        // Auto-scroll to bottom
+        if (buddyChatContent) {
+            buddyChatContent.scrollTop = buddyChatContent.scrollHeight;
+        }
+        setTimeout(updateBuddyChatScrollButtons, 50);
+    }
+
+    window.openBuddyChat = function(nickname) {
+        if (!buddyChatWindow) return;
+        if (userData && userData.nickname.toLowerCase() === nickname.toLowerCase()) return;
+        
+        buddyChatNickname.textContent = nickname;
+        buddyChatWindow.classList.remove('hidden');
+
+        // Reset to default position (per user request)
+        buddyChatWindow.style.bottom = '';
+        buddyChatWindow.style.right = '';
+        buddyChatWindow.style.top = '279px';
+        buddyChatWindow.style.left = '541px';
+        
+        // Reset and Focus
+        if (buddyChatInput) {
+            buddyChatInput.focus();
+            updateBuddyChatCursor();
+        }
+    };
+
+    socket.on('private_message', (data) => {
+        const { fromNickname, message } = data;
+        // If window is closed or talking to someone else, we switch/open it.
+        // For simplicity, we assume one private chat window at a time as per "popup" description.
+        openBuddyChat(fromNickname);
+        appendBuddyChatMessage(fromNickname, message);
+    });
+
+    // Scroll Logic for Buddy Chat
+    const buddyChatScrollUpBtn = document.querySelector('.buddy-chat-scroll-up');
+    const buddyChatScrollDownBtn = document.querySelector('.buddy-chat-scroll-down');
+
+    function updateBuddyChatScrollButtons() {
+        if (!buddyChatContent || !buddyChatScrollUpBtn || !buddyChatScrollDownBtn) return;
+        if (buddyChatContent.scrollTop <= 0) {
+            buddyChatScrollUpBtn.classList.add('disabled');
+        } else {
+            buddyChatScrollUpBtn.classList.remove('disabled');
+        }
+        if (buddyChatContent.scrollTop + buddyChatContent.clientHeight >= buddyChatContent.scrollHeight - 2) {
+            buddyChatScrollDownBtn.classList.add('disabled');
+        } else {
+            buddyChatScrollDownBtn.classList.remove('disabled');
+        }
+    }
+
+    if (buddyChatScrollUpBtn) {
+        buddyChatScrollUpBtn.addEventListener('click', () => {
+            buddyChatContent.scrollBy({ top: -30, behavior: 'smooth' });
+        });
+    }
+    if (buddyChatScrollDownBtn) {
+        buddyChatScrollDownBtn.addEventListener('click', () => {
+            buddyChatContent.scrollBy({ top: 30, behavior: 'smooth' });
+        });
+    }
+    if (buddyChatContent) {
+        buddyChatContent.addEventListener('scroll', updateBuddyChatScrollButtons);
     }
 
     function makeDraggable(el) {

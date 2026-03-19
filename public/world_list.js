@@ -206,6 +206,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     item.classList.add('selected');
                 });
 
+                item.addEventListener('dblclick', () => {
+                   if (buddy.nickname) {
+                       window.openBuddyChat(buddy.nickname);
+                   }
+                });
+
                 listContent.appendChild(item);
             });
             setTimeout(updateBuddyScrollButtons, 50);
@@ -239,6 +245,145 @@ document.addEventListener('DOMContentLoaded', () => {
     const buddyPanel = document.getElementById('buddy-list-panel');
     if (buddyPanel) {
         makeDraggable(buddyPanel);
+    }
+
+    const buddyChatWindow = document.getElementById('buddy-chat-window');
+    if (buddyChatWindow) {
+        makeDraggable(buddyChatWindow);
+    }
+
+    // Buddy Chat Logic
+    const buddyChatInput = document.getElementById('buddy-chat-input');
+    const buddyChatCursor = document.getElementById('buddy-chat-cursor');
+    const buddyChatGhostSpan = document.getElementById('buddy-chat-input-ghost');
+    const buddyChatNickname = document.getElementById('buddy-chat-nickname');
+    const buddyChatMessages = document.getElementById('buddy-chat-messages');
+    const buddyChatContent = document.querySelector('.buddy-chat-content');
+    const btnBuddyChatClose = document.getElementById('btn-buddy-chat-close');
+
+    function updateBuddyChatCursor() {
+        if (!buddyChatInput || !buddyChatCursor || !buddyChatGhostSpan) return;
+        const text = buddyChatInput.value;
+        const selectionStart = buddyChatInput.selectionStart;
+        const textBeforeCursor = text.substring(0, selectionStart);
+
+        buddyChatGhostSpan.textContent = textBeforeCursor;
+        const width = buddyChatGhostSpan.offsetWidth;
+
+        buddyChatCursor.style.left = (width) + 'px';
+    }
+
+    if (buddyChatInput) {
+        buddyChatInput.addEventListener('input', updateBuddyChatCursor);
+        buddyChatInput.addEventListener('keyup', updateBuddyChatCursor);
+        buddyChatInput.addEventListener('click', updateBuddyChatCursor);
+        buddyChatInput.addEventListener('focus', updateBuddyChatCursor);
+        buddyChatInput.addEventListener('blur', updateBuddyChatCursor);
+
+        buddyChatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const message = buddyChatInput.value.trim();
+                const toNickname = buddyChatNickname.textContent;
+                const userData = JSON.parse(sessionStorage.getItem('user'));
+                if (message !== '' && toNickname !== '' && userData) {
+                    socket.emit('private_message', { toNickname, message });
+                    appendBuddyChatMessage(userData.nickname, message);
+                    buddyChatInput.value = '';
+                    updateBuddyChatCursor();
+                }
+            }
+        });
+    }
+
+    if (btnBuddyChatClose) {
+        btnBuddyChatClose.addEventListener('click', () => {
+            buddyChatWindow.classList.add('hidden');
+        });
+    }
+
+    function appendBuddyChatMessage(sender, message) {
+        if (!buddyChatMessages) return;
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'buddy-chat-msg';
+        msgDiv.innerHTML = `<span class="sender">${sender}]</span> ${message}`;
+        buddyChatMessages.appendChild(msgDiv);
+
+        // Auto-scroll to bottom
+        if (buddyChatContent) {
+            buddyChatContent.scrollTop = buddyChatContent.scrollHeight;
+        }
+        setTimeout(updateBuddyChatScrollButtons, 50);
+    }
+
+    window.openBuddyChat = function(nickname) {
+        if (!buddyChatWindow) return;
+        const userData = JSON.parse(sessionStorage.getItem('user'));
+        if (userData && userData.nickname.toLowerCase() === nickname.toLowerCase()) return;
+        
+        buddyChatNickname.textContent = nickname;
+        buddyChatWindow.classList.remove('hidden');
+
+        // Reset to default position (per user request)
+        buddyChatWindow.style.bottom = '';
+        buddyChatWindow.style.right = '';
+        buddyChatWindow.style.top = '279px';
+        buddyChatWindow.style.left = '541px';
+        
+        // Reset and Focus
+        if (buddyChatInput) {
+            buddyChatInput.focus();
+            updateBuddyChatCursor();
+        }
+    };
+
+    socket.on('private_message', (data) => {
+        const { fromNickname, message } = data;
+        openBuddyChat(fromNickname);
+        appendBuddyChatMessage(fromNickname, message);
+    });
+
+    // Global key listener to auto-focus buddy chat if open
+    document.addEventListener('keydown', (e) => {
+        if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+            if (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete') {
+                const isBuddyChatVisible = buddyChatWindow && !buddyChatWindow.classList.contains('hidden');
+                if (isBuddyChatVisible && buddyChatInput) {
+                    buddyChatInput.focus();
+                }
+            }
+        }
+    });
+
+    // Scroll Logic for Buddy Chat
+    const buddyChatScrollUpBtn = document.querySelector('.buddy-chat-scroll-up');
+    const buddyChatScrollDownBtn = document.querySelector('.buddy-chat-scroll-down');
+
+    function updateBuddyChatScrollButtons() {
+        if (!buddyChatContent || !buddyChatScrollUpBtn || !buddyChatScrollDownBtn) return;
+        if (buddyChatContent.scrollTop <= 0) {
+            buddyChatScrollUpBtn.classList.add('disabled');
+        } else {
+            buddyChatScrollUpBtn.classList.remove('disabled');
+        }
+        if (buddyChatContent.scrollTop + buddyChatContent.clientHeight >= buddyChatContent.scrollHeight - 2) {
+            buddyChatScrollDownBtn.classList.add('disabled');
+        } else {
+            buddyChatScrollDownBtn.classList.remove('disabled');
+        }
+    }
+
+    if (buddyChatScrollUpBtn) {
+        buddyChatScrollUpBtn.addEventListener('click', () => {
+            buddyChatContent.scrollBy({ top: -30, behavior: 'smooth' });
+        });
+    }
+    if (buddyChatScrollDownBtn) {
+        buddyChatScrollDownBtn.addEventListener('click', () => {
+            buddyChatContent.scrollBy({ top: 30, behavior: 'smooth' });
+        });
+    }
+    if (buddyChatContent) {
+        buddyChatContent.addEventListener('scroll', updateBuddyChatScrollButtons);
     }
 
     function makeDraggable(el) {

@@ -56,6 +56,29 @@
                 </div>
             </div>
 
+            </div>
+            
+            <!-- Buddy Chat Window -->
+            <div id="buddy-chat-window" class="hidden">
+                <div class="buddy-chat-header">
+                    <span id="buddy-chat-to-label">To</span>
+                    <span id="buddy-chat-nickname"></span>
+                    <button id="btn-buddy-chat-close"></button>
+                </div>
+                <div class="buddy-chat-content">
+                    <div id="buddy-chat-messages"></div>
+                </div>
+                <div class="buddy-chat-scroll-controls">
+                    <button class="buddy-chat-scroll-up disabled"></button>
+                    <button class="buddy-chat-scroll-down disabled"></button>
+                </div>
+                <div class="buddy-chat-input-container">
+                    <input type="text" id="buddy-chat-input" maxlength="100" autocomplete="off">
+                    <div id="buddy-chat-cursor"></div>
+                    <span id="buddy-chat-input-ghost" style="visibility: hidden; white-space: pre; position: absolute; font-family: Arial, sans-serif; font-size: 11px;"></span>
+                </div>
+            </div>
+
             <div class="external-controls">
                 <button id="btn-exit" class="game-button"></button>
                 <button id="btn-buddy" class="game-button"></button>
