@@ -27,12 +27,23 @@ window.playTransition = function(type, callback) {
 };
 
 (function() {
-    // Persistent BGM Logic for channel.mp3
-    const isMusicPage = window.location.pathname.includes('world_list.html') || window.location.pathname.includes('lobby.html');
-    let bgm = null;
+    /**
+     * PERSISTENT BGM LOGIC
+     * channel.mp3 only starts from the Lobby.
+     * Once started, it remains persistent even when returning to the World List.
+     */
+    const isLobby = window.location.pathname.includes('lobby.html');
+    const isWorldList = window.location.pathname.includes('world_list.html');
+    
+    // Check if BGM should be active
+    if (isLobby) {
+        sessionStorage.setItem('bgmActive', 'true');
+    }
+    
+    const bgmActive = sessionStorage.getItem('bgmActive') === 'true';
 
-    if (isMusicPage) {
-        bgm = new Audio('/assets/sounds/channel.mp3');
+    if (isLobby || (isWorldList && bgmActive)) {
+        const bgm = new Audio('/assets/sounds/channel.mp3');
         bgm.loop = true;
         bgm.volume = 0.5;
         
@@ -42,7 +53,7 @@ window.playTransition = function(type, callback) {
             bgm.currentTime = parseFloat(savedTime);
         }
         
-        bgm.play().catch(e => console.log('BGM blocked:', e));
+        bgm.play().catch(() => {});
 
         // Save position on any navigation
         window.addEventListener('beforeunload', () => {

@@ -38,8 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keydown', unlockAudio);
 
     // Signup Submission
-
-    // Signup Submission
     const signupForm = document.getElementById('signup-form');
     signupForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -59,19 +57,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Store user data dynamically
                 sessionStorage.setItem('user', JSON.stringify(result.user));
                 
-                // Play intro sound and wait for it to end before navigating
-                bgm.play().catch(e => {
-                    console.log('Audio play failed:', e);
-                    window.playTransition('closing', () => {
-                        window.location.href = 'world_list.html';
-                    });
-                });
+                // Show loading animation
+                const joiningOverlay = document.getElementById('joining-overlay');
+                if (joiningOverlay) joiningOverlay.classList.remove('hidden');
 
-                bgm.onended = () => {
+                // Play intro sound
+                bgm.play().catch(e => console.log('Audio play failed:', e));
+
+                // Navigate after 1.5s delay
+                setTimeout(() => {
                     window.playTransition('closing', () => {
                         window.location.href = 'world_list.html';
                     });
-                };
+                }, 1500);
             } else {
                 showError('Signup Error', result.error || 'Signup failed');
             }
@@ -100,19 +98,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Store user data dynamically
                 sessionStorage.setItem('user', JSON.stringify(result.user));
                 
-                // Play intro sound and wait for it to end before navigating
-                bgm.play().catch(e => {
-                    console.log('Audio play failed:', e);
-                    window.playTransition('closing', () => {
-                        window.location.href = 'world_list.html';
-                    });
-                });
+                // Show loading animation
+                const joiningOverlay = document.getElementById('joining-overlay');
+                if (joiningOverlay) joiningOverlay.classList.remove('hidden');
 
-                bgm.onended = () => {
+                // Play intro sound
+                bgm.play().catch(e => console.log('Audio play failed:', e));
+
+                // Navigate after 1.5s delay
+                setTimeout(() => {
                     window.playTransition('closing', () => {
                         window.location.href = 'world_list.html';
                     });
-                };
+                }, 1500);
             } else {
                 showError('Login Error', result.error || 'Login failed');
             }
