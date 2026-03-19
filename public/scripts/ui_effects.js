@@ -43,7 +43,7 @@ window.playTransition = function(type, callback) {
     const bgmActive = sessionStorage.getItem('bgmActive') === 'true';
 
     if (isLobby || (isWorldList && bgmActive)) {
-        const bgm = new Audio('/assets/sounds/channel.mp3');
+        const bgm = new Audio('/assets/shared/sounds/channel.mp3');
         bgm.loop = true;
         bgm.volume = 0.5;
         
@@ -68,11 +68,11 @@ window.playTransition = function(type, callback) {
         window.playTransition('opening');
     });
 
-    const hoverSound = new Audio('/assets/sounds/bselect1.ogg');
+    const hoverSound = new Audio('/assets/shared/sounds/bselect1.ogg');
     hoverSound.preload = 'auto';
     hoverSound.volume = 0.5;
 
-    const clickSound = new Audio('/assets/sounds/bpush1.ogg');
+    const clickSound = new Audio('/assets/shared/sounds/bpush1.ogg');
     clickSound.preload = 'auto';
     clickSound.volume = 0.5;
 
@@ -124,7 +124,7 @@ window.playTransition = function(type, callback) {
 
     function updateCursorFrame(frame) {
         if (cursorDiv) {
-            cursorDiv.style.backgroundImage = `url('/assets/cursor/cursor_frame_${frame}.png')`;
+            cursorDiv.style.backgroundImage = `url('/assets/shared/cursor/cursor_frame_${frame}.png')`;
         }
     }
 
@@ -164,3 +164,4 @@ window.playTransition = function(type, callback) {
         if (cursorDiv) cursorDiv.style.display = '';
     });
 })();
+

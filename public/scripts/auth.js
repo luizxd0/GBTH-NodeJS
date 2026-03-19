@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Audio Logic
-    let bgm = new Audio('/assets/sounds/title.mp3');
+    let bgm = new Audio('/assets/shared/sounds/title.mp3');
     bgm.loop = false;
     bgm.preload = 'auto';
 
@@ -143,3 +143,4 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+

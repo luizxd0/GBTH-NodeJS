@@ -7,14 +7,14 @@
     cursor: inherit;
 }
 
-@font-face {
-    font-family: 'GunboundFont';
-    src: url('/assets/fonts/font.fnt');
+:root {
+    /* font.fnt is not a browser webfont format; use stable UI fallback stack */
+    --gbth-ui-font: Tahoma, Verdana, Arial, sans-serif;
 }
 
 html {
     cursor: none;
-    font-family: 'GunboundFont', Arial, sans-serif;
+    font-family: var(--gbth-ui-font);
 }
 
 /* Custom Cursor Div - rendered by JS */
@@ -26,7 +26,7 @@ html {
     height: 22px;
     pointer-events: none;
     z-index: 99999;
-    background-image: url('/assets/cursor/cursor_frame_0.png');
+    background-image: url('/assets/shared/cursor/cursor_frame_0.png');
     background-size: 22px 22px;
     background-repeat: no-repeat;
     image-rendering: pixelated;
@@ -101,7 +101,7 @@ body {
 }
 
 .title-screen {
-    background-image: url('/assets/titlemode/titlemode_frame_0.png') !important;
+    background-image: url('/assets/shared/titlemode/titlemode_frame_0.png') !important;
     background-size: cover !important;
     background-repeat: no-repeat !important;
     background-position: center !important;
@@ -111,7 +111,7 @@ body {
 #world-list-screen {
     width: 800px;
     height: 600px;
-    background-image: url('/assets/world_list/server_back/server_back_frame_0.png');
+    background-image: url('/assets/screens/world_list/server_back/server_back_frame_0.png');
     background-size: 800px 600px;
     position: relative;
 }
@@ -133,7 +133,7 @@ body {
     left: 11px;
     width: 546px;
     height: 530px;
-    background-image: url('/assets/world_list/server_list/server_list_frame_0.png');
+    background-image: url('/assets/screens/world_list/server_list/server_list_frame_0.png');
     background-repeat: no-repeat;
     z-index: 10;
 }
@@ -215,38 +215,38 @@ body {
 #scroll-up {
     top: 0;
     left: 1px;
-    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_0.png');
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_0.png');
 }
 
 #scroll-up:hover {
-    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_1.png');
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_1.png');
 }
 
 #scroll-up:active {
-    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_2.png');
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_2.png');
 }
 
 #scroll-up.disabled {
-    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_3.png');
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_3.png');
     pointer-events: none;
 }
 
 #scroll-down {
     bottom: 0;
     left: 1px;
-    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_0.png');
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_0.png');
 }
 
 #scroll-down:hover {
-    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_1.png');
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_1.png');
 }
 
 #scroll-down:active {
-    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_2.png');
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_2.png');
 }
 
 #scroll-down.disabled {
-    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_3.png');
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_3.png');
     pointer-events: none;
 }
 
@@ -266,26 +266,26 @@ body {
     width: 181px;
     height: 65px;
     position: relative;
-    background-image: url('/assets/world_list/server_list/server_list_frame_1.png');
+    background-image: url('/assets/screens/world_list/server_list/server_list_frame_1.png');
 }
 
 /* Hover state */
 .server-item:hover {
-    background-image: url('/assets/world_list/server_list/server_list_frame_2.png');
+    background-image: url('/assets/screens/world_list/server_list/server_list_frame_2.png');
 }
 
 .server-item:hover {
-    background-image: url('/assets/world_list/server_list/server_list_frame_2.png');
+    background-image: url('/assets/screens/world_list/server_list/server_list_frame_2.png');
 }
 
 /* Selected state */
 .server-item.selected {
-    background-image: url('/assets/world_list/server_list/server_list_frame_3.png');
+    background-image: url('/assets/screens/world_list/server_list/server_list_frame_3.png');
 }
 
 /* Disabled state */
 .server-item.disabled {
-    background-image: url('/assets/world_list/server_list/server_list_frame_4.png');
+    background-image: url('/assets/screens/world_list/server_list/server_list_frame_4.png');
 }
 
 .server-item-header {
@@ -366,19 +366,19 @@ body {
     left: 0;
     width: 81px;
     height: 33px;
-    background-image: url('/assets/world_list/b_server_all/b_server_all_frame_0.png');
+    background-image: url('/assets/screens/world_list/b_server_all/b_server_all_frame_0.png');
 }
 
 #btn-all:hover:not(:disabled) {
-    background-image: url('/assets/world_list/b_server_all/b_server_all_frame_1.png');
+    background-image: url('/assets/screens/world_list/b_server_all/b_server_all_frame_1.png');
 }
 
 #btn-all:active:not(:disabled) {
-    background-image: url('/assets/world_list/b_server_all/b_server_all_frame_2.png');
+    background-image: url('/assets/screens/world_list/b_server_all/b_server_all_frame_2.png');
 }
 
 #btn-all:disabled {
-    background-image: url('/assets/world_list/b_server_all/b_server_all_frame_3.png');
+    background-image: url('/assets/screens/world_list/b_server_all/b_server_all_frame_3.png');
 }
 
 /* 80x33 */
@@ -387,19 +387,19 @@ body {
     left: 93px;
     width: 80px;
     height: 33px;
-    background-image: url('/assets/world_list/b_server_friend/b_server_friend_frame_0.png');
+    background-image: url('/assets/screens/world_list/b_server_friend/b_server_friend_frame_0.png');
 }
 
 #btn-friend:hover:not(:disabled) {
-    background-image: url('/assets/world_list/b_server_friend/b_server_friend_frame_1.png');
+    background-image: url('/assets/screens/world_list/b_server_friend/b_server_friend_frame_1.png');
 }
 
 #btn-friend:active:not(:disabled) {
-    background-image: url('/assets/world_list/b_server_friend/b_server_friend_frame_2.png');
+    background-image: url('/assets/screens/world_list/b_server_friend/b_server_friend_frame_2.png');
 }
 
 #btn-friend:disabled {
-    background-image: url('/assets/world_list/b_server_friend/b_server_friend_frame_3.png');
+    background-image: url('/assets/screens/world_list/b_server_friend/b_server_friend_frame_3.png');
 }
 
 /* 107x45 */
@@ -408,19 +408,19 @@ body {
     left: 0;
     width: 107px;
     height: 45px;
-    background-image: url('/assets/world_list/b_server_exitgame/b_server_exitgame_frame_0.png');
+    background-image: url('/assets/screens/world_list/b_server_exitgame/b_server_exitgame_frame_0.png');
 }
 
 #btn-exit:hover:not(:disabled) {
-    background-image: url('/assets/world_list/b_server_exitgame/b_server_exitgame_frame_1.png');
+    background-image: url('/assets/screens/world_list/b_server_exitgame/b_server_exitgame_frame_1.png');
 }
 
 #btn-exit:active:not(:disabled) {
-    background-image: url('/assets/world_list/b_server_exitgame/b_server_exitgame_frame_2.png');
+    background-image: url('/assets/screens/world_list/b_server_exitgame/b_server_exitgame_frame_2.png');
 }
 
 #btn-exit:disabled {
-    background-image: url('/assets/world_list/b_server_exitgame/b_server_exitgame_frame_3.png');
+    background-image: url('/assets/screens/world_list/b_server_exitgame/b_server_exitgame_frame_3.png');
 }
 
 /* 107x45 */
@@ -429,19 +429,19 @@ body {
     left: 125px;
     width: 107px;
     height: 45px;
-    background-image: url('/assets/world_list/b_server_buddygame/b_server_buddygame_frame_0.png');
+    background-image: url('/assets/screens/world_list/b_server_buddygame/b_server_buddygame_frame_0.png');
 }
 
 #btn-buddy:hover:not(:disabled) {
-    background-image: url('/assets/world_list/b_server_buddygame/b_server_buddygame_frame_1.png');
+    background-image: url('/assets/screens/world_list/b_server_buddygame/b_server_buddygame_frame_1.png');
 }
 
 #btn-buddy:active:not(:disabled) {
-    background-image: url('/assets/world_list/b_server_buddygame/b_server_buddygame_frame_2.png');
+    background-image: url('/assets/screens/world_list/b_server_buddygame/b_server_buddygame_frame_2.png');
 }
 
 #btn-buddy:disabled {
-    background-image: url('/assets/world_list/b_server_buddygame/b_server_buddygame_frame_3.png');
+    background-image: url('/assets/screens/world_list/b_server_buddygame/b_server_buddygame_frame_3.png');
 }
 
 /* 107x45 */
@@ -450,19 +450,19 @@ body {
     left: 407px;
     width: 107px;
     height: 45px;
-    background-image: url('/assets/world_list/b_server_choiceserver/b_server_choiceserver_frame_0.png');
+    background-image: url('/assets/screens/world_list/b_server_choiceserver/b_server_choiceserver_frame_0.png');
 }
 
 #btn-server:hover:not(:disabled) {
-    background-image: url('/assets/world_list/b_server_choiceserver/b_server_choiceserver_frame_1.png');
+    background-image: url('/assets/screens/world_list/b_server_choiceserver/b_server_choiceserver_frame_1.png');
 }
 
 #btn-server:active:not(:disabled) {
-    background-image: url('/assets/world_list/b_server_choiceserver/b_server_choiceserver_frame_2.png');
+    background-image: url('/assets/screens/world_list/b_server_choiceserver/b_server_choiceserver_frame_2.png');
 }
 
 #btn-server:disabled {
-    background-image: url('/assets/world_list/b_server_choiceserver/b_server_choiceserver_frame_3.png');
+    background-image: url('/assets/screens/world_list/b_server_choiceserver/b_server_choiceserver_frame_3.png');
 }
 
 /* Joining Animation Overlay */
@@ -496,7 +496,7 @@ body {
 #lobby-screen {
     width: 800px;
     height: 600px;
-    background-image: url('/assets/lobby/gamelist_back/gamelist_back_frame_0.png');
+    background-image: url('/assets/screens/lobby/gamelist_back/gamelist_back_frame_0.png');
     background-size: 800px 600px;
     position: relative;
     /* overflow: hidden; Removed to prevent clipping scaled elements sometimes */
@@ -649,7 +649,7 @@ body {
     left: 570px;
     width: 211px;
     height: 267px;
-    background-image: url('/assets/lobby/buddy_back/buddy_back_frame_0.png');
+    background-image: url('/assets/screens/lobby/buddy_back/buddy_back_frame_0.png');
     background-size: 100% 100%;
     z-index: 2000;
 }
@@ -681,7 +681,7 @@ body {
     left: 5px;
     width: 20px;
     height: 20px;
-    background-image: url('/assets/buddy/buddy_icon.png');
+    background-image: url('/assets/shared/buddy/buddy_icon.png');
     background-size: contain;
     background-repeat: no-repeat;
     pointer-events: none;
@@ -705,7 +705,7 @@ body {
     top: 0px;
     left: 12px;
     color: #ffff00;
-    font-family: 'GunboundFont', Arial, sans-serif;
+    font-family: var(--gbth-ui-font);
     font-size: 14px;
 }
 
@@ -714,7 +714,7 @@ body {
     top: 0px;
     left: 44px;
     color: #ffff00;
-    font-family: 'GunboundFont', Arial, sans-serif;
+    font-family: var(--gbth-ui-font);
     font-size: 14px;
 }
 
@@ -736,7 +736,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: url('/assets/lobby/buddy_back/buddy_back_frame_1.png');
+    background-image: url('/assets/screens/lobby/buddy_back/buddy_back_frame_1.png');
     background-repeat: no-repeat;
     background-size: 100% 100%;
     z-index: -1;
@@ -869,29 +869,29 @@ body {
 #btn-buddy-plus {
     top: 6px;
     right: 70px;
-    background-image: url('/assets/lobby/b_buddy_plus/b_buddy_plus_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_buddy_plus/b_buddy_plus_frame_0.png');
 }
 
 #btn-buddy-plus:hover {
-    background-image: url('/assets/lobby/b_buddy_plus/b_buddy_plus_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_buddy_plus/b_buddy_plus_frame_1.png');
 }
 
 #btn-buddy-plus:active {
-    background-image: url('/assets/lobby/b_buddy_plus/b_buddy_plus_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_buddy_plus/b_buddy_plus_frame_2.png');
 }
 
 #btn-buddy-del {
     top: 6px;
     right: 32px;
-    background-image: url('/assets/lobby/b_buddy_del/b_buddy_del_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_buddy_del/b_buddy_del_frame_0.png');
 }
 
 #btn-buddy-del:hover {
-    background-image: url('/assets/lobby/b_buddy_del/b_buddy_del_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_buddy_del/b_buddy_del_frame_1.png');
 }
 
 #btn-buddy-del:active {
-    background-image: url('/assets/lobby/b_buddy_del/b_buddy_del_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_buddy_del/b_buddy_del_frame_2.png');
 }
 
 #btn-buddy-exit {
@@ -899,15 +899,15 @@ body {
     right: 8px;
     width: 22px;
     height: 22px;
-    background-image: url('/assets/lobby/b_buddy_exit/b_buddy_exit_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_buddy_exit/b_buddy_exit_frame_0.png');
 }
 
 #btn-buddy-exit:hover {
-    background-image: url('/assets/lobby/b_buddy_exit/b_buddy_exit_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_buddy_exit/b_buddy_exit_frame_1.png');
 }
 
 #btn-buddy-exit:active {
-    background-image: url('/assets/lobby/b_buddy_exit/b_buddy_exit_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_buddy_exit/b_buddy_exit_frame_2.png');
 }
 
 .buddy-list-content {
@@ -956,109 +956,109 @@ body {
 #btn-view-all {
     top: 245px;
     left: 38px;
-    background-image: url('/assets/lobby/b_gamelist_viewall/b_gamelist_viewall_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_viewall/b_gamelist_viewall_frame_0.png');
 }
 
 #btn-view-all:hover:not(:disabled) {
-    background-image: url('/assets/lobby/b_gamelist_viewall/b_gamelist_viewall_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_viewall/b_gamelist_viewall_frame_1.png');
 }
 
 #btn-view-all:active:not(:disabled) {
-    background-image: url('/assets/lobby/b_gamelist_viewall/b_gamelist_viewall_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_viewall/b_gamelist_viewall_frame_2.png');
 }
 
 #btn-view-all:disabled {
-    background-image: url('/assets/lobby/b_gamelist_viewall/b_gamelist_viewall_frame_3.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_viewall/b_gamelist_viewall_frame_3.png');
 }
 
 #btn-waiting {
     top: 245px;
     left: 133px;
-    background-image: url('/assets/lobby/b_gamelist_wait/b_gamelist_wait_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_wait/b_gamelist_wait_frame_0.png');
 }
 
 #btn-waiting:hover:not(:disabled) {
-    background-image: url('/assets/lobby/b_gamelist_wait/b_gamelist_wait_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_wait/b_gamelist_wait_frame_1.png');
 }
 
 #btn-waiting:active:not(:disabled) {
-    background-image: url('/assets/lobby/b_gamelist_wait/b_gamelist_wait_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_wait/b_gamelist_wait_frame_2.png');
 }
 
 #btn-waiting:disabled {
-    background-image: url('/assets/lobby/b_gamelist_wait/b_gamelist_wait_frame_3.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_wait/b_gamelist_wait_frame_3.png');
 }
 
 #btn-nav-prev {
     top: 245px;
     left: 240px;
-    background-image: url('/assets/lobby/b_gamelist_prev/b_gamelist_prev_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_prev/b_gamelist_prev_frame_0.png');
 }
 
 #btn-nav-prev:hover:not(:disabled) {
-    background-image: url('/assets/lobby/b_gamelist_prev/b_gamelist_prev_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_prev/b_gamelist_prev_frame_1.png');
 }
 
 #btn-nav-prev:active:not(:disabled) {
-    background-image: url('/assets/lobby/b_gamelist_prev/b_gamelist_prev_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_prev/b_gamelist_prev_frame_2.png');
 }
 
 #btn-nav-prev:disabled {
-    background-image: url('/assets/lobby/b_gamelist_prev/b_gamelist_prev_frame_3.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_prev/b_gamelist_prev_frame_3.png');
 }
 
 #btn-nav-next {
     top: 245px;
     left: 292px;
-    background-image: url('/assets/lobby/b_gamelist_next/b_gamelist_next_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_next/b_gamelist_next_frame_0.png');
 }
 
 #btn-nav-next:hover:not(:disabled) {
-    background-image: url('/assets/lobby/b_gamelist_next/b_gamelist_next_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_next/b_gamelist_next_frame_1.png');
 }
 
 #btn-nav-next:active:not(:disabled) {
-    background-image: url('/assets/lobby/b_gamelist_next/b_gamelist_next_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_next/b_gamelist_next_frame_2.png');
 }
 
 #btn-nav-next:disabled {
-    background-image: url('/assets/lobby/b_gamelist_next/b_gamelist_next_frame_3.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_next/b_gamelist_next_frame_3.png');
 }
 
 #btn-friends {
     top: 245px;
     left: 370px;
-    background-image: url('/assets/lobby/b_gamelist_friend/b_gamelist_friend_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_friend/b_gamelist_friend_frame_0.png');
 }
 
 #btn-friends:hover:not(:disabled) {
-    background-image: url('/assets/lobby/b_gamelist_friend/b_gamelist_friend_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_friend/b_gamelist_friend_frame_1.png');
 }
 
 #btn-friends:active:not(:disabled) {
-    background-image: url('/assets/lobby/b_gamelist_friend/b_gamelist_friend_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_friend/b_gamelist_friend_frame_2.png');
 }
 
 #btn-friends:disabled {
-    background-image: url('/assets/lobby/b_gamelist_friend/b_gamelist_friend_frame_3.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_friend/b_gamelist_friend_frame_3.png');
 }
 
 #btn-goto {
     top: 245px;
     left: 460px;
-    background-image: url('/assets/lobby/b_gamelist_directgo/b_gamelist_directgo_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_directgo/b_gamelist_directgo_frame_0.png');
 }
 
 #btn-goto:hover:not(:disabled) {
-    background-image: url('/assets/lobby/b_gamelist_directgo/b_gamelist_directgo_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_directgo/b_gamelist_directgo_frame_1.png');
 }
 
 #btn-goto:active:not(:disabled) {
-    background-image: url('/assets/lobby/b_gamelist_directgo/b_gamelist_directgo_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_directgo/b_gamelist_directgo_frame_2.png');
 }
 
 #btn-goto:disabled {
-    background-image: url('/assets/lobby/b_gamelist_directgo/b_gamelist_directgo_frame_3.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_directgo/b_gamelist_directgo_frame_3.png');
 }
 
 /* Channel Selection Tabs */
@@ -1097,163 +1097,163 @@ body {
 }
 
 #ch-btn-1 {
-    background-image: url('/assets/lobby/b_gamechat_ch1/b_gamechat_ch1_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch1/b_gamechat_ch1_frame_0.png');
 }
 
 #ch-btn-1:hover {
-    background-image: url('/assets/lobby/b_gamechat_ch1/b_gamechat_ch1_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch1/b_gamechat_ch1_frame_1.png');
 }
 
 #ch-btn-1:active {
-    background-image: url('/assets/lobby/b_gamechat_ch1/b_gamechat_ch1_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch1/b_gamechat_ch1_frame_2.png');
 }
 
 #ch-btn-1.loading {
-    background-image: url('/assets/lobby/b_gamechat_ch1/b_gamechat_ch1_frame_3.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch1/b_gamechat_ch1_frame_3.png');
 }
 
 #ch-btn-1.active {
-    background-image: url('/assets/lobby/b_gamechat_ch1/b_gamechat_ch1_frame_4.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch1/b_gamechat_ch1_frame_4.png');
 }
 
 #ch-btn-2 {
-    background-image: url('/assets/lobby/b_gamechat_ch2/b_gamechat_ch2_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch2/b_gamechat_ch2_frame_0.png');
 }
 
 #ch-btn-2:hover {
-    background-image: url('/assets/lobby/b_gamechat_ch2/b_gamechat_ch2_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch2/b_gamechat_ch2_frame_1.png');
 }
 
 #ch-btn-2:active {
-    background-image: url('/assets/lobby/b_gamechat_ch2/b_gamechat_ch2_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch2/b_gamechat_ch2_frame_2.png');
 }
 
 #ch-btn-2.loading {
-    background-image: url('/assets/lobby/b_gamechat_ch2/b_gamechat_ch2_frame_3.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch2/b_gamechat_ch2_frame_3.png');
 }
 
 #ch-btn-2.active {
-    background-image: url('/assets/lobby/b_gamechat_ch2/b_gamechat_ch2_frame_4.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch2/b_gamechat_ch2_frame_4.png');
 }
 
 #ch-btn-3 {
-    background-image: url('/assets/lobby/b_gamechat_ch3/b_gamechat_ch3_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch3/b_gamechat_ch3_frame_0.png');
 }
 
 #ch-btn-3:hover {
-    background-image: url('/assets/lobby/b_gamechat_ch3/b_gamechat_ch3_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch3/b_gamechat_ch3_frame_1.png');
 }
 
 #ch-btn-3:active {
-    background-image: url('/assets/lobby/b_gamechat_ch3/b_gamechat_ch3_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch3/b_gamechat_ch3_frame_2.png');
 }
 
 #ch-btn-3.loading {
-    background-image: url('/assets/lobby/b_gamechat_ch3/b_gamechat_ch3_frame_3.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch3/b_gamechat_ch3_frame_3.png');
 }
 
 #ch-btn-3.active {
-    background-image: url('/assets/lobby/b_gamechat_ch3/b_gamechat_ch3_frame_4.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch3/b_gamechat_ch3_frame_4.png');
 }
 
 #ch-btn-4 {
-    background-image: url('/assets/lobby/b_gamechat_ch4/b_gamechat_ch4_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch4/b_gamechat_ch4_frame_0.png');
 }
 
 #ch-btn-4:hover {
-    background-image: url('/assets/lobby/b_gamechat_ch4/b_gamechat_ch4_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch4/b_gamechat_ch4_frame_1.png');
 }
 
 #ch-btn-4:active {
-    background-image: url('/assets/lobby/b_gamechat_ch4/b_gamechat_ch4_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch4/b_gamechat_ch4_frame_2.png');
 }
 
 #ch-btn-4.loading {
-    background-image: url('/assets/lobby/b_gamechat_ch4/b_gamechat_ch4_frame_3.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch4/b_gamechat_ch4_frame_3.png');
 }
 
 #ch-btn-4.active {
-    background-image: url('/assets/lobby/b_gamechat_ch4/b_gamechat_ch4_frame_4.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch4/b_gamechat_ch4_frame_4.png');
 }
 
 #ch-btn-5 {
-    background-image: url('/assets/lobby/b_gamechat_ch5/b_gamechat_ch5_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch5/b_gamechat_ch5_frame_0.png');
 }
 
 #ch-btn-5:hover {
-    background-image: url('/assets/lobby/b_gamechat_ch5/b_gamechat_ch5_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch5/b_gamechat_ch5_frame_1.png');
 }
 
 #ch-btn-5:active {
-    background-image: url('/assets/lobby/b_gamechat_ch5/b_gamechat_ch5_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch5/b_gamechat_ch5_frame_2.png');
 }
 
 #ch-btn-5.loading {
-    background-image: url('/assets/lobby/b_gamechat_ch5/b_gamechat_ch5_frame_3.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch5/b_gamechat_ch5_frame_3.png');
 }
 
 #ch-btn-5.active {
-    background-image: url('/assets/lobby/b_gamechat_ch5/b_gamechat_ch5_frame_4.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch5/b_gamechat_ch5_frame_4.png');
 }
 
 #ch-btn-6 {
-    background-image: url('/assets/lobby/b_gamechat_ch6/b_gamechat_ch6_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch6/b_gamechat_ch6_frame_0.png');
 }
 
 #ch-btn-6:hover {
-    background-image: url('/assets/lobby/b_gamechat_ch6/b_gamechat_ch6_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch6/b_gamechat_ch6_frame_1.png');
 }
 
 #ch-btn-6:active {
-    background-image: url('/assets/lobby/b_gamechat_ch6/b_gamechat_ch6_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch6/b_gamechat_ch6_frame_2.png');
 }
 
 #ch-btn-6.loading {
-    background-image: url('/assets/lobby/b_gamechat_ch6/b_gamechat_ch6_frame_3.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch6/b_gamechat_ch6_frame_3.png');
 }
 
 #ch-btn-6.active {
-    background-image: url('/assets/lobby/b_gamechat_ch6/b_gamechat_ch6_frame_4.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch6/b_gamechat_ch6_frame_4.png');
 }
 
 #ch-btn-7 {
-    background-image: url('/assets/lobby/b_gamechat_ch7/b_gamechat_ch7_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch7/b_gamechat_ch7_frame_0.png');
 }
 
 #ch-btn-7:hover {
-    background-image: url('/assets/lobby/b_gamechat_ch7/b_gamechat_ch7_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch7/b_gamechat_ch7_frame_1.png');
 }
 
 #ch-btn-7:active {
-    background-image: url('/assets/lobby/b_gamechat_ch7/b_gamechat_ch7_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch7/b_gamechat_ch7_frame_2.png');
 }
 
 #ch-btn-7.loading {
-    background-image: url('/assets/lobby/b_gamechat_ch7/b_gamechat_ch7_frame_3.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch7/b_gamechat_ch7_frame_3.png');
 }
 
 #ch-btn-7.active {
-    background-image: url('/assets/lobby/b_gamechat_ch7/b_gamechat_ch7_frame_4.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch7/b_gamechat_ch7_frame_4.png');
 }
 
 #ch-btn-8 {
-    background-image: url('/assets/lobby/b_gamechat_ch8/b_gamechat_ch8_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch8/b_gamechat_ch8_frame_0.png');
 }
 
 #ch-btn-8:hover {
-    background-image: url('/assets/lobby/b_gamechat_ch8/b_gamechat_ch8_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch8/b_gamechat_ch8_frame_1.png');
 }
 
 #ch-btn-8:active {
-    background-image: url('/assets/lobby/b_gamechat_ch8/b_gamechat_ch8_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch8/b_gamechat_ch8_frame_2.png');
 }
 
 #ch-btn-8.loading {
-    background-image: url('/assets/lobby/b_gamechat_ch8/b_gamechat_ch8_frame_3.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch8/b_gamechat_ch8_frame_3.png');
 }
 
 #ch-btn-8.active {
-    background-image: url('/assets/lobby/b_gamechat_ch8/b_gamechat_ch8_frame_4.png');
+    background-image: url('/assets/screens/lobby/b_gamechat_ch8/b_gamechat_ch8_frame_4.png');
 }
 
 /* Bottom Frames */
@@ -1262,7 +1262,7 @@ body {
     left: 23px;
     width: 549px;
     height: 259px;
-    background-image: url('/assets/lobby/gamelist_chat/gamelist_chat_frame_0.png');
+    background-image: url('/assets/screens/lobby/gamelist_chat/gamelist_chat_frame_0.png');
     background-size: 549px 259px;
     z-index: 5;
     overflow: hidden;
@@ -1273,7 +1273,7 @@ body {
     right: 21px;
     width: 207px;
     height: 259px;
-    background-image: url('/assets/lobby/gamelist_channel/gamelist_channel_frame_0.png');
+    background-image: url('/assets/screens/lobby/gamelist_channel/gamelist_channel_frame_0.png');
     background-size: 207px 259px;
     z-index: 5;
     overflow: hidden;
@@ -1337,109 +1337,109 @@ body {
 #btn-lobby-exit {
     top: 551px;
     left: 40px;
-    background-image: url('/assets/lobby/b_gamelist_exit/b_gamelist_exit_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_exit/b_gamelist_exit_frame_0.png');
 }
 
 #btn-lobby-exit:hover:not(:disabled) {
-    background-image: url('/assets/lobby/b_gamelist_exit/b_gamelist_exit_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_exit/b_gamelist_exit_frame_1.png');
 }
 
 #btn-lobby-exit:active:not(:disabled) {
-    background-image: url('/assets/lobby/b_gamelist_exit/b_gamelist_exit_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_exit/b_gamelist_exit_frame_2.png');
 }
 
 #btn-lobby-exit:disabled {
-    background-image: url('/assets/lobby/b_gamelist_exit/b_gamelist_exit_frame_3.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_exit/b_gamelist_exit_frame_3.png');
 }
 
 #btn-lobby-buddy {
     top: 551px;
     left: 163px;
-    background-image: url('/assets/lobby/b_gamelist_buddy/b_gamelist_buddy_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_buddy/b_gamelist_buddy_frame_0.png');
 }
 
 #btn-lobby-buddy:hover:not(:disabled) {
-    background-image: url('/assets/lobby/b_gamelist_buddy/b_gamelist_buddy_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_buddy/b_gamelist_buddy_frame_1.png');
 }
 
 #btn-lobby-buddy:active:not(:disabled) {
-    background-image: url('/assets/lobby/b_gamelist_buddy/b_gamelist_buddy_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_buddy/b_gamelist_buddy_frame_2.png');
 }
 
 #btn-lobby-buddy:disabled {
-    background-image: url('/assets/lobby/b_gamelist_buddy/b_gamelist_buddy_frame_3.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_buddy/b_gamelist_buddy_frame_3.png');
 }
 
 #btn-lobby-ranking {
     top: 551px;
     left: 286px;
-    background-image: url('/assets/lobby/b_gamelist_ranking/b_gamelist_ranking_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_ranking/b_gamelist_ranking_frame_0.png');
 }
 
 #btn-lobby-ranking:hover:not(:disabled) {
-    background-image: url('/assets/lobby/b_gamelist_ranking/b_gamelist_ranking_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_ranking/b_gamelist_ranking_frame_1.png');
 }
 
 #btn-lobby-ranking:active:not(:disabled) {
-    background-image: url('/assets/lobby/b_gamelist_ranking/b_gamelist_ranking_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_ranking/b_gamelist_ranking_frame_2.png');
 }
 
 #btn-lobby-ranking:disabled {
-    background-image: url('/assets/lobby/b_gamelist_ranking/b_gamelist_ranking_frame_3.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_ranking/b_gamelist_ranking_frame_3.png');
 }
 
 #btn-lobby-avatar {
     top: 551px;
     left: 409px;
-    background-image: url('/assets/lobby/b_gamelist_avatar/b_gamelist_avatar_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_avatar/b_gamelist_avatar_frame_0.png');
 }
 
 #btn-lobby-avatar:hover:not(:disabled) {
-    background-image: url('/assets/lobby/b_gamelist_avatar/b_gamelist_avatar_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_avatar/b_gamelist_avatar_frame_1.png');
 }
 
 #btn-lobby-avatar:active:not(:disabled) {
-    background-image: url('/assets/lobby/b_gamelist_avatar/b_gamelist_avatar_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_avatar/b_gamelist_avatar_frame_2.png');
 }
 
 #btn-lobby-avatar:disabled {
-    background-image: url('/assets/lobby/b_gamelist_avatar/b_gamelist_avatar_frame_3.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_avatar/b_gamelist_avatar_frame_3.png');
 }
 
 #btn-lobby-create {
     top: 551px;
     left: 532px;
-    background-image: url('/assets/lobby/b_gamelist_create/b_gamelist_create_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_create/b_gamelist_create_frame_0.png');
 }
 
 #btn-lobby-create:hover:not(:disabled) {
-    background-image: url('/assets/lobby/b_gamelist_create/b_gamelist_create_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_create/b_gamelist_create_frame_1.png');
 }
 
 #btn-lobby-create:active:not(:disabled) {
-    background-image: url('/assets/lobby/b_gamelist_create/b_gamelist_create_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_create/b_gamelist_create_frame_2.png');
 }
 
 #btn-lobby-create:disabled {
-    background-image: url('/assets/lobby/b_gamelist_create/b_gamelist_create_frame_3.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_create/b_gamelist_create_frame_3.png');
 }
 
 #btn-lobby-join {
     top: 551px;
     left: 655px;
-    background-image: url('/assets/lobby/b_gamelist_join/b_gamelist_join_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_join/b_gamelist_join_frame_0.png');
 }
 
 #btn-lobby-join:hover:not(:disabled) {
-    background-image: url('/assets/lobby/b_gamelist_join/b_gamelist_join_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_join/b_gamelist_join_frame_1.png');
 }
 
 #btn-lobby-join:active:not(:disabled) {
-    background-image: url('/assets/lobby/b_gamelist_join/b_gamelist_join_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_join/b_gamelist_join_frame_2.png');
 }
 
 #btn-lobby-join:disabled {
-    background-image: url('/assets/lobby/b_gamelist_join/b_gamelist_join_frame_3.png');
+    background-image: url('/assets/screens/lobby/b_gamelist_join/b_gamelist_join_frame_3.png');
 }
 
 /* Redundant Hover States removed to allow :not(:disabled) guards to work correctly */
@@ -1461,7 +1461,7 @@ body {
 #error-popup {
     width: 304px;
     height: 176px;
-    background-image: url('/assets/error_back/error_back_frame_0.png');
+    background-image: url('/assets/shared/error_back/error_back_frame_0.png');
     background-size: 304px 176px;
     position: relative;
     pointer-events: auto;
@@ -1504,22 +1504,22 @@ body {
     height: 33px;
     border: none;
     background-color: transparent;
-    background-image: url('/assets/b_error_confirm/b_error_confirm_frame_0.png');
+    background-image: url('/assets/shared/b_error_confirm/b_error_confirm_frame_0.png');
     background-size: 82px 33px;
     outline: none;
     cursor: inherit;
 }
 
 #error-confirm-btn:hover {
-    background-image: url('/assets/b_error_confirm/b_error_confirm_frame_1.png');
+    background-image: url('/assets/shared/b_error_confirm/b_error_confirm_frame_1.png');
 }
 
 #error-confirm-btn:active {
-    background-image: url('/assets/b_error_confirm/b_error_confirm_frame_2.png');
+    background-image: url('/assets/shared/b_error_confirm/b_error_confirm_frame_2.png');
 }
 
 #error-confirm-btn:disabled {
-    background-image: url('/assets/b_error_confirm/b_error_confirm_frame_3.png');
+    background-image: url('/assets/shared/b_error_confirm/b_error_confirm_frame_3.png');
 }
 
 .hidden {
@@ -1535,7 +1535,7 @@ body {
     /* Centered in 800x600 lobby (800-253)/2 */
     width: 253px;
     height: 147px;
-    background-image: url('/assets/lobby/buddy_window_back/buddy_window_back_frame_1.png');
+    background-image: url('/assets/screens/lobby/buddy_window_back/buddy_window_back_frame_1.png');
     background-size: 253px 147px;
     image-rendering: pixelated;
     z-index: 3000;
@@ -1615,19 +1615,19 @@ body {
     top: 107px;
     left: 37px;
     right: auto;
-    background-image: url('/assets/lobby/b_buddywindow_friendplus/b_buddywindow_friendplus_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_buddywindow_friendplus/b_buddywindow_friendplus_frame_0.png');
 }
 
 #btn-add-buddy-ok:hover:not(:disabled) {
-    background-image: url('/assets/lobby/b_buddywindow_friendplus/b_buddywindow_friendplus_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_buddywindow_friendplus/b_buddywindow_friendplus_frame_1.png');
 }
 
 #btn-add-buddy-ok:active:not(:disabled) {
-    background-image: url('/assets/lobby/b_buddywindow_friendplus/b_buddywindow_friendplus_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_buddywindow_friendplus/b_buddywindow_friendplus_frame_2.png');
 }
 
 #btn-add-buddy-ok:disabled {
-    background-image: url('/assets/lobby/b_buddywindow_friendplus/b_buddywindow_friendplus_frame_3.png');
+    background-image: url('/assets/screens/lobby/b_buddywindow_friendplus/b_buddywindow_friendplus_frame_3.png');
 }
 
 #btn-add-buddy-close {
@@ -1636,19 +1636,19 @@ body {
     left: 134px;
     /* 37 + 82 + 15 */
     right: auto;
-    background-image: url('/assets/lobby/b_buddywindow_friendclose/b_buddywindow_friendclose_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_buddywindow_friendclose/b_buddywindow_friendclose_frame_0.png');
 }
 
 #btn-add-buddy-close:hover:not(:disabled) {
-    background-image: url('/assets/lobby/b_buddywindow_friendclose/b_buddywindow_friendclose_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_buddywindow_friendclose/b_buddywindow_friendclose_frame_1.png');
 }
 
 #btn-add-buddy-close:active:not(:disabled) {
-    background-image: url('/assets/lobby/b_buddywindow_friendclose/b_buddywindow_friendclose_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_buddywindow_friendclose/b_buddywindow_friendclose_frame_2.png');
 }
 
 #btn-add-buddy-close:disabled {
-    background-image: url('/assets/lobby/b_buddywindow_friendclose/b_buddywindow_friendclose_frame_3.png');
+    background-image: url('/assets/screens/lobby/b_buddywindow_friendclose/b_buddywindow_friendclose_frame_3.png');
 }
 
 /* Screen Transition removed as requested */
@@ -1660,7 +1660,7 @@ body {
     left: 273px;
     width: 200px;
     height: 138px;
-    background-image: url('/assets/lobby/buddy_window_back/buddy_window_back_frame_2.png');
+    background-image: url('/assets/screens/lobby/buddy_window_back/buddy_window_back_frame_2.png');
     background-size: 200px 138px;
     image-rendering: pixelated;
     z-index: 3100;
@@ -1703,19 +1703,19 @@ body {
     top: 102px;
     left: 128px;
     right: auto;
-    background-image: url('/assets/lobby/b_buddywindow_delyes/b_buddywindow_delyes_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_buddywindow_delyes/b_buddywindow_delyes_frame_0.png');
 }
 
 #btn-buddy-alert-yes:hover:not(:disabled) {
-    background-image: url('/assets/lobby/b_buddywindow_delyes/b_buddywindow_delyes_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_buddywindow_delyes/b_buddywindow_delyes_frame_1.png');
 }
 
 #btn-buddy-alert-yes:active:not(:disabled) {
-    background-image: url('/assets/lobby/b_buddywindow_delyes/b_buddywindow_delyes_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_buddywindow_delyes/b_buddywindow_delyes_frame_2.png');
 }
 
 #btn-buddy-alert-yes:disabled {
-    background-image: url('/assets/lobby/b_buddywindow_delyes/b_buddywindow_delyes_frame_3.png');
+    background-image: url('/assets/screens/lobby/b_buddywindow_delyes/b_buddywindow_delyes_frame_3.png');
 }
 
 #btn-buddy-alert-no {
@@ -1724,19 +1724,19 @@ body {
     left: 101px;
     /* To be adjusted by JS if necessary, but starting point for 2-button layout */
     right: auto;
-    background-image: url('/assets/lobby/b_buddywindow_delno/b_buddywindow_delno_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_buddywindow_delno/b_buddywindow_delno_frame_0.png');
 }
 
 #btn-buddy-alert-no:hover:not(:disabled) {
-    background-image: url('/assets/lobby/b_buddywindow_delno/b_buddywindow_delno_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_buddywindow_delno/b_buddywindow_delno_frame_1.png');
 }
 
 #btn-buddy-alert-no:active:not(:disabled) {
-    background-image: url('/assets/lobby/b_buddywindow_delno/b_buddywindow_delno_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_buddywindow_delno/b_buddywindow_delno_frame_2.png');
 }
 
 #btn-buddy-alert-no:disabled {
-    background-image: url('/assets/lobby/b_buddywindow_delno/b_buddywindow_delno_frame_3.png');
+    background-image: url('/assets/screens/lobby/b_buddywindow_delno/b_buddywindow_delno_frame_3.png');
 }
 
 /* DragonBound-Style Auth UI Styling */
@@ -2002,38 +2002,38 @@ body {
 .btn-buddy-scroll-up {
     top: -1px;
     left: 1px;
-    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_0.png');
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_0.png');
 }
 
 .btn-buddy-scroll-up:hover:not(.disabled) {
-    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_1.png');
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_1.png');
 }
 
 .btn-buddy-scroll-up:active:not(.disabled) {
-    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_2.png');
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_2.png');
 }
 
 .btn-buddy-scroll-up.disabled {
-    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_3.png');
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_3.png');
     pointer-events: none;
 }
 
 .btn-buddy-scroll-down {
     bottom: 6px;
     left: 1px;
-    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_0.png');
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_0.png');
 }
 
 .btn-buddy-scroll-down:hover:not(.disabled) {
-    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_1.png');
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_1.png');
 }
 
 .btn-buddy-scroll-down:active:not(.disabled) {
-    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_2.png');
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_2.png');
 }
 
 .btn-buddy-scroll-down.disabled {
-    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_3.png');
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_3.png');
     pointer-events: none;
 }
 
@@ -2075,38 +2075,38 @@ body {
 .btn-channel-scroll-up {
     top: 0;
     left: 1px;
-    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_0.png');
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_0.png');
 }
 
 .btn-channel-scroll-up:hover:not(.disabled) {
-    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_1.png');
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_1.png');
 }
 
 .btn-channel-scroll-up:active:not(.disabled) {
-    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_2.png');
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_2.png');
 }
 
 .btn-channel-scroll-up.disabled {
-    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_3.png');
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_3.png');
     pointer-events: none;
 }
 
 .btn-channel-scroll-down {
     bottom: 6px;
     left: 1px;
-    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_0.png');
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_0.png');
 }
 
 .btn-channel-scroll-down:hover:not(.disabled) {
-    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_1.png');
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_1.png');
 }
 
 .btn-channel-scroll-down:active:not(.disabled) {
-    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_2.png');
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_2.png');
 }
 
 .btn-channel-scroll-down.disabled {
-    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_3.png');
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_3.png');
     pointer-events: none;
 }
 
@@ -2224,38 +2224,38 @@ body {
 .btn-chat-scroll-up {
     top: 29px;
     left: 1px;
-    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_0.png');
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_0.png');
 }
 
 .btn-chat-scroll-up:hover:not(.disabled) {
-    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_1.png');
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_1.png');
 }
 
 .btn-chat-scroll-up:active:not(.disabled) {
-    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_2.png');
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_2.png');
 }
 
 .btn-chat-scroll-up.disabled {
-    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_3.png');
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_3.png');
     pointer-events: none;
 }
 
 .btn-chat-scroll-down {
     bottom: -16px;
     left: 1px;
-    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_0.png');
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_0.png');
 }
 
 .btn-chat-scroll-down:hover:not(.disabled) {
-    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_1.png');
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_1.png');
 }
 
 .btn-chat-scroll-down:active:not(.disabled) {
-    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_2.png');
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_2.png');
 }
 
 .btn-chat-scroll-down.disabled {
-    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_3.png');
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_3.png');
     pointer-events: none;
 }
 
@@ -2388,7 +2388,7 @@ body {
 #error-popup {
     width: 288px;
     height: 153px;
-    background-image: url('/assets/error_back/error_back_frame_0.png');
+    background-image: url('/assets/shared/error_back/error_back_frame_0.png');
     background-size: contain;
     background-repeat: no-repeat;
     position: relative;
@@ -2422,7 +2422,7 @@ body {
     transform: translateX(-50%);
     width: 63px;
     height: 25px;
-    background-image: url('/assets/b_error_confirm/b_error_confirm_frame_0.png');
+    background-image: url('/assets/shared/b_error_confirm/b_error_confirm_frame_0.png');
     background-size: contain;
     background-repeat: no-repeat;
     border: none;
@@ -2431,17 +2431,17 @@ body {
 }
 
 #error-confirm-btn:hover {
-    background-image: url('/assets/b_error_confirm/b_error_confirm_frame_1.png');
+    background-image: url('/assets/shared/b_error_confirm/b_error_confirm_frame_1.png');
 }
 
 #error-confirm-btn:active {
-    background-image: url('/assets/b_error_confirm/b_error_confirm_frame_2.png');
+    background-image: url('/assets/shared/b_error_confirm/b_error_confirm_frame_2.png');
 }
 
 #joining-overlay #wait-message {
     width: 250px;
     height: 120px;
-    background-image: url('/assets/waitmessage_frame_0.png');
+    background-image: url('/assets/shared/waitmessage/waitmessage_frame_0.png');
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
@@ -2455,7 +2455,7 @@ body {
     left: 541px;
     width: 253px;
     height: 267px;
-    background-image: url('/assets/lobby/buddy_window_back/buddy_window_back_frame_0.png');
+    background-image: url('/assets/screens/lobby/buddy_window_back/buddy_window_back_frame_0.png');
     background-size: 100% 100%;
     image-rendering: pixelated;
     z-index: 3100;
@@ -2487,7 +2487,7 @@ body {
     right: 8px;
     width: 25px;
     height: 22px;
-    background-image: url('/assets/lobby/b_buddy_exit/b_buddy_exit_frame_0.png');
+    background-image: url('/assets/screens/lobby/b_buddy_exit/b_buddy_exit_frame_0.png');
     background-size: contain;
     background-color: transparent;
     border: none;
@@ -2498,11 +2498,11 @@ body {
 }
 
 #btn-buddy-chat-close:hover {
-    background-image: url('/assets/lobby/b_buddy_exit/b_buddy_exit_frame_1.png');
+    background-image: url('/assets/screens/lobby/b_buddy_exit/b_buddy_exit_frame_1.png');
 }
 
 #btn-buddy-chat-close:active {
-    background-image: url('/assets/lobby/b_buddy_exit/b_buddy_exit_frame_2.png');
+    background-image: url('/assets/screens/lobby/b_buddy_exit/b_buddy_exit_frame_2.png');
 }
 
 .buddy-chat-content {
@@ -2584,38 +2584,38 @@ body {
 .buddy-chat-scroll-up {
     top: -2px;
     left: 1px;
-    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_0.png');
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_0.png');
 }
 
 .buddy-chat-scroll-up:hover:not(.disabled) {
-    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_1.png');
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_1.png');
 }
 
 .buddy-chat-scroll-up:active:not(.disabled) {
-    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_2.png');
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_2.png');
 }
 
 .buddy-chat-scroll-up.disabled {
-    background-image: url('/assets/world_list/b_scroll_up/b_scroll_up_frame_3.png');
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_3.png');
     pointer-events: none;
 }
 
 .buddy-chat-scroll-down {
     bottom: -1px;
     left: 1px;
-    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_0.png');
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_0.png');
 }
 
 .buddy-chat-scroll-down:hover:not(.disabled) {
-    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_1.png');
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_1.png');
 }
 
 .buddy-chat-scroll-down:active:not(.disabled) {
-    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_2.png');
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_2.png');
 }
 
 .buddy-chat-scroll-down.disabled {
-    background-image: url('/assets/world_list/b_scroll_down/b_scroll_down_frame_3.png');
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_3.png');
     pointer-events: none;
 }
 

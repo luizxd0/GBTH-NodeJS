@@ -5,10 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=800, initial-scale=1.0">
     <title>Gunbound Thor's Hammer - Lobby</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/styles/style.css">
     <script src="/socket.io/socket.io.js"></script>
-    <script src="ui_effects.js"></script>
-    <script src="lobby.js"></script>
+    <script src="/scripts/shared/ui_common.js"></script>
+    <script src="/scripts/shared/buddy_common.js"></script>
+    <script src="/scripts/ui_effects.js"></script>
+    <script src="/scripts/lobby.js"></script>
 </head>
 
 <body>
@@ -21,7 +23,7 @@
             <!-- Unified User Info Panel -->
             <div id="user-info-panel">
                 <div class="user-info-top">
-                    <img id="lobby-rank-icon" src="/assets/rank1/rank1_frame_24.png" alt="Rank">
+                    <img id="lobby-rank-icon" src="/assets/shared/rank1/rank1_frame_24.png" alt="Rank">
                     <div class="name-guild-group">
                         <span id="lobby-guild"></span>
                         <span id="lobby-nickname"></span>
@@ -176,3 +178,4 @@
 </body>
 
 </html>
+

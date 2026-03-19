@@ -29,7 +29,21 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 // Root redirect
 app.get('/', (req, res) => {
-    res.redirect('/index.html');
+    res.redirect('/views/index.html');
+});
+
+// Backward-compatible routes after moving HTML files into /views
+const viewRedirects = {
+    '/index.html': '/views/index.html',
+    '/world_list.html': '/views/world_list.html',
+    '/lobby.html': '/views/lobby.html',
+    '/create_account.html': '/views/create_account.html'
+};
+
+Object.entries(viewRedirects).forEach(([from, to]) => {
+    app.get(from, (req, res) => {
+        res.redirect(to);
+    });
 });
 
 // DB Connection Pool
