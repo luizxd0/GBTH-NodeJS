@@ -8,7 +8,6 @@
 }
 
 :root {
-    /* font.fnt is not a browser webfont format; use stable UI fallback stack */
     --gbth-ui-font: Tahoma, Verdana, Arial, sans-serif;
 }
 
@@ -294,7 +293,7 @@ body {
     left: 14px;
     width: 155px;
     color: #ffffff;
-    font-family: Arial, sans-serif;
+    font-family: var(--gbth-ui-font);
     font-size: 11px;
     text-shadow: 1px 1px 1px #000;
 }
@@ -305,7 +304,7 @@ body {
     left: 14px;
     width: 155px;
     color: #ffffff;
-    font-family: Arial, sans-serif;
+    font-family: var(--gbth-ui-font);
     font-size: 11px;
     line-height: 1.2;
 }
@@ -519,7 +518,7 @@ body {
     width: 350px;
     height: 58px;
     z-index: 1000;
-    font-family: Arial, sans-serif;
+    font-family: var(--gbth-ui-font);
     color: #fff;
     cursor: inherit;
     pointer-events: none;
@@ -691,7 +690,7 @@ body {
     position: absolute;
     top: 10px;
     left: 35px;
-    font-family: Arial, sans-serif;
+    font-family: var(--gbth-ui-font);
     font-size: 11px;
     font-weight: bold;
     color: #ffff00;
@@ -1289,7 +1288,7 @@ body {
     border: none;
     color: #fff;
     outline: none;
-    font-family: Arial, sans-serif;
+    font-family: var(--gbth-ui-font);
     font-size: 11px;
     caret-color: transparent;
     /* Hide native caret, using custom one */
@@ -1474,7 +1473,7 @@ body {
     width: 200px;
     height: 20px;
     color: #fff;
-    font-family: Arial, sans-serif;
+    font-family: var(--gbth-ui-font);
     font-size: 13px;
     font-weight: bold;
     text-align: left;
@@ -1488,7 +1487,7 @@ body {
     width: 264px;
     height: 80px;
     color: #fff;
-    font-family: Arial, sans-serif;
+    font-family: var(--gbth-ui-font);
     font-size: 11px;
     line-height: 1.4;
     text-align: left;
@@ -1565,7 +1564,7 @@ body {
     display: flex;
     align-items: center;
     color: #fff;
-    font-family: Arial, sans-serif;
+    font-family: var(--gbth-ui-font);
     font-size: 11px;
     line-height: 1.2;
 }
@@ -1582,7 +1581,7 @@ body {
     border-radius: 5px;
     color: #fff;
     outline: none;
-    font-family: Arial, sans-serif;
+    font-family: var(--gbth-ui-font);
     font-size: 11px;
     padding: 0 5px;
     box-sizing: border-box;
@@ -1683,7 +1682,7 @@ body {
     display: flex;
     align-items: center;
     color: #fff;
-    font-family: Arial, sans-serif;
+    font-family: var(--gbth-ui-font);
     font-size: 11px;
     line-height: 1.2;
 }
@@ -1804,7 +1803,7 @@ body {
     color: #111;
     padding: 6px 10px;
     font-size: 12px;
-    font-family: Arial, sans-serif;
+    font-family: var(--gbth-ui-font);
     outline: none;
     border-radius: 4px;
     transition: border-color 0.2s;
@@ -1892,7 +1891,7 @@ body {
     text-transform: uppercase;
     transition: filter 0.2s, transform 0.1s;
     box-shadow: 0 4px #000000;
-    font-family: Arial, sans-serif;
+    font-family: var(--gbth-ui-font);
 }
 
 .btn-dragon:hover {
@@ -2137,7 +2136,7 @@ body {
     line-height: 14px;
     white-space: pre-wrap;
     word-break: break-all;
-    font-family: Arial, sans-serif;
+    font-family: var(--gbth-ui-font);
     text-shadow: 1px 1px 1px #000;
     display: flex;
     align-items: center;
@@ -2394,7 +2393,7 @@ body {
     position: relative;
     padding-top: 40px;
     color: #fff;
-    font-family: Arial, sans-serif;
+    font-family: var(--gbth-ui-font);
     text-shadow: 1px 1px 1px #000;
 }
 
@@ -2475,7 +2474,7 @@ body {
     top: 10px;
     left: 84px;
     color: #fff;
-    font-family: Arial, sans-serif;
+    font-family: var(--gbth-ui-font);
     font-size: 11px;
     font-weight: bold;
 }
@@ -2529,7 +2528,7 @@ body {
 
 .buddy-chat-msg {
     font-size: 11px;
-    font-family: Arial, sans-serif;
+    font-family: var(--gbth-ui-font);
     white-space: pre-wrap;
     word-wrap: break-word;
     color: #fff;
@@ -2634,7 +2633,7 @@ body {
     border: none;
     color: #fff;
     outline: none;
-    font-family: Arial, sans-serif;
+    font-family: var(--gbth-ui-font);
     font-size: 11px;
     caret-color: transparent;
 }
@@ -2649,3 +2648,4 @@ body {
     pointer-events: none;
     animation: cursor-blink 0.8s infinite;
 }
+

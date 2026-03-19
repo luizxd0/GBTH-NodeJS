@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=800, initial-scale=1.0">
     <title>Gunbound Thor's Hammer - Lobby</title>
+    <link rel="icon" type="image/x-icon" href="/assets/shared/favicon.ico">
     <link rel="stylesheet" href="/styles/style.css">
     <script src="/socket.io/socket.io.js"></script>
     <script src="/scripts/shared/ui_common.js"></script>
@@ -96,7 +97,7 @@
                 <div id="chat-cursor"></div>
                 <!-- Hidden span to measure text width for cursor positioning -->
                 <span id="chat-input-ghost"
-                    style="visibility: hidden; white-space: pre; position: absolute; font-family: Arial, sans-serif; font-size: 11px;"></span>
+                    style="visibility: hidden; white-space: pre; position: absolute; font-family: var(--gbth-ui-font); font-size: 11px;"></span>
             </div>
 
             <div id="gamelist-channel" class="lobby-frame">
@@ -126,7 +127,7 @@
                     <div id="add-buddy-cursor"></div>
                     <!-- Hidden span to measure text width for cursor positioning -->
                     <span id="add-buddy-input-ghost"
-                        style="visibility: hidden; white-space: pre; position: absolute; font-family: Arial, sans-serif; font-size: 11px;"></span>
+                        style="visibility: hidden; white-space: pre; position: absolute; font-family: var(--gbth-ui-font); font-size: 11px;"></span>
                     <button id="btn-add-buddy-ok" class="buddy-window-btn"></button>
                     <button id="btn-add-buddy-close" class="buddy-window-btn"></button>
                 </div>
@@ -161,7 +162,7 @@
                     <input type="text" id="buddy-chat-input" maxlength="100" autocomplete="off">
                     <div id="buddy-chat-cursor"></div>
                     <span id="buddy-chat-input-ghost"
-                        style="visibility: hidden; white-space: pre; position: absolute; font-family: Arial, sans-serif; font-size: 11px;"></span>
+                        style="visibility: hidden; white-space: pre; position: absolute; font-family: var(--gbth-ui-font); font-size: 11px;"></span>
                 </div>
             </div>
         </div>
