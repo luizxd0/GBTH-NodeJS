@@ -18,11 +18,27 @@
         <div id="screen-transition" class="active opening run"></div>
 
         <div id="avatar-shop-screen">
-            <div id="avatar-shop-header-info">
-                <span id="avatar-shop-nickname"></span>
-                <span id="avatar-shop-gp"></span>
-                <span id="avatar-shop-gold"></span>
-                <span id="avatar-shop-cash"></span>
+            <div id="user-info-panel">
+                <div class="user-info-top">
+                    <img id="lobby-rank-icon" src="/assets/shared/rank1/rank1_frame_24.png" alt="Rank">
+                    <div class="name-guild-group">
+                        <span id="lobby-guild"></span>
+                        <span id="lobby-nickname"></span>
+                    </div>
+                    <div class="rank-gp-group">
+                        <div class="ranking-row">
+                            <span class="label">Ranking</span>
+                            <span id="lobby-ranking-value"></span>
+                        </div>
+                        <div class="gp-row">
+                            <span id="lobby-gp"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="user-info-bottom">
+                    <span id="lobby-gold"></span>
+                    <span id="lobby-cash"></span>
+                </div>
             </div>
 
             <div id="avatar-shop-myavatar-frame"></div>
@@ -36,6 +52,8 @@
             <button id="btn-store-cap" class="avatar-shop-btn avatar-shop-toggle"></button>
             <button id="btn-store-glasse" class="avatar-shop-btn avatar-shop-toggle"></button>
             <button id="btn-store-flag" class="avatar-shop-btn avatar-shop-toggle"></button>
+            <button id="btn-store-setitem" class="avatar-shop-btn"></button>
+            <button id="btn-store-exitem" class="avatar-shop-btn"></button>
 
             <button id="btn-store-puton" class="avatar-shop-btn"></button>
             <button id="btn-store-buy" class="avatar-shop-btn"></button>

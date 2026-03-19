@@ -58,6 +58,16 @@ Reference implementation behavior (from DragonBound renderer):
 - Avatar frame counter: `a = floor(elapsedMs / 100)`.
 - Background/foreground/exitem update at half rate (`a % 2 == 0`, frame `a/2`).
 
+### Critical Positioning Discovery
+- `.img` frame metadata includes signed per-frame centers:
+  - `center_x`
+  - `center_y`
+- These values were present in the extractor metadata but previously ignored.
+- Correct composition uses:
+  - `draw_x = preview_anchor_x + center_x`
+  - `draw_y = preview_anchor_y + center_y`
+- This is now implemented in shop preview via `public/assets/shared/avatars/manifest.json` (`anchors` array per folder).
+
 Loop modes used by avatar parts:
 - `LOOP_NORMAL` (1): `idx = t % n`
 - `LOOP_NORMAL_AND_REVERSE` (2):
@@ -79,6 +89,14 @@ Recovered default per-slot loop choice:
   - 44 frames -> `LOOP_AVATAR_NO_REVERSE`
   - otherwise -> `LOOP_NORMAL_AND_REVERSE`
 - Flag: `LOOP_NORMAL_AND_REVERSE`
+
+### Shop Composition Sync Rule (Critical)
+- For avatar-shop layered preview, body/head/eyes/flag must stay on the same pose timeline.
+- If each slot advances on an independent loop (especially with random face-turn cadence), layers drift into different poses and visually "stack/misalign".
+- Practical renderer rule:
+  - Compute one master frame index for the current tick (ping-pong over a primary slot frame count, usually body/head).
+  - Map that master index into each layer's frame range.
+  - Apply each layer's per-frame `center_x/center_y` anchor after frame selection.
 
 ## Layer Order For Shop Preview
 
@@ -111,4 +129,3 @@ Frame selection:
 - Confirm exact female flag fallback behavior in original TH for "no flag equipped" state (`ff00001` vs none).
 - Confirm whether any TH-specific forced-loop/z-order overrides exist in `Gunbound.gme` for this asset set.
 - Implement this in `avatar_shop.js` with canvas composition and equip state from inventory data.
-

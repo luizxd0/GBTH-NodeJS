@@ -1472,38 +1472,57 @@ body {
 
 #avatar-shop-gp {
     position: absolute;
-    top: 4px;
-    right: 8px;
+    top: 1px;
+    right: 59px;
     color: #fff;
     font-weight: bold;
 }
 
 #avatar-shop-gold {
     position: absolute;
-    top: 22px;
-    left: 10px;
+    top: 30px;
+    left: 4px;
     color: #00ffff;
     font-weight: bold;
 }
 
 #avatar-shop-cash {
     position: absolute;
-    top: 22px;
-    right: 8px;
+    top: 31px;
+    right: 75px;
     color: #ffff00;
     font-weight: bold;
 }
 
 #avatar-shop-myavatar-frame {
     position: absolute;
-    top: 37px;
+    top: 3px;
     left: 550px;
     width: 244px;
     height: 545px;
     background-image: url('/assets/screens/avatar_shop/store_myavatar/store_myavatar_frame_0.png');
     background-repeat: no-repeat;
+    overflow: visible;
     pointer-events: none;
     z-index: 10;
+}
+
+#avatar-shop-character-preview {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+    z-index: 12;
+}
+
+.avatar-preview-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    image-rendering: pixelated;
+    pointer-events: none;
 }
 
 #avatar-shop-exitem-frame {
@@ -1769,13 +1788,13 @@ body {
 
 #btn-store-setitem,
 #btn-store-exitem {
-    top: 370px;
+    top: 556px;
     width: 49px;
     height: 32px;
 }
 
 #btn-store-setitem {
-    left: 569px;
+    left: 247px;
     background-image: url('/assets/screens/avatar_shop/b_store_setitem/b_store_setitem_frame_0.png');
 }
 
@@ -1796,7 +1815,7 @@ body {
 }
 
 #btn-store-exitem {
-    left: 622px;
+    left: 300px;
     background-image: url('/assets/screens/avatar_shop/b_store_exitem/b_store_exitem_frame_0.png');
 }
 
