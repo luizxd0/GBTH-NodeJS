@@ -4,6 +4,7 @@
     box-sizing: border-box;
     user-select: none;
     -webkit-user-select: none;
+    cursor: inherit;
 }
 
 @font-face {
@@ -12,8 +13,24 @@
 }
 
 html {
-    cursor: url('/assets/cursor/cursor_frame_0.png') 0 0, auto;
+    cursor: none;
     font-family: 'GunboundFont', Arial, sans-serif;
+}
+
+/* Custom Cursor Div - rendered by JS */
+#custom-cursor {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 22px;
+    height: 22px;
+    pointer-events: none;
+    z-index: 99999;
+    background-image: url('/assets/cursor/cursor_frame_0.png');
+    background-size: 22px 22px;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+    will-change: transform;
 }
 
 body {
@@ -27,6 +44,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    cursor: none;
 }
 
 /* Screen Transitions */
@@ -918,7 +936,7 @@ body {
     position: absolute;
     border: none;
     background-color: transparent;
-    cursor: url('/assets/cursor/cursor_frame_0.png') 0 0, auto;
+    cursor: inherit;
     z-index: 20;
     outline: none;
 }
@@ -1073,7 +1091,7 @@ body {
     background-repeat: no-repeat;
     background-position: center;
     background-size: contain;
-    cursor: url('/assets/cursor/cursor_frame_0.png') 0 0, auto;
+    cursor: inherit;
     outline: none;
     margin-right: 10px;
 }
@@ -1310,7 +1328,7 @@ body {
     height: 45px;
     border: none;
     background-color: transparent;
-    cursor: url('/assets/cursor/cursor_frame_0.png') 0 0, auto;
+    cursor: inherit;
     z-index: 30;
     outline: none;
     background-size: 107px 45px;
@@ -1489,7 +1507,7 @@ body {
     background-image: url('/assets/b_error_confirm/b_error_confirm_frame_0.png');
     background-size: 82px 33px;
     outline: none;
-    cursor: url('/assets/cursor/cursor_frame_0.png') 0 0, auto;
+    cursor: inherit;
 }
 
 #error-confirm-btn:hover {
@@ -1588,7 +1606,7 @@ body {
     border: none;
     background-color: transparent;
     background-size: 82px 33px;
-    cursor: url('/assets/cursor/cursor_frame_0.png') 0 0, auto;
+    cursor: inherit;
     outline: none;
 }
 
@@ -1676,7 +1694,7 @@ body {
     border: none;
     background-color: transparent;
     background-size: 61px 32px;
-    cursor: url('/assets/cursor/cursor_frame_0.png') 0 0, auto;
+    cursor: inherit;
     outline: none;
 }
 
@@ -1808,7 +1826,7 @@ body {
     flex-direction: column;
     align-items: center;
     gap: 5px;
-    cursor: pointer;
+    cursor: inherit;
     font-size: 11px;
     color: #fff;
 }
@@ -1870,7 +1888,7 @@ body {
     color: #fff;
     font-size: 14px;
     font-weight: bold;
-    cursor: pointer;
+    cursor: inherit;
     text-transform: uppercase;
     transition: filter 0.2s, transform 0.1s;
     box-shadow: 0 4px #000000;
@@ -1978,7 +1996,7 @@ body {
     background-position: center;
     pointer-events: auto;
     outline: none;
-    cursor: url('/assets/cursor/cursor_frame_0.png') 0 0, auto;
+    cursor: inherit;
 }
 
 .btn-buddy-scroll-up {
@@ -2051,7 +2069,7 @@ body {
     background-position: center;
     pointer-events: auto;
     outline: none;
-    cursor: url('/assets/cursor/cursor_frame_0.png') 0 0, auto;
+    cursor: inherit;
 }
 
 .btn-channel-scroll-up {
@@ -2200,7 +2218,7 @@ body {
     background-position: center;
     pointer-events: auto;
     outline: none;
-    cursor: url('/assets/cursor/cursor_frame_0.png') 0 0, auto;
+    cursor: inherit;
 }
 
 .btn-chat-scroll-up {
@@ -2271,7 +2289,7 @@ body {
     height: 28px;
     display: flex;
     align-items: center;
-    cursor: url('/assets/cursor/cursor_frame_0.png') 0 0, auto;
+    cursor: inherit;
 }
 
 .channel-item:hover {
@@ -2408,7 +2426,7 @@ body {
     background-size: contain;
     background-repeat: no-repeat;
     border: none;
-    cursor: url('/assets/cursor/cursor_frame_0.png') 0 0, auto;
+    cursor: inherit;
     background-color: transparent;
 }
 
@@ -2473,7 +2491,7 @@ body {
     background-size: contain;
     background-color: transparent;
     border: none;
-    cursor: url('/assets/cursor/cursor_frame_0.png') 0 0, auto;
+    cursor: inherit;
     pointer-events: auto;
     z-index: 10;
     outline: none;
@@ -2560,7 +2578,7 @@ body {
     background-position: center;
     pointer-events: auto;
     outline: none;
-    cursor: url('/assets/cursor/cursor_frame_0.png') 0 0, auto;
+    cursor: inherit;
 }
 
 .buddy-chat-scroll-up {

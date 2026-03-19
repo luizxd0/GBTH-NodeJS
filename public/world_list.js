@@ -467,23 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
         window.setTimeout(updateScrollButtons, 100);
     }
 
-    // Custom Animated Cursor Logic
-    let cursorFrame = 0;
-    let lastMoveTime = 0;
-    
-    // Set initial cursor on the root element for consistent inheritance
-    document.documentElement.style.cursor = `url('/assets/cursor/cursor_frame_0.png') 0 0, auto`;
-
-    document.addEventListener('mousemove', () => {
-        const now = Date.now();
-        // Play cursor animation roughly at 25 fps when moving
-        if (now - lastMoveTime > 40) {
-            cursorFrame = (cursorFrame + 1) % 17; // frames 0 to 16
-            // Apply to body for better rendering and inheritance
-            document.body.style.cursor = `url('/assets/cursor/cursor_frame_${cursorFrame}.png') 0 0, auto`;
-            lastMoveTime = now;
-        }
-    });
+    // Custom Animated Cursor Logic handled by ui_effects.js
 
     // Error Popup functionality
     const errorOverlay = document.getElementById('error-overlay');

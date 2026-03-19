@@ -109,4 +109,58 @@ window.playTransition = function(type, callback) {
             soundClone.play().catch(() => {});
         }
     }, true);
+
+    // Global Animated Cursor Logic using a div overlay
+    let cursorFrame = 0;
+    let lastMoveTime = 0;
+    let moveTimeout;
+    let cursorDiv = null;
+
+    function createCursorDiv() {
+        cursorDiv = document.createElement('div');
+        cursorDiv.id = 'custom-cursor';
+        document.body.appendChild(cursorDiv);
+    }
+
+    function updateCursorFrame(frame) {
+        if (cursorDiv) {
+            cursorDiv.style.backgroundImage = `url('/assets/cursor/cursor_frame_${frame}.png')`;
+        }
+    }
+
+    // Create cursor div as soon as body is available
+    if (document.body) {
+        createCursorDiv();
+    } else {
+        document.addEventListener('DOMContentLoaded', createCursorDiv);
+    }
+
+    document.addEventListener('mousemove', (e) => {
+        // Position the cursor div at the mouse location
+        if (cursorDiv) {
+            cursorDiv.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+        }
+
+        // Animate frames while moving
+        const now = Date.now();
+        if (now - lastMoveTime > 40) { // ~25 FPS
+            cursorFrame = (cursorFrame + 1) % 17; // 0-16
+            updateCursorFrame(cursorFrame);
+            lastMoveTime = now;
+        }
+        
+        clearTimeout(moveTimeout);
+        moveTimeout = setTimeout(() => {
+            cursorFrame = 0;
+            updateCursorFrame(0);
+        }, 100); // Reset after 100ms of no movement
+    });
+
+    // Hide custom cursor when mouse leaves the window
+    document.addEventListener('mouseleave', () => {
+        if (cursorDiv) cursorDiv.style.display = 'none';
+    });
+    document.addEventListener('mouseenter', () => {
+        if (cursorDiv) cursorDiv.style.display = '';
+    });
 })();

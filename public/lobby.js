@@ -88,20 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // Custom Animated Cursor Logic (same as world_list)
-    let cursorFrame = 0;
-    let lastMoveTime = 0;
-
-    document.documentElement.style.cursor = `url('/assets/cursor/cursor_frame_0.png') 0 0, auto`;
-
-    document.addEventListener('mousemove', () => {
-        const now = Date.now();
-        if (now - lastMoveTime > 40) {
-            cursorFrame = (cursorFrame + 1) % 17;
-            document.body.style.cursor = `url('/assets/cursor/cursor_frame_${cursorFrame}.png') 0 0, auto`;
-            lastMoveTime = now;
-        }
-    });
+    // Custom Animated Cursor Logic handled by ui_effects.js or world_list context
 
     const buttons = [
         'btn-lobby-exit', 'btn-lobby-buddy', 'btn-lobby-ranking',
