@@ -318,7 +318,7 @@ io.on('connection', (socket) => {
                 notifyBuddiesOfStatusChange(currentData.id, 0);
             }
 
-            broadcastChannelUsers();
+            broadcastChannelUsers(currentData.channelId);
         }
     });
 
@@ -334,15 +334,35 @@ io.on('connection', (socket) => {
                 return;
             }
 
-            // Broadcasting to everyone in the lobby for now. 
-            // In a multi-channel setup, we would filter by location/channel.
-            io.emit('lobby_message', {
-                nickname: user.nickname,
-                guild: user.guild,
-                message: trimmedMessage,
-                authority: user.authority,
-                type: 'user'
-            });
+            // Broadcasting to users in the same channel
+            const usersInChannel = [];
+            for (const [sId, data] of socketData.entries()) {
+                if (data.location === 'channel' && data.channelId === user.channelId) {
+                    io.to(sId).emit('lobby_message', {
+                        nickname: user.nickname,
+                        guild: user.guild,
+                        message: trimmedMessage,
+                        authority: user.authority,
+                        type: 'user'
+                    });
+                }
+            }
+        }
+    });
+
+    socket.on('switch_channel', (newChannelId) => {
+        const user = socketData.get(socket.id);
+        if (user && user.location === 'channel') {
+            const oldChannelId = user.channelId;
+            user.channelId = parseInt(newChannelId);
+            console.log(`[Channel] ${user.nickname} switched from CH${oldChannelId} to CH${user.channelId}`);
+            
+            // Re-broadcast user lists for both channels
+            broadcastChannelUsers(oldChannelId);
+            broadcastChannelUsers(user.channelId);
+
+            // Notify buddies of the channel status change
+            notifyBuddiesOfStatusChange(user.id, 0);
         }
     });
 
@@ -360,10 +380,11 @@ io.on('connection', (socket) => {
         }
     });
 
-    function broadcastChannelUsers() {
+    function broadcastChannelUsers(channelId) {
+        if (!channelId) return;
         const channelUsers = [];
         for (const [sId, data] of socketData.entries()) {
-            if (data.location === 'channel') {
+            if (data.location === 'channel' && data.channelId === channelId) {
                 channelUsers.push({
                     id: data.id,
                     nickname: data.nickname,
@@ -374,7 +395,8 @@ io.on('connection', (socket) => {
             }
         }
         for (const [sId, data] of socketData.entries()) {
-            if (data.location === 'channel') {
+            const userData = socketData.get(sId);
+            if (userData && userData.location === 'channel' && userData.channelId === channelId) {
                 io.to(sId).emit('channel_users', channelUsers);
             }
         }
@@ -491,9 +513,7 @@ io.on('connection', (socket) => {
             console.log(`[Buddy] User left lobby: ${nickname}`);
             io.emit('playerCountUpdate', getActivePlayerCount());
 
-            // Removing immediate notification here. 
-            // The disconnect handler will trigger a delayed notification instead.
-            broadcastChannelUsers();
+            broadcastChannelUsers(data.channelId);
         }
     });
 
@@ -629,7 +649,7 @@ io.on('connection', (socket) => {
             // Notify buddies that this user is now offline with a short delay (100ms)
             // This allows for seamless page transitions without flickering "LOG OUT"
             notifyBuddiesOfStatusChange(userId, 100);
-            broadcastChannelUsers();
+            broadcastChannelUsers(data.channelId);
         }
     });
 });

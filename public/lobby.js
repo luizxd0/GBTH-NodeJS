@@ -317,6 +317,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+
     socket.on('lobby_message', (data) => {
         const messagesContent = document.getElementById('chat-messages-content');
         if (messagesContent) {
@@ -639,10 +640,10 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(updateBuddyChatScrollButtons, 50);
     }
 
-    window.openBuddyChat = function(nickname) {
+    window.openBuddyChat = function (nickname) {
         if (!buddyChatWindow) return;
         if (userData && userData.nickname.toLowerCase() === nickname.toLowerCase()) return;
-        
+
         buddyChatNickname.textContent = nickname;
         buddyChatWindow.classList.remove('hidden');
 
@@ -651,7 +652,7 @@ document.addEventListener('DOMContentLoaded', () => {
         buddyChatWindow.style.right = '';
         buddyChatWindow.style.top = '279px';
         buddyChatWindow.style.left = '541px';
-        
+
         // Reset and Focus
         if (buddyChatInput) {
             buddyChatInput.focus();
@@ -839,7 +840,7 @@ document.addEventListener('DOMContentLoaded', () => {
         chatViewport.addEventListener('scroll', updateChatScrollButtons);
     }
 
-    function sendSystemWelcome() {
+    function sendSystemWelcome(chId = 1) {
         if (!chatViewport) return;
         const nickname = userData ? userData.nickname : 'Player';
         const now = new Date();
@@ -861,7 +862,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const systemMessages = [
             { message: "GunBound Classic Thor's Hammer", color: 'orange' },
             { message: `${greeting} ${nickname}`, color: 'green' },
-            { message: `Joined Channel 1 at ${ukDateStr}`, color: 'yellow' }
+            { message: `Joined Channel ${chId} at ${ukDateStr}`, color: 'yellow' }
         ];
 
         systemMessages.forEach((msg, index) => {
@@ -876,12 +877,83 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Channel Switching Logic
+    let currentChannel = 1;
+    let isChannelLoading = false;
+
+    const btnChButtons = document.querySelectorAll('.ch-btn');
+
+    function updateChannelButtonsUI() {
+        btnChButtons.forEach(btn => {
+            const chId = parseInt(btn.dataset.channel);
+            btn.classList.remove('active', 'loading');
+            if (chId === currentChannel) {
+                btn.classList.add('active');
+            }
+        });
+    }
+
+    function switchChannel(newChannelId) {
+        if (isChannelLoading || newChannelId === currentChannel) return;
+
+        isChannelLoading = true;
+
+        // Visual feedback: All buttons show loading state
+        btnChButtons.forEach(btn => {
+            btn.classList.remove('active');
+            btn.classList.add('loading');
+        });
+
+        // 0.5 second delay as requested
+        setTimeout(() => {
+            currentChannel = newChannelId;
+            isChannelLoading = false;
+
+            // Clear chat lobby for this user
+            const messagesContent = document.getElementById('chat-messages-content');
+            if (messagesContent) messagesContent.innerHTML = '';
+
+            // Notify server
+            socket.emit('switch_channel', newChannelId);
+
+            // Update UI
+            updateChannelButtonsUI();
+
+            // Full welcome message set for the new channel
+            sendSystemWelcome(newChannelId);
+
+        }, 250);
+    }
+
+    function appendLobbyServerMessage(msg, color = 'yellow') {
+        const messagesContent = document.getElementById('chat-messages-content');
+        if (messagesContent) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `chat-message broadcast ${color}`;
+            msgDiv.textContent = msg;
+            messagesContent.appendChild(msgDiv);
+            messagesContent.scrollTop = messagesContent.scrollHeight;
+            updateChatScrollButtons();
+        }
+    }
+
+    btnChButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const chId = parseInt(btn.dataset.channel);
+            switchChannel(chId);
+        });
+    });
+
     // Initial check
     window.setTimeout(() => {
         updateBuddyScrollButtons();
         updateChannelScrollButtons();
         updateChatScrollButtons();
 
-        sendSystemWelcome();
+        // Initialize channel buttons
+        updateChannelButtonsUI();
+
+        // Initial welcome message (CH1)
+        sendSystemWelcome(1);
     }, 100);
 });

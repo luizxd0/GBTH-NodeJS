@@ -1043,6 +1043,201 @@ body {
     background-image: url('/assets/lobby/b_gamelist_directgo/b_gamelist_directgo_frame_3.png');
 }
 
+/* Channel Selection Tabs */
+#channel-tabs-container {
+    position: absolute;
+    top: 295px;
+    /* Slightly adjusted */
+    left: 253px;
+    height: 26px;
+    z-index: 100;
+    /* Much higher to ensure visibility */
+    display: flex;
+    align-items: center;
+    /* border: 1px solid red; */
+    /* Uncomment for debugging if still missing */
+}
+
+.ch-buttons {
+    display: flex;
+    gap: 0px;
+    margin-left: 32px;
+    /* Offset for "CH" in background */
+}
+
+.ch-btn {
+    width: 23px;
+    height: 23px;
+    border: none;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    cursor: url('/assets/cursor/cursor_frame_0.png') 0 0, auto;
+    outline: none;
+    margin-right: 10px;
+}
+
+#ch-btn-1 {
+    background-image: url('/assets/lobby/b_gamechat_ch1/b_gamechat_ch1_frame_0.png');
+}
+
+#ch-btn-1:hover {
+    background-image: url('/assets/lobby/b_gamechat_ch1/b_gamechat_ch1_frame_1.png');
+}
+
+#ch-btn-1:active {
+    background-image: url('/assets/lobby/b_gamechat_ch1/b_gamechat_ch1_frame_2.png');
+}
+
+#ch-btn-1.loading {
+    background-image: url('/assets/lobby/b_gamechat_ch1/b_gamechat_ch1_frame_3.png');
+}
+
+#ch-btn-1.active {
+    background-image: url('/assets/lobby/b_gamechat_ch1/b_gamechat_ch1_frame_4.png');
+}
+
+#ch-btn-2 {
+    background-image: url('/assets/lobby/b_gamechat_ch2/b_gamechat_ch2_frame_0.png');
+}
+
+#ch-btn-2:hover {
+    background-image: url('/assets/lobby/b_gamechat_ch2/b_gamechat_ch2_frame_1.png');
+}
+
+#ch-btn-2:active {
+    background-image: url('/assets/lobby/b_gamechat_ch2/b_gamechat_ch2_frame_2.png');
+}
+
+#ch-btn-2.loading {
+    background-image: url('/assets/lobby/b_gamechat_ch2/b_gamechat_ch2_frame_3.png');
+}
+
+#ch-btn-2.active {
+    background-image: url('/assets/lobby/b_gamechat_ch2/b_gamechat_ch2_frame_4.png');
+}
+
+#ch-btn-3 {
+    background-image: url('/assets/lobby/b_gamechat_ch3/b_gamechat_ch3_frame_0.png');
+}
+
+#ch-btn-3:hover {
+    background-image: url('/assets/lobby/b_gamechat_ch3/b_gamechat_ch3_frame_1.png');
+}
+
+#ch-btn-3:active {
+    background-image: url('/assets/lobby/b_gamechat_ch3/b_gamechat_ch3_frame_2.png');
+}
+
+#ch-btn-3.loading {
+    background-image: url('/assets/lobby/b_gamechat_ch3/b_gamechat_ch3_frame_3.png');
+}
+
+#ch-btn-3.active {
+    background-image: url('/assets/lobby/b_gamechat_ch3/b_gamechat_ch3_frame_4.png');
+}
+
+#ch-btn-4 {
+    background-image: url('/assets/lobby/b_gamechat_ch4/b_gamechat_ch4_frame_0.png');
+}
+
+#ch-btn-4:hover {
+    background-image: url('/assets/lobby/b_gamechat_ch4/b_gamechat_ch4_frame_1.png');
+}
+
+#ch-btn-4:active {
+    background-image: url('/assets/lobby/b_gamechat_ch4/b_gamechat_ch4_frame_2.png');
+}
+
+#ch-btn-4.loading {
+    background-image: url('/assets/lobby/b_gamechat_ch4/b_gamechat_ch4_frame_3.png');
+}
+
+#ch-btn-4.active {
+    background-image: url('/assets/lobby/b_gamechat_ch4/b_gamechat_ch4_frame_4.png');
+}
+
+#ch-btn-5 {
+    background-image: url('/assets/lobby/b_gamechat_ch5/b_gamechat_ch5_frame_0.png');
+}
+
+#ch-btn-5:hover {
+    background-image: url('/assets/lobby/b_gamechat_ch5/b_gamechat_ch5_frame_1.png');
+}
+
+#ch-btn-5:active {
+    background-image: url('/assets/lobby/b_gamechat_ch5/b_gamechat_ch5_frame_2.png');
+}
+
+#ch-btn-5.loading {
+    background-image: url('/assets/lobby/b_gamechat_ch5/b_gamechat_ch5_frame_3.png');
+}
+
+#ch-btn-5.active {
+    background-image: url('/assets/lobby/b_gamechat_ch5/b_gamechat_ch5_frame_4.png');
+}
+
+#ch-btn-6 {
+    background-image: url('/assets/lobby/b_gamechat_ch6/b_gamechat_ch6_frame_0.png');
+}
+
+#ch-btn-6:hover {
+    background-image: url('/assets/lobby/b_gamechat_ch6/b_gamechat_ch6_frame_1.png');
+}
+
+#ch-btn-6:active {
+    background-image: url('/assets/lobby/b_gamechat_ch6/b_gamechat_ch6_frame_2.png');
+}
+
+#ch-btn-6.loading {
+    background-image: url('/assets/lobby/b_gamechat_ch6/b_gamechat_ch6_frame_3.png');
+}
+
+#ch-btn-6.active {
+    background-image: url('/assets/lobby/b_gamechat_ch6/b_gamechat_ch6_frame_4.png');
+}
+
+#ch-btn-7 {
+    background-image: url('/assets/lobby/b_gamechat_ch7/b_gamechat_ch7_frame_0.png');
+}
+
+#ch-btn-7:hover {
+    background-image: url('/assets/lobby/b_gamechat_ch7/b_gamechat_ch7_frame_1.png');
+}
+
+#ch-btn-7:active {
+    background-image: url('/assets/lobby/b_gamechat_ch7/b_gamechat_ch7_frame_2.png');
+}
+
+#ch-btn-7.loading {
+    background-image: url('/assets/lobby/b_gamechat_ch7/b_gamechat_ch7_frame_3.png');
+}
+
+#ch-btn-7.active {
+    background-image: url('/assets/lobby/b_gamechat_ch7/b_gamechat_ch7_frame_4.png');
+}
+
+#ch-btn-8 {
+    background-image: url('/assets/lobby/b_gamechat_ch8/b_gamechat_ch8_frame_0.png');
+}
+
+#ch-btn-8:hover {
+    background-image: url('/assets/lobby/b_gamechat_ch8/b_gamechat_ch8_frame_1.png');
+}
+
+#ch-btn-8:active {
+    background-image: url('/assets/lobby/b_gamechat_ch8/b_gamechat_ch8_frame_2.png');
+}
+
+#ch-btn-8.loading {
+    background-image: url('/assets/lobby/b_gamechat_ch8/b_gamechat_ch8_frame_3.png');
+}
+
+#ch-btn-8.active {
+    background-image: url('/assets/lobby/b_gamechat_ch8/b_gamechat_ch8_frame_4.png');
+}
+
 /* Bottom Frames */
 #gamelist-chat {
     top: 287px;
@@ -2269,7 +2464,8 @@ body {
 
 #btn-buddy-chat-close {
     position: absolute;
-    top: 5px; /* Moved down 1px to hide defect below */
+    top: 5px;
+    /* Moved down 1px to hide defect below */
     right: 8px;
     width: 25px;
     height: 22px;
@@ -2345,9 +2541,12 @@ body {
     bottom: 18px;
     left: 50%;
     transform: translateX(-50%);
-    width: 4px; /* Solid 4px bar */
-    background-color: #0c3d4a; /* Dark solid blue track */
-    opacity: 1; /* Explicitly solid */
+    width: 4px;
+    /* Solid 4px bar */
+    background-color: #0c3d4a;
+    /* Dark solid blue track */
+    opacity: 1;
+    /* Explicitly solid */
 }
 
 .buddy-chat-scroll-up,
