@@ -9,12 +9,14 @@ using ImgTools;
 class Program
 {
     static readonly Regex BaseDefaultCodeRegex = new(@"^[mf][hb]00000$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    static readonly Encoding DescriptionEncoding = Encoding.Latin1;
 
     record Row(
         uint SourceAvatarId,
         uint? SourceRefId,
         string AvatarCode,
         string Name,
+        string Description,
         string Slot,
         string Gender,
         int MinRank,
@@ -54,6 +56,22 @@ class Program
         return BaseDefaultCodeRegex.IsMatch(avatarCode ?? "");
     }
 
+    static int ResolveNewBadgeNote(string slot, uint? sourceRefId)
+    {
+        if (!sourceRefId.HasValue)
+        {
+            return 0;
+        }
+
+        var normalizedSlot = (slot ?? "").Trim().ToLowerInvariant();
+        if (normalizedSlot != "background" && normalizedSlot != "foreground")
+        {
+            return 0;
+        }
+
+        return sourceRefId.Value >= 50 && sourceRefId.Value <= 54 ? 1 : 0;
+    }
+
     static byte[] DecodeBase(byte[] rec)
     {
         int clen = rec[0];
@@ -76,13 +94,13 @@ class Program
         return outBuf;
     }
 
-    static string CStr(byte[] d, int off, int len)
+    static string CStr(byte[] d, int off, int len, Encoding? encoding = null)
     {
         if (off >= d.Length) return "";
         int e = off;
         int m = Math.Min(d.Length, off + len);
         while (e < m && d[e] != 0) e++;
-        return Encoding.ASCII.GetString(d, off, e - off).Trim();
+        return (encoding ?? Encoding.ASCII).GetString(d, off, e - off).Trim();
     }
 
     static bool LooksLikeName(string s)
@@ -91,6 +109,14 @@ class Program
         if (!s.Any(char.IsLetter)) return false;
         if (s.Count(ch => ch == '?') > s.Length / 3) return false;
         return true;
+    }
+
+    static bool LooksLikeDescription(string s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return false;
+        var normalized = s.Trim();
+        if (normalized == "." || normalized == "-") return false;
+        return normalized.Any(char.IsLetter);
     }
 
     static int Main(string[] args)
@@ -139,6 +165,8 @@ class Program
                 string code = spec.Prefix + refId.ToString("D5");
                 string name = CStr(d, 0x0C, 24);
                 if (string.IsNullOrWhiteSpace(name)) name = code;
+                string description = CStr(d, 0x54, 64, DescriptionEncoding);
+                if (!LooksLikeDescription(description)) description = name;
 
                 int gold = BitConverter.ToInt32(d, 0x28);
                 int cash = BitConverter.ToInt32(d, 0x2C);
@@ -152,6 +180,7 @@ class Program
                     refId,
                     code,
                     name,
+                    description,
                     spec.Slot,
                     spec.Gender,
                     0,
@@ -199,14 +228,27 @@ class Program
                 uint refId = BitConverter.ToUInt32(d, 0x08);
                 string name = CStr(d, 0x14, 40);
                 if (!LooksLikeName(name)) continue;
+                string description = CStr(d, 0x7C, 180, DescriptionEncoding);
+                if (!LooksLikeDescription(description))
+                {
+                    description = name;
+                }
 
                 int gold = d.Length >= 0x34 ? BitConverter.ToInt32(d, 0x30) : 0;
                 int cash = d.Length >= 0x38 ? BitConverter.ToInt32(d, 0x34) : 0;
 
                 string slot = "exitem";
-                if (exFile == "ex2.dat" && !name.Contains("Power User", StringComparison.OrdinalIgnoreCase))
+                if (exFile == "ex2.dat")
                 {
-                    slot = "background";
+                    int slotTag = d.Length > 5 ? d[5] : 0;
+                    if (slotTag == 2)
+                    {
+                        slot = "background";
+                    }
+                    else if (slotTag == 1)
+                    {
+                        slot = "foreground";
+                    }
                 }
 
                 string gender = "u";
@@ -239,10 +281,11 @@ class Program
                     refId,
                     code,
                     name,
+                    description,
                     slot,
                     gender,
                     0,
-                    0,
+                    ResolveNewBadgeNote(slot, refId),
                     goldWeek,
                     goldMonth,
                     goldPerm,
@@ -268,7 +311,7 @@ class Program
             .ToList();
 
         var cols = new[] {
-            "source_avatar_id","source_ref_id","avatar_code","name","slot","gender","min_rank","note",
+            "source_avatar_id","source_ref_id","avatar_code","name","description","slot","gender","min_rank","note",
             "gold_week","gold_month","gold_perm","cash_week","cash_month","cash_perm",
             "stat_pop","stat_time","stat_atk","stat_def","stat_life","stat_item","stat_dig","stat_shld",
             "set_key","remove_time","is_unlocked","enabled"
@@ -293,6 +336,7 @@ class Program
                     r.SourceRefId.HasValue ? r.SourceRefId.Value.ToString() : "NULL",
                     Sql(r.AvatarCode),
                     Sql(r.Name),
+                    Sql(r.Description),
                     Sql(r.Slot),
                     Sql(r.Gender),
                     r.MinRank.ToString(),

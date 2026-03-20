@@ -365,13 +365,15 @@ app.get('/api/avatar-shop/catalog', async (req, res) => {
                 const avatarCode = row?.avatar_code ?? row?.AvatarCode ?? row?.item_code ?? row?.ItemCode ?? '';
                 const itemName = row?.name ?? row?.Name ?? avatarCode;
                 const noteValue = row?.note ?? row?.Note ?? '';
+                const descriptionValue = row?.description ?? row?.Description ?? '';
                 const slotValue = row?.slot ?? row?.Slot ?? row?.category ?? row?.Category;
                 const genderValue = row?.gender ?? row?.Gender;
                 const setKey = row?.set_key ?? row?.SetKey ?? null;
                 const removeTimeRaw = row?.remove_time ?? row?.RemoveTime ?? null;
                 const enabledRaw = row?.enabled ?? row?.Enabled;
                 const removeTime = toOptionalAvatarValue(removeTimeRaw);
-                const noteText = String(noteValue ?? '').trim();
+                const noteFlag = toBaseAvatarValue(noteValue) === 1 ? 1 : 0;
+                const descriptionText = String(descriptionValue ?? '').trim();
                 const enabled = enabledRaw === undefined || enabledRaw === null
                     ? 1
                     : (Number(enabledRaw) === 1 ? 1 : 0);
@@ -381,8 +383,8 @@ app.get('/api/avatar-shop/catalog', async (req, res) => {
                     source_ref_id: toOptionalAvatarValue(sourceRefId),
                     avatar_code: String(avatarCode || ''),
                     name: String(itemName || avatarCode || ''),
-                    note: noteText === '0' ? '' : noteText,
-                    description: noteText === '0' ? '' : noteText,
+                    note: noteFlag,
+                    description: descriptionText,
                     slot: normalizeAvatarCatalogSlot(slotValue),
                     gender: normalizeAvatarCatalogGender(genderValue),
                     set_key: setKey == null ? null : String(setKey),

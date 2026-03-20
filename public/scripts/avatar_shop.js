@@ -62,9 +62,7 @@ function resolveGenderBadgeIcon(itemData) {
 }
 
 function isCatalogNewBadgeItem(itemData) {
-    const slot = String(itemData?.slot || '').toLowerCase();
-    const refId = Number(itemData?.source_ref_id);
-    return slot === 'background' && Number.isFinite(refId) && refId >= 50 && refId <= 54;
+    return Number(itemData?.note) === 1;
 }
 
 function formatPriceValue(value) {
@@ -122,7 +120,6 @@ function resolveCatalogPriceLines(itemData) {
 
 function resolveCatalogHoverDescription(itemData) {
     const candidates = [
-        itemData?.note,
         itemData?.description,
         itemData?.name
     ];
@@ -1230,6 +1227,7 @@ async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) 
         genderBadgeEl.style.display = 'none';
         genderBadgeEl.removeAttribute('src');
         newBadgeEl.style.display = 'none';
+        newBadgeEl.classList.remove('is-blinking');
         newBadgeEl.removeAttribute('src');
         priceLine1El.textContent = '';
         priceLine2El.textContent = '';
@@ -1257,9 +1255,11 @@ async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) 
     }
     if (isCatalogNewBadgeItem(itemData)) {
         newBadgeEl.src = getStoreAvatarFrameUrl(14);
+        newBadgeEl.classList.add('is-blinking');
         newBadgeEl.style.display = 'block';
     } else {
         newBadgeEl.style.display = 'none';
+        newBadgeEl.classList.remove('is-blinking');
         newBadgeEl.removeAttribute('src');
     }
 

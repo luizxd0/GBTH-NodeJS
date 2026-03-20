@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS avatars (
     source_ref_id INT UNSIGNED NULL,
     avatar_code VARCHAR(64) NOT NULL COMMENT 'DragonBound filename/code (example: mh00000)',
     name VARCHAR(128) NOT NULL,
+    description VARCHAR(255) NOT NULL DEFAULT '',
     slot ENUM('head', 'body', 'eyes', 'flag', 'background', 'foreground', 'exitem') NOT NULL,
     gender ENUM('m', 'f', 'u') NOT NULL DEFAULT 'u',
     min_rank SMALLINT UNSIGNED NOT NULL DEFAULT 0,

@@ -1733,6 +1733,22 @@ body {
     z-index: 4;
 }
 
+.avatar-shop-item-new-badge.is-blinking {
+    animation: avatar-shop-new-badge-blink 1s steps(1, end) infinite;
+}
+
+@keyframes avatar-shop-new-badge-blink {
+    0%,
+    49.999% {
+        opacity: 1;
+    }
+
+    50%,
+    100% {
+        opacity: 0;
+    }
+}
+
 .avatar-shop-item-name {
     position: absolute;
     top: 2px;
