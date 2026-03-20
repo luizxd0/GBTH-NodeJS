@@ -413,18 +413,32 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
             visibleLayers.find((entry) => entry.key === 'head' && !entry.back) ||
             visibleLayers.find((entry) => entry.key === 'head');
         if (headLayer) {
-            const headResult = computeLayerFrameBySlot('head', headLayer.folderInfo.indexes.length, state.tick, headLayer.layerSlotState);
+            const headResult = computeLayerFrameBySlot(
+                'head',
+                headLayer.folderInfo.indexes.length,
+                state.tick,
+                headLayer.layerSlotState,
+                null,
+                state.avatar.head
+            );
             headState = headResult;
         }
 
         visibleLayers.forEach(({ key, folder, layerSlotState, img, folderInfo }) => {
-            const logicalIndex = computeLayerFrameBySlot(
+            const frameResult = computeLayerFrameBySlot(
                 key,
                 folderInfo.indexes.length,
                 state.tick,
                 layerSlotState,
-                key === 'eyes' ? headState : null
-            ).index;
+                key === 'eyes' ? headState : null,
+                state.avatar[key]
+            );
+            const logicalIndex = Number(frameResult?.index);
+            if (frameResult?.hidden === true || !Number.isFinite(logicalIndex) || logicalIndex < 0) {
+                img.style.display = 'none';
+                layerSlotState.currentSrc = null;
+                return;
+            }
             const frameIndex = folderInfo.indexes[Math.max(0, Math.min(logicalIndex, folderInfo.indexes.length - 1))];
             const assetBaseUrl = String(manifest.__assetBaseUrl || '/assets/shared/avatars');
             const src = `${assetBaseUrl}/${folder}/${folder}_frame_${frameIndex}.png`;
@@ -538,7 +552,69 @@ function resolveAvatarFolder(manifestFolders, gender, slot, itemId, isBackLayer)
     return null;
 }
 
-function computeLayerFrameBySlot(slot, frameCount, tick, layerState, forcedSpecial) {
+function computeSyncedFrameIndexFromForced(frameCount, tick, forcedSpecial) {
+    const forcedState = (forcedSpecial && typeof forcedSpecial === 'object') ? forcedSpecial : null;
+    if (!forcedState) {
+        return null;
+    }
+
+    const rawPhase = Number(forcedState.phase);
+    const rawMax = Number(forcedState.phaseMax);
+    let mapped = null;
+    if (Number.isFinite(rawPhase) && Number.isFinite(rawMax) && rawMax > 0) {
+        const normalized = Math.max(0, Math.min(1, rawPhase / rawMax));
+        mapped = Math.round(normalized * Math.max(0, frameCount - 1));
+    } else if (Number.isFinite(rawPhase)) {
+        mapped = Math.max(0, Math.floor(rawPhase)) % Math.max(1, frameCount);
+    }
+
+    if (!Number.isFinite(mapped)) {
+        mapped = computePingPongFrameIndex(frameCount, tick);
+    }
+
+    return {
+        index: Math.max(0, Math.min(frameCount - 1, mapped)),
+        isSpecial: Boolean(forcedState.isSpecial),
+        phase: Math.max(0, Math.min(frameCount - 1, mapped)),
+        phaseMax: Math.max(0, frameCount - 1)
+    };
+}
+
+function isHeadTriggeredEyesOnlyItem(itemId) {
+    const id = Number(itemId);
+    return Number.isFinite(id) && (id === 44 || id === 45 || id === 46);
+}
+
+function computeHeadTriggeredEyesOnlyFrame(frameCount, forcedSpecial, itemId) {
+    const numericItemId = Number(itemId);
+    const isAngryEyes = Number.isFinite(numericItemId) && numericItemId === 44;
+    const idleIndex = 0;
+    const forcedState = (forcedSpecial && typeof forcedSpecial === 'object') ? forcedSpecial : null;
+    if (!forcedState || forcedState.isSpecial !== true) {
+        if (isAngryEyes) {
+            return { index: -1, isSpecial: false, hidden: true, phase: 0, phaseMax: Math.max(0, frameCount - 1) };
+        }
+        return { index: idleIndex, isSpecial: false, phase: idleIndex, phaseMax: Math.max(0, frameCount - 1) };
+    }
+
+    const rawPhase = Number(forcedState.phase);
+    const rawMax = Number(forcedState.phaseMax);
+    let mapped = 0;
+    if (Number.isFinite(rawPhase) && Number.isFinite(rawMax) && rawMax > 0) {
+        const normalized = Math.max(0, Math.min(1, rawPhase / rawMax));
+        mapped = Math.round(normalized * Math.max(0, frameCount - 1));
+    } else if (Number.isFinite(rawPhase)) {
+        mapped = Math.max(0, Math.floor(rawPhase)) % Math.max(1, frameCount);
+    }
+    return {
+        index: Math.max(0, Math.min(frameCount - 1, mapped)),
+        isSpecial: true,
+        phase: Math.max(0, Math.min(frameCount - 1, mapped)),
+        phaseMax: Math.max(0, frameCount - 1)
+    };
+}
+
+function computeLayerFrameBySlot(slot, frameCount, tick, layerState, forcedSpecial, slotItemId) {
     if (frameCount <= 1) {
         return { index: 0, isSpecial: false };
     }
@@ -552,11 +628,18 @@ function computeLayerFrameBySlot(slot, frameCount, tick, layerState, forcedSpeci
     }
 
     if (slot === 'eyes') {
+        if (isHeadTriggeredEyesOnlyItem(slotItemId)) {
+            return computeHeadTriggeredEyesOnlyFrame(frameCount, forcedSpecial, slotItemId);
+        }
         if (frameCount === 44) {
             return computeAvatarSpecialFrameIndex(frameCount, tick, layerState, true, forcedSpecial);
         }
         if (frameCount === 22) {
             return computeAvatarSpecialFrameIndex(frameCount, tick, layerState, false, forcedSpecial);
+        }
+        const synced = computeSyncedFrameIndexFromForced(frameCount, tick, forcedSpecial);
+        if (synced) {
+            return synced;
         }
         return { index: computePingPongFrameIndex(frameCount, tick), isSpecial: false };
     }
@@ -1255,7 +1338,14 @@ async function tryCreateAtlasAvatarRuntime(root, state) {
                 const headLayer = runtimeLayers.find((layer) => layer.slot === 'head' && !layer.back)
                     || runtimeLayers.find((layer) => layer.slot === 'head');
                 if (headLayer && headLayer.frames.length > 0) {
-                    const headResult = computeLayerFrameBySlot('head', headLayer.frames.length, tick, headLayer.state);
+                    const headResult = computeLayerFrameBySlot(
+                        'head',
+                        headLayer.frames.length,
+                        tick,
+                        headLayer.state,
+                        null,
+                        state.avatar.head
+                    );
                     headState = headResult;
                 }
 
@@ -1266,7 +1356,18 @@ async function tryCreateAtlasAvatarRuntime(root, state) {
                     }
 
                     const forcedSpecial = layer.slot === 'eyes' ? headState : null;
-                    const result = computeLayerFrameBySlot(layer.slot, layer.frames.length, tick, layer.state, forcedSpecial);
+                    const result = computeLayerFrameBySlot(
+                        layer.slot,
+                        layer.frames.length,
+                        tick,
+                        layer.state,
+                        forcedSpecial,
+                        state.avatar[layer.slot]
+                    );
+                    if (result?.hidden === true || !Number.isFinite(result?.index) || Number(result.index) < 0) {
+                        layer.el.style.display = 'none';
+                        return;
+                    }
                     const index = Math.max(0, Math.min(result.index, layer.frames.length - 1));
                     const frame = layer.frames[index];
                     if (!frame) {
