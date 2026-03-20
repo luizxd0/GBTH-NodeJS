@@ -1492,13 +1492,7 @@ function collectExitemThumbRefCandidates(itemData) {
 
 function buildExitemThumbPathCandidates(itemData) {
     const refs = collectExitemThumbRefCandidates(itemData);
-    const urls = [];
-    refs.forEach((ref) => {
-        urls.push(`${AVATAR_EXITEM_THUMB_BASE_URL}/ex2_${ref}.png`);
-        // Keep legacy fallback path for compatibility with older local assets.
-        urls.push(`/assets/shared/avatar_shop_thumbs/ex2_${ref}/ex2_${ref}_frame_0.png`);
-    });
-    return urls;
+    return refs.map((ref) => `${AVATAR_EXITEM_THUMB_BASE_URL}/ex2_${ref}.png`);
 }
 
 async function resolveExitemThumbAsset(itemData) {
