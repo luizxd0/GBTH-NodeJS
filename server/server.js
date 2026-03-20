@@ -13,7 +13,6 @@ const io = new Server(server);
 const userSockets = new Map(); // nickname -> socket.id
 const socketData = new Map(); // socket.id -> { nickname, id }
 const pendingNotifications = new Map(); // userId -> timeoutId
-let chestDefaultsDisabled = false;
 
 function getActivePlayerCount() {
     let count = 0;
@@ -86,96 +85,6 @@ function buildUserPayload(row) {
     };
 }
 
-function getDefaultAvatarCodesByGender(genderValue) {
-    if (normalizeGender(genderValue) === 1) {
-        return {
-            head: 'fh00000',
-            body: 'fb00000'
-        };
-    }
-    return {
-        head: 'mh00000',
-        body: 'mb00000'
-    };
-}
-
-async function ensureDefaultChestBaseItems(userId, genderValue, existingConnection = null) {
-    if (!userId || chestDefaultsDisabled) {
-        return;
-    }
-
-    const defaults = getDefaultAvatarCodesByGender(genderValue);
-    const ownsConnection = !existingConnection;
-    let connection = existingConnection;
-
-    try {
-        if (!connection) {
-            connection = await pool.getConnection();
-        }
-
-        const slots = [
-            { slot: 'head', code: defaults.head },
-            { slot: 'body', code: defaults.body }
-        ];
-
-        for (const item of slots) {
-            const [equippedRows] = await connection.execute(
-                `SELECT id
-                 FROM chest
-                 WHERE owner_id = ? AND slot = ? AND wearing = 1
-                 LIMIT 1`,
-                [userId, item.slot]
-            );
-
-            if (equippedRows.length > 0) {
-                continue;
-            }
-
-            const [avatarRows] = await connection.execute(
-                `SELECT id, source_ref_id
-                 FROM avatars
-                 WHERE avatar_code = ?
-                 LIMIT 1`,
-                [item.code]
-            );
-
-            const avatarId = avatarRows[0]?.id ?? null;
-            const sourceRefId = Number(avatarRows[0]?.source_ref_id);
-            const itemId = Number.isFinite(sourceRefId) && sourceRefId >= 0 ? sourceRefId : 0;
-
-            try {
-                await connection.execute(
-                    `INSERT INTO chest
-                        (owner_id, avatar_id, item_id, item_code, slot, wearing, acquisition_type, expire_type, place_order)
-                     VALUES
-                        (?, ?, ?, ?, ?, 1, 'S', 'I', 0)`,
-                    [userId, avatarId, itemId, item.code, item.slot]
-                );
-            } catch (slotError) {
-                if (slotError?.code !== 'ER_DUP_ENTRY') {
-                    throw slotError;
-                }
-                await connection.execute(
-                    `UPDATE chest
-                     SET wearing = 1, avatar_id = ?, item_code = ?
-                     WHERE owner_id = ? AND slot = ? AND item_id = ? AND place_order = 0`,
-                    [avatarId, item.code, userId, item.slot, itemId]
-                );
-            }
-        }
-    } catch (error) {
-        if (error && (error.code === 'ER_NO_SUCH_TABLE' || error.code === 'ER_BAD_FIELD_ERROR')) {
-            chestDefaultsDisabled = true;
-            console.warn(`[Avatar] Default chest seed disabled (${error.code}). Run latest SQL migrations.`);
-            return;
-        }
-        console.error('[Avatar] Failed to ensure default chest base items:', error);
-    } finally {
-        if (ownsConnection && connection) {
-            connection.release();
-        }
-    }
-}
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
@@ -236,8 +145,6 @@ app.post('/api/signup', async (req, res) => {
                 `INSERT INTO game (Id, Nickname, Gold, Cash, TotalScore, TotalGrade, SeasonScore, SeasonGrade) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
                 [username, nickname, gold, cash, score, grade, score, grade]
             );
-
-            await ensureDefaultChestBaseItems(username, normalizedGender, connection);
 
             await connection.commit();
             res.status(201).json({
@@ -393,7 +300,6 @@ app.post('/api/login', async (req, res) => {
 
         if (users.length > 0) {
             const user = users[0];
-            await ensureDefaultChestBaseItems(user.UserId, user.Gender);
             res.status(200).json({
                 message: 'Login successful',
                 user: buildUserPayload(user)
@@ -507,7 +413,6 @@ io.on('connection', (socket) => {
 
                 if (rows.length > 0) {
                     const dbUser = rows[0];
-                    await ensureDefaultChestBaseItems(dbUser.UserId, dbUser.Gender);
                     userSockets.set(dbUser.Nickname.toLowerCase(), socket.id);
                     socketData.set(socket.id, {
                         nickname: dbUser.Nickname,
