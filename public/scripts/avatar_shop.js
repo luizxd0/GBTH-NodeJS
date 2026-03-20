@@ -1,8 +1,10 @@
 const AVATAR_ANIMATION_FPS = 10;
 const PREVIEW_ANCHOR_X = 31;
 const PREVIEW_ANCHOR_Y = 58;
-const PREVIEW_NUDGE_X = 0;
-const PREVIEW_NUDGE_Y = 12;
+// Tweak these two values to reposition the avatar preview.
+// +X moves right, +Y moves down.
+const PREVIEW_OFFSET_X = 15;
+const PREVIEW_OFFSET_Y = 20;
 const DEFAULT_SHOP_ITEM_COUNT = 9;
 const SET_SHOP_ITEM_COUNT = 4;
 const AVATAR_ATLAS_METADATA_URL = '/assets/shared/avatar_sheets/avatar_metadata.json';
@@ -33,6 +35,14 @@ const SLOT_ORDER = [
     { key: 'head', back: false, z: 7 },
     { key: 'eyes', back: false, z: 8 }
 ];
+
+function getPreviewBaseX() {
+    return PREVIEW_ANCHOR_X + PREVIEW_OFFSET_X;
+}
+
+function getPreviewBaseY() {
+    return PREVIEW_ANCHOR_Y + PREVIEW_OFFSET_Y;
+}
 
 function createEmptyShopCatalog() {
     return {
@@ -445,8 +455,8 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
             const anchor = (Array.isArray(folderInfo.anchors) && folderInfo.anchors[frameIndex])
                 ? folderInfo.anchors[frameIndex]
                 : { x: 0, y: 0 };
-            const left = PREVIEW_ANCHOR_X + PREVIEW_NUDGE_X + Number(anchor.x || 0);
-            const top = PREVIEW_ANCHOR_Y + PREVIEW_NUDGE_Y + Number(anchor.y || 0);
+            const left = getPreviewBaseX() + Number(anchor.x || 0);
+            const top = getPreviewBaseY() + Number(anchor.y || 0);
 
             if (layerSlotState.currentLeft !== left) {
                 img.style.left = `${left}px`;
@@ -1375,8 +1385,8 @@ async function tryCreateAtlasAvatarRuntime(root, state) {
                         return;
                     }
 
-                    const left = PREVIEW_ANCHOR_X + PREVIEW_NUDGE_X + Number(frame.ox || 0) - Number(frame.cx || 0);
-                    const top = PREVIEW_ANCHOR_Y + PREVIEW_NUDGE_Y + Number(frame.oy || 0) - Number(frame.cy || 0);
+                    const left = getPreviewBaseX() + Number(frame.ox || 0) - Number(frame.cx || 0);
+                    const top = getPreviewBaseY() + Number(frame.oy || 0) - Number(frame.cy || 0);
                     layer.el.style.left = `${left}px`;
                     layer.el.style.top = `${top}px`;
                     layer.el.style.width = `${frame.w}px`;
@@ -1445,8 +1455,8 @@ async function tryCreateDefaultMaleSheetRuntime(root, state) {
         sprite.style.backgroundRepeat = 'no-repeat';
         root.appendChild(sprite);
 
-        const fixedLeft = PREVIEW_ANCHOR_X + PREVIEW_NUDGE_X + Number(sheetDef.bounds?.min_x || 0);
-        const fixedTop = PREVIEW_ANCHOR_Y + PREVIEW_NUDGE_Y + Number(sheetDef.bounds?.min_y || 0);
+        const fixedLeft = getPreviewBaseX() + Number(sheetDef.bounds?.min_x || 0);
+        const fixedTop = getPreviewBaseY() + Number(sheetDef.bounds?.min_y || 0);
         sprite.style.left = `${fixedLeft}px`;
         sprite.style.top = `${fixedTop}px`;
 
@@ -1615,8 +1625,8 @@ async function tryCreateDragonboundAtlasRuntime(root) {
                     const frame = layer.frames[clampedIndex];
                     if (!frame) return;
 
-                    const left = PREVIEW_ANCHOR_X + PREVIEW_NUDGE_X + layer.offsetX - frame.cx;
-                    const top = PREVIEW_ANCHOR_Y + PREVIEW_NUDGE_Y + layer.offsetY - frame.cy;
+                    const left = getPreviewBaseX() + layer.offsetX - frame.cx;
+                    const top = getPreviewBaseY() + layer.offsetY - frame.cy;
                     layer.el.style.left = `${left}px`;
                     layer.el.style.top = `${top}px`;
                     layer.el.style.width = `${frame.w}px`;
