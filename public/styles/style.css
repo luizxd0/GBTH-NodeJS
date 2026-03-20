@@ -1616,20 +1616,55 @@ body {
     pointer-events: none;
 }
 
+.avatar-shop-item-header {
+    position: absolute;
+    top: 4px;
+    left: 7px;
+    right: 8px;
+    height: 16px;
+}
+
+.avatar-shop-item-slot-icon {
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: auto;
+    height: auto;
+    max-width: 18px;
+    max-height: 13px;
+    display: none;
+    image-rendering: pixelated;
+}
+
+.avatar-shop-item-gender-badge {
+    position: absolute;
+    top: 1px;
+    right: 0;
+    width: 27px;
+    height: 13px;
+    display: none;
+    image-rendering: pixelated;
+}
+
 .avatar-shop-item-name {
     position: absolute;
-    top: 5px;
-    left: 19px;
-    width: 132px;
-    font-family: Arial, sans-serif;
-    font-size: 12px;
+    top: 2px;
+    left: 17px;
+    width: 108px;
+    font-family: var(--gbth-ui-font);
+    font-size: 11px;
+    line-height: 12px;
     font-weight: 700;
     color: #e7f8ff;
     text-align: left;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    text-shadow: 0 1px 0 #00344d;
+    text-shadow:
+        1px 0 0 #00344d,
+        0 1px 0 #00344d;
+    -webkit-font-smoothing: none;
+    font-smooth: never;
 }
 
 .avatar-shop-item-preview {
@@ -1655,8 +1690,8 @@ body {
 }
 
 #avatar-shop-list.set-mode .avatar-shop-item-name {
-    left: 22px;
-    width: 208px;
+    left: 17px;
+    width: 190px;
 }
 
 #avatar-shop-list.set-mode .avatar-shop-item-preview {

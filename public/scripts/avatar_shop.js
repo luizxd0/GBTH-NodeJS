@@ -17,6 +17,8 @@ const AVATAR_THUMB_BASE_URLS = [
     '/assets/shared/avatar_sheets/gbth',
     '/assets/shared/avatar_sheets/dragonbound'
 ];
+const STORE_ICON_BASE_URL = '/assets/screens/avatar_shop/store_icon/store_icon_frame_';
+const STORE_AVATAR_BASE_URL = '/assets/screens/avatar_shop/store_avatar/store_avatar_frame_';
 const SHOP_BUTTON_CATEGORY = {
     'btn-store-cloth': 'cloth',
     'btn-store-cap': 'cap',
@@ -53,6 +55,73 @@ function createEmptyShopCatalog() {
         setitem: [],
         exitem: []
     };
+}
+
+function getStoreIconUrl(frameIndex) {
+    return `${STORE_ICON_BASE_URL}${frameIndex}.png`;
+}
+
+function getStoreAvatarFrameUrl(frameIndex) {
+    return `${STORE_AVATAR_BASE_URL}${frameIndex}.png`;
+}
+
+function normalizeCatalogGenderValue(genderValue) {
+    const raw = String(genderValue || '').toLowerCase();
+    if (raw === 'm' || raw === '0') return 'm';
+    if (raw === 'f' || raw === '1') return 'f';
+    return 'u';
+}
+
+function resolveGenderBadgeIcon(itemData) {
+    const gender = normalizeCatalogGenderValue(itemData?.gender);
+    if (gender === 'm') return getStoreAvatarFrameUrl(2);
+    if (gender === 'f') return getStoreAvatarFrameUrl(3);
+    return null;
+}
+
+function resolveSlotIconFrame(itemData, categoryKey, userData) {
+    const slot = String(itemData?.slot || '').toLowerCase();
+    const gender = (() => {
+        const itemGender = normalizeCatalogGenderValue(itemData?.gender);
+        if (itemGender === 'm' || itemGender === 'f') {
+            return itemGender;
+        }
+        return Number(userData?.gender) === 1 ? 'f' : 'm';
+    })();
+
+    if (categoryKey === 'cloth' || slot === 'body') return gender === 'f' ? 1 : 0;
+    if (categoryKey === 'cap' || slot === 'head') return gender === 'f' ? 3 : 2;
+    if (categoryKey === 'glasse' || slot === 'eyes') return gender === 'f' ? 5 : 4;
+    if (categoryKey === 'flag' || slot === 'flag') return 6;
+    if (categoryKey === 'setitem') return 31;
+    if (slot === 'background' || slot === 'foreground') return 30;
+    if (categoryKey === 'exitem' || slot === 'exitem') return 29;
+    return gender === 'f' ? 1 : 0;
+}
+
+function resolveSlotIconUrl(itemData, categoryKey, userData) {
+    return getStoreIconUrl(resolveSlotIconFrame(itemData, categoryKey, userData));
+}
+
+function shouldHideCatalogItem(item) {
+    const slot = String(item?.slot || '').toLowerCase();
+    const name = String(item?.name || '').trim().toLowerCase();
+    const code = String(item?.avatar_code || '').trim().toLowerCase();
+    const refId = Number(item?.source_ref_id);
+
+    if (slot === 'eyes') {
+        if (name === 'standard' || name === 'default' || name === 'none') {
+            return true;
+        }
+        if (code === 'mg00000' || code === 'fg00000') {
+            return true;
+        }
+        if (Number.isFinite(refId) && refId === 0) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -771,6 +840,9 @@ function buildShopCatalogByCategory(items) {
     const seenSetKeys = new Set();
 
     items.forEach((item) => {
+        if (shouldHideCatalogItem(item)) {
+            return;
+        }
         const category = resolveShopCategoryForItem(item);
         if (!category) {
             return;
@@ -963,7 +1035,11 @@ function initializeAvatarShopList(container) {
         item.dataset.index = String(index);
         item.innerHTML = `
             <div class="avatar-shop-item-content">
-                <div class="avatar-shop-item-name"></div>
+                <div class="avatar-shop-item-header">
+                    <img class="avatar-shop-item-slot-icon" alt="">
+                    <div class="avatar-shop-item-name"></div>
+                    <img class="avatar-shop-item-gender-badge" alt="">
+                </div>
                 <div class="avatar-shop-item-preview">
                     <div class="avatar-shop-item-thumb"></div>
                 </div>
@@ -1096,13 +1172,19 @@ async function resolveStaticThumbUrl(codeCandidates) {
 
 async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) {
     const nameEl = itemButton.querySelector('.avatar-shop-item-name');
+    const slotIconEl = itemButton.querySelector('.avatar-shop-item-slot-icon');
+    const genderBadgeEl = itemButton.querySelector('.avatar-shop-item-gender-badge');
     const thumbEl = itemButton.querySelector('.avatar-shop-item-thumb');
-    if (!nameEl || !thumbEl) {
+    if (!nameEl || !thumbEl || !slotIconEl || !genderBadgeEl) {
         return;
     }
 
     if (!itemData) {
         nameEl.textContent = '';
+        slotIconEl.style.display = 'none';
+        slotIconEl.removeAttribute('src');
+        genderBadgeEl.style.display = 'none';
+        genderBadgeEl.removeAttribute('src');
         thumbEl.style.display = 'none';
         thumbEl.style.backgroundImage = '';
         thumbEl.style.backgroundPosition = '';
@@ -1112,6 +1194,16 @@ async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) 
     }
 
     nameEl.textContent = String(itemData?.name || '');
+    slotIconEl.src = resolveSlotIconUrl(itemData, categoryKey, userData);
+    slotIconEl.style.display = 'block';
+    const genderBadgeUrl = resolveGenderBadgeIcon(itemData);
+    if (genderBadgeUrl) {
+        genderBadgeEl.src = genderBadgeUrl;
+        genderBadgeEl.style.display = 'block';
+    } else {
+        genderBadgeEl.style.display = 'none';
+        genderBadgeEl.removeAttribute('src');
+    }
 
     const slot = getSlotByCategory(categoryKey, itemData);
     const itemId = Number(itemData?.source_ref_id);
@@ -1652,4 +1744,3 @@ function randomInt(min, max) {
 function toLayerKey(slot, back) {
     return `${slot}:${back ? 'back' : 'front'}`;
 }
-
