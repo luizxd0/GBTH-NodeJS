@@ -72,6 +72,16 @@ function normalizeCatalogGenderValue(genderValue) {
     return 'u';
 }
 
+function getUserGenderCode(userData) {
+    return Number(userData?.gender) === 1 ? 'f' : 'm';
+}
+
+function canUserTryCatalogItem(item, userData) {
+    const itemGender = normalizeCatalogGenderValue(item?.gender);
+    const userGender = getUserGenderCode(userData);
+    return itemGender === 'u' || itemGender === userGender;
+}
+
 function resolveGenderBadgeIcon(itemData) {
     const gender = normalizeCatalogGenderValue(itemData?.gender);
     if (gender === 'm') return getStoreAvatarFrameUrl(2);
@@ -122,6 +132,64 @@ function shouldHideCatalogItem(item) {
     }
 
     return false;
+}
+
+function isBaseAvatarCategoryKey(categoryKey) {
+    return categoryKey === 'cap'
+        || categoryKey === 'cloth'
+        || categoryKey === 'glasse'
+        || categoryKey === 'flag';
+}
+
+function hasAtlasEntryByCode(atlases, code) {
+    const normalized = String(code || '').trim().toLowerCase();
+    if (!normalized) {
+        return false;
+    }
+    return Boolean(
+        atlases?.[`gbth_${normalized}`]
+        || atlases?.[`db_${normalized}`]
+        || atlases?.[normalized]
+    );
+}
+
+function canRenderCatalogItemWithAtlas(atlases, item, categoryKey) {
+    const directCode = String(item?.avatar_code || '').trim().toLowerCase();
+    if (hasAtlasEntryByCode(atlases, directCode)) {
+        return true;
+    }
+
+    const slot = getSlotByCategory(categoryKey, item);
+    const refId = Number(item?.source_ref_id);
+    if (!slot || !Number.isFinite(refId)) {
+        return false;
+    }
+
+    const normalizedGender = normalizeCatalogGenderValue(item?.gender);
+    const genderCandidates = normalizedGender === 'u' ? ['m', 'f'] : [normalizedGender];
+
+    for (const gender of genderCandidates) {
+        const folderCode = resolveAtlasFolderCode(gender, slot, refId, false);
+        if (hasAtlasEntryByCode(atlases, folderCode)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+async function filterRenderableCatalogItems(items, categoryKey) {
+    if (!isBaseAvatarCategoryKey(categoryKey)) {
+        return items || [];
+    }
+
+    try {
+        const meta = await loadAtlasMetadata();
+        const atlases = meta?.atlases || {};
+        return (items || []).filter((item) => canRenderCatalogItemWithAtlas(atlases, item, categoryKey));
+    } catch (error) {
+        // If metadata is unavailable, keep existing behavior rather than hiding everything.
+        return items || [];
+    }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -266,12 +334,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
             const currentPage = Math.max(0, Number(avatarShopList.dataset.pageIndex || 0));
+            const totalPages = Math.max(0, Number(avatarShopList.dataset.totalPages || 0));
+            const targetPage = totalPages > 0
+                ? (currentPage > 0 ? currentPage - 1 : totalPages - 1)
+                : 0;
             await updateShopGridForCategoryButton(
                 avatarShopList,
                 activeCategoryId,
                 shopCatalog,
                 userData,
-                Math.max(0, currentPage - 1),
+                targetPage,
                 btnStoreMainUp,
                 btnStoreMainDown
             );
@@ -878,6 +950,46 @@ function getTotalPages(totalItems, pageSize) {
     return Math.ceil(totalItems / pageSize);
 }
 
+function getCatalogGenderPriorityForUser(item, userData, categoryKey) {
+    const itemGender = normalizeCatalogGenderValue(item?.gender);
+    const userGender = getUserGenderCode(userData);
+    const prioritizeGender = categoryKey === 'cap'
+        || categoryKey === 'cloth'
+        || categoryKey === 'glasse'
+        || categoryKey === 'flag'
+        || categoryKey === 'setitem';
+
+    if (!prioritizeGender) {
+        return 0;
+    }
+    if (itemGender === userGender) {
+        return 0;
+    }
+    if (itemGender === 'u') {
+        return 1;
+    }
+    return 2;
+}
+
+function sortCatalogItemsForDisplay(items, userData, categoryKey) {
+    return [...(items || [])].sort((a, b) => {
+        const pa = getCatalogGenderPriorityForUser(a, userData, categoryKey);
+        const pb = getCatalogGenderPriorityForUser(b, userData, categoryKey);
+        if (pa !== pb) {
+            return pa - pb;
+        }
+
+        const codeA = String(a?.avatar_code || '');
+        const codeB = String(b?.avatar_code || '');
+        const codeCompare = codeA.localeCompare(codeB, undefined, { numeric: true, sensitivity: 'base' });
+        if (codeCompare !== 0) {
+            return codeCompare;
+        }
+
+        return Number(a?.id || 0) - Number(b?.id || 0);
+    });
+}
+
 function clampPageIndex(pageIndex, totalPages) {
     const parsed = Number(pageIndex);
     const base = Number.isFinite(parsed) ? Math.floor(parsed) : 0;
@@ -889,7 +1001,7 @@ function clampPageIndex(pageIndex, totalPages) {
 
 function updateMainPagerButtons(upButton, downButton, pageIndex, totalPages) {
     if (upButton) {
-        upButton.disabled = totalPages <= 1 || pageIndex <= 0;
+        upButton.disabled = totalPages <= 1;
     }
     if (downButton) {
         downButton.disabled = totalPages <= 1 || pageIndex >= (totalPages - 1);
@@ -924,7 +1036,9 @@ function syncTryButtonState(container, tryButton) {
     if (!tryButton) {
         return;
     }
-    tryButton.disabled = !getSelectedShopItem(container);
+    const selected = container?.querySelector?.('.avatar-shop-item.selected');
+    const canTry = Boolean(selected && selected.__shopItemData && selected.__canTry === true);
+    tryButton.disabled = !canTry;
 }
 
 function resolvePreviewItemId(item) {
@@ -945,6 +1059,11 @@ function resolvePreviewItemId(item) {
 
 function applySelectedShopItemToPreview(container) {
     if (!container || !window.avatarShopPreview) {
+        return false;
+    }
+
+    const selected = container.querySelector('.avatar-shop-item.selected');
+    if (!selected || selected.__canTry !== true) {
         return false;
     }
 
@@ -990,7 +1109,9 @@ async function updateShopGridForCategoryButton(
     const rawCategoryItems = categoryKey && Array.isArray(catalogByCategory[categoryKey])
         ? catalogByCategory[categoryKey]
         : [];
-    const categoryItems = filterCatalogItemsByUserGender(rawCategoryItems, userData);
+    const genderVisibleItems = filterCatalogItemsByUserGender(rawCategoryItems, userData);
+    const renderableItems = await filterRenderableCatalogItems(genderVisibleItems, categoryKey);
+    const categoryItems = sortCatalogItemsForDisplay(renderableItems, userData, categoryKey);
 
     const pageSize = getPageSizeForCategory(categoryKey);
     const totalPages = getTotalPages(categoryItems.length, pageSize);
@@ -1005,8 +1126,13 @@ async function updateShopGridForCategoryButton(
         applyGridItemVisual(cardButton, visibleItems[index], categoryKey, userData)
     ));
     cardButtons.forEach((cardButton, index) => {
-        cardButton.__shopItemData = visibleItems[index] || null;
-        cardButton.dataset.hasItem = visibleItems[index] ? '1' : '0';
+        const item = visibleItems[index] || null;
+        const canTry = Boolean(item && canUserTryCatalogItem(item, userData));
+        cardButton.__shopItemData = item;
+        cardButton.__canTry = canTry;
+        cardButton.dataset.hasItem = item ? '1' : '0';
+        cardButton.dataset.canTry = canTry ? '1' : '0';
+        cardButton.classList.toggle('not-tryable', Boolean(item) && !canTry);
     });
 
     container.dataset.activeCategoryId = String(buttonId || '');
@@ -1096,11 +1222,14 @@ function syncAvatarShopListMode(container, activeCategoryId, itemCountOverride) 
 }
 
 function filterCatalogItemsByUserGender(items, userData) {
-    const genderCode = Number(userData?.gender) === 1 ? 'f' : 'm';
     return (items || []).filter((item) => {
-        const rawGender = String(item?.gender || 'u').toLowerCase();
-        const itemGender = rawGender === '1' ? 'f' : (rawGender === '0' ? 'm' : rawGender);
-        return itemGender === 'u' || itemGender === genderCode;
+        const itemGender = normalizeCatalogGenderValue(item?.gender);
+        const slot = String(item?.slot || '').toLowerCase();
+        // Base wearable slots must be gendered; unknown gender entries are invalid.
+        if ((slot === 'head' || slot === 'body' || slot === 'eyes' || slot === 'flag') && itemGender === 'u') {
+            return false;
+        }
+        return true;
     });
 }
 
@@ -1148,7 +1277,7 @@ function buildThumbCodeCandidates(itemData, folderCode) {
     return out;
 }
 
-async function resolveStaticThumbUrl(codeCandidates) {
+async function resolveStaticThumbAsset(codeCandidates) {
     const cacheKey = codeCandidates.join('|');
     if (!resolvedThumbImagePromises.has(cacheKey)) {
         resolvedThumbImagePromises.set(cacheKey, (async () => {
@@ -1158,7 +1287,10 @@ async function resolveStaticThumbUrl(codeCandidates) {
                     const url = `${baseUrl}/${code}.png`;
                     try {
                         await preloadImage(url);
-                        return url;
+                        const atlasPrefix = baseUrl.includes('/gbth/')
+                            ? 'gbth'
+                            : (baseUrl.includes('/dragonbound/') ? 'db' : '');
+                        return { url, code, atlasPrefix };
                     } catch (error) {
                         lastError = error;
                     }
@@ -1168,6 +1300,59 @@ async function resolveStaticThumbUrl(codeCandidates) {
         })());
     }
     return resolvedThumbImagePromises.get(cacheKey);
+}
+
+function pickBestThumbFrame(frames) {
+    if (!Array.isArray(frames) || frames.length === 0) {
+        return null;
+    }
+    const usable = frames.filter((frame) => Number(frame?.w) > 0 && Number(frame?.h) > 0);
+    if (!usable.length) {
+        return null;
+    }
+    return usable.reduce((best, frame) => {
+        const area = Number(frame.w) * Number(frame.h);
+        const bestArea = Number(best.w) * Number(best.h);
+        return area < bestArea ? frame : best;
+    }, usable[0]);
+}
+
+async function resolveThumbCropFrame(thumbAsset) {
+    const code = String(thumbAsset?.code || '').trim().toLowerCase();
+    if (!code) {
+        return null;
+    }
+
+    try {
+        const meta = await loadAtlasMetadata();
+        const atlases = meta?.atlases;
+        if (!atlases || typeof atlases !== 'object') {
+            return null;
+        }
+
+        const prefix = String(thumbAsset?.atlasPrefix || '');
+        const keyCandidates = prefix === 'gbth'
+            ? [`gbth_${code}`, code]
+            : (prefix === 'db'
+                ? [`db_${code}`, code]
+                : [`gbth_${code}`, `db_${code}`, code]);
+
+        for (const key of keyCandidates) {
+            const atlasDef = atlases[key];
+            if (!atlasDef) {
+                continue;
+            }
+            const frames = expandAtlasFrames(atlasDef);
+            const frame = pickBestThumbFrame(frames);
+            if (frame) {
+                return frame;
+            }
+        }
+    } catch (error) {
+        // Ignore crop failures and fallback to direct image rendering.
+    }
+
+    return null;
 }
 
 async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) {
@@ -1207,7 +1392,10 @@ async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) 
 
     const slot = getSlotByCategory(categoryKey, itemData);
     const itemId = Number(itemData?.source_ref_id);
-    const genderCode = Number(userData?.gender) === 1 ? 'f' : 'm';
+    const itemGender = normalizeCatalogGenderValue(itemData?.gender);
+    const genderCode = itemGender === 'u'
+        ? (Number(userData?.gender) === 1 ? 'f' : 'm')
+        : itemGender;
     const folderCode = resolveAtlasFolderCode(genderCode, slot, itemId, false)
         || String(itemData?.avatar_code || '').trim();
     if (!folderCode) {
@@ -1222,13 +1410,22 @@ async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) 
             return;
         }
 
-        const imageUrl = await resolveStaticThumbUrl(codeCandidates);
+        const thumbAsset = await resolveStaticThumbAsset(codeCandidates);
+        const imageUrl = String(thumbAsset?.url || '');
         thumbEl.style.display = 'block';
         thumbEl.style.backgroundImage = `url('${imageUrl}')`;
         thumbEl.style.backgroundPosition = 'center center';
         thumbEl.style.backgroundSize = 'auto';
         thumbEl.style.width = '100%';
         thumbEl.style.height = '100%';
+
+        const cropFrame = await resolveThumbCropFrame(thumbAsset);
+        if (cropFrame) {
+            thumbEl.style.width = `${Math.max(1, Number(cropFrame.w) || 1)}px`;
+            thumbEl.style.height = `${Math.max(1, Number(cropFrame.h) || 1)}px`;
+            thumbEl.style.backgroundPosition = `-${Number(cropFrame.sx || 0)}px -${Number(cropFrame.sy || 0)}px`;
+            thumbEl.style.backgroundSize = 'auto';
+        }
     } catch (error) {
         thumbEl.style.display = 'none';
     }

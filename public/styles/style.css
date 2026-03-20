@@ -1689,6 +1689,10 @@ body {
     image-rendering: pixelated;
 }
 
+.avatar-shop-item.not-tryable .avatar-shop-item-thumb {
+    opacity: 0.55;
+}
+
 #avatar-shop-list.set-mode .avatar-shop-item-name {
     left: 17px;
     width: 190px;
