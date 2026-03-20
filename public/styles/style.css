@@ -747,7 +747,7 @@ body {
 
 .buddy-rank-box {
     position: absolute;
-    top: 0px;
+ s   top: 0px;
     left: 0px;
     width: 24px;
     height: 28px;
@@ -1526,20 +1526,50 @@ body {
 
 .avatar-preview-backdrop {
     position: absolute;
-    background-repeat: no-repeat;
-    background-position: center center;
-    background-size: contain;
+    left: 8px;
+    top: 13px;
+    width: 95px;
+    height: 88px;
+    overflow: hidden;
+    --ex-fit-mode: contain;
+    --ex-auto-fit: 1;
+    --ex-scale: 1;
+    --ex-scale-x: 1;
+    --ex-scale-y: 1;
+    --ex-fit-padding-x: 0;
+    --ex-fit-padding-y: 0;
+    --ex-align-y: top;
     pointer-events: none;
     z-index: 0;
 }
 
 .avatar-preview-foreground {
     position: absolute;
-    background-repeat: no-repeat;
-    background-position: center center;
-    background-size: contain;
+    left: 8px;
+    top: 13px;
+    width: 95px;
+    height: 88px;
+    overflow: hidden;
+    --ex-fit-mode: contain;
+    --ex-auto-fit: 1;
+    --ex-scale: 1;
+    --ex-scale-x: 1;
+    --ex-scale-y: 1;
+    --ex-fit-padding-x: 0;
+    --ex-fit-padding-y: 0;
+    --ex-align-y: center;
     pointer-events: none;
     z-index: 9;
+}
+
+.avatar-preview-backdrop-sprite,
+.avatar-preview-foreground-sprite {
+    position: absolute;
+    left: 0;
+    top: 0;
+    background-repeat: no-repeat;
+    background-size: auto;
+    pointer-events: none;
 }
 
 .avatar-preview-sheet {
@@ -3327,4 +3357,3 @@ body {
     pointer-events: none;
     animation: cursor-blink 0.8s infinite;
 }
-

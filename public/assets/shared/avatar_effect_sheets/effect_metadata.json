@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at_utc": "2026-03-20T11:37:14.467774+00:00",
+  "generated_at_utc": "2026-03-20T12:25:32.833536+00:00",
   "source_root": "C:/tools/client_graphics",
   "atlases": {
     "b204805": {
@@ -19,7 +19,8 @@
       "atlas_size": {
         "w": 5631,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 256
     },
     "b204806": {
       "image": "/assets/shared/avatar_effect_sheets/b204806.png",
@@ -36,7 +37,8 @@
       "atlas_size": {
         "w": 127,
         "h": 85
-      }
+      },
+      "frame_duration_ms": 256
     },
     "b204807": {
       "image": "/assets/shared/avatar_effect_sheets/b204807.png",
@@ -53,7 +55,8 @@
       "atlas_size": {
         "w": 127,
         "h": 85
-      }
+      },
+      "frame_duration_ms": 256
     },
     "b204812": {
       "image": "/assets/shared/avatar_effect_sheets/b204812.png",
@@ -71,7 +74,8 @@
       "atlas_size": {
         "w": 511,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 256
     },
     "b204815": {
       "image": "/assets/shared/avatar_effect_sheets/b204815.png",
@@ -88,7 +92,8 @@
       "atlas_size": {
         "w": 127,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 256
     },
     "b204816": {
       "image": "/assets/shared/avatar_effect_sheets/b204816.png",
@@ -105,7 +110,8 @@
       "atlas_size": {
         "w": 127,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 256
     },
     "b204818": {
       "image": "/assets/shared/avatar_effect_sheets/b204818.png",
@@ -122,7 +128,8 @@
       "atlas_size": {
         "w": 127,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 256
     },
     "b204821": {
       "image": "/assets/shared/avatar_effect_sheets/b204821.png",
@@ -140,7 +147,8 @@
       "atlas_size": {
         "w": 1919,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 256
     },
     "b204824": {
       "image": "/assets/shared/avatar_effect_sheets/b204824.png",
@@ -158,7 +166,8 @@
       "atlas_size": {
         "w": 255,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 256
     },
     "b204826": {
       "image": "/assets/shared/avatar_effect_sheets/b204826.png",
@@ -175,7 +184,8 @@
       "atlas_size": {
         "w": 127,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 256
     },
     "b204827": {
       "image": "/assets/shared/avatar_effect_sheets/b204827.png",
@@ -193,7 +203,8 @@
       "atlas_size": {
         "w": 767,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 256
     },
     "b204829": {
       "image": "/assets/shared/avatar_effect_sheets/b204829.png",
@@ -211,7 +222,8 @@
       "atlas_size": {
         "w": 767,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 256
     },
     "b204836": {
       "image": "/assets/shared/avatar_effect_sheets/b204836.png",
@@ -229,7 +241,8 @@
       "atlas_size": {
         "w": 2559,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 256
     },
     "b204838": {
       "image": "/assets/shared/avatar_effect_sheets/b204838.png",
@@ -247,7 +260,8 @@
       "atlas_size": {
         "w": 1023,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 256
     },
     "b204840": {
       "image": "/assets/shared/avatar_effect_sheets/b204840.png",
@@ -265,7 +279,8 @@
       "atlas_size": {
         "w": 767,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 256
     },
     "b204843": {
       "image": "/assets/shared/avatar_effect_sheets/b204843.png",
@@ -282,7 +297,8 @@
       "atlas_size": {
         "w": 127,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 256
     },
     "b204845": {
       "image": "/assets/shared/avatar_effect_sheets/b204845.png",
@@ -300,7 +316,8 @@
       "atlas_size": {
         "w": 1023,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 256
     },
     "b204847": {
       "image": "/assets/shared/avatar_effect_sheets/b204847.png",
@@ -318,7 +335,8 @@
       "atlas_size": {
         "w": 2559,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 256
     },
     "b204848": {
       "image": "/assets/shared/avatar_effect_sheets/b204848.png",
@@ -336,7 +354,8 @@
       "atlas_size": {
         "w": 255,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 256
     },
     "b204850": {
       "image": "/assets/shared/avatar_effect_sheets/b204850.png",
@@ -353,7 +372,8 @@
       "atlas_size": {
         "w": 129,
         "h": 85
-      }
+      },
+      "frame_duration_ms": 256
     },
     "b204852": {
       "image": "/assets/shared/avatar_effect_sheets/b204852.png",
@@ -370,7 +390,8 @@
       "atlas_size": {
         "w": 127,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 256
     },
     "b204857": {
       "image": "/assets/shared/avatar_effect_sheets/b204857.png",
@@ -387,7 +408,8 @@
       "atlas_size": {
         "w": 176,
         "h": 54
-      }
+      },
+      "frame_duration_ms": 232
     },
     "b204859": {
       "image": "/assets/shared/avatar_effect_sheets/b204859.png",
@@ -404,7 +426,8 @@
       "atlas_size": {
         "w": 176,
         "h": 54
-      }
+      },
+      "frame_duration_ms": 232
     },
     "b204861": {
       "image": "/assets/shared/avatar_effect_sheets/b204861.png",
@@ -421,7 +444,8 @@
       "atlas_size": {
         "w": 176,
         "h": 54
-      }
+      },
+      "frame_duration_ms": 232
     },
     "b204863": {
       "image": "/assets/shared/avatar_effect_sheets/b204863.png",
@@ -438,7 +462,8 @@
       "atlas_size": {
         "w": 176,
         "h": 54
-      }
+      },
+      "frame_duration_ms": 256
     },
     "f204808": {
       "image": "/assets/shared/avatar_effect_sheets/f204808.png",
@@ -456,7 +481,8 @@
       "atlas_size": {
         "w": 902,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 228
     },
     "f204809": {
       "image": "/assets/shared/avatar_effect_sheets/f204809.png",
@@ -474,7 +500,8 @@
       "atlas_size": {
         "w": 1512,
         "h": 70
-      }
+      },
+      "frame_duration_ms": 228
     },
     "f204810": {
       "image": "/assets/shared/avatar_effect_sheets/f204810.png",
@@ -492,7 +519,8 @@
       "atlas_size": {
         "w": 1805,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 228
     },
     "f204811": {
       "image": "/assets/shared/avatar_effect_sheets/f204811.png",
@@ -510,7 +538,8 @@
       "atlas_size": {
         "w": 2414,
         "h": 90
-      }
+      },
+      "frame_duration_ms": 228
     },
     "f204813": {
       "image": "/assets/shared/avatar_effect_sheets/f204813.png",
@@ -528,7 +557,8 @@
       "atlas_size": {
         "w": 1160,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 228
     },
     "f204814": {
       "image": "/assets/shared/avatar_effect_sheets/f204814.png",
@@ -546,7 +576,8 @@
       "atlas_size": {
         "w": 1031,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 228
     },
     "f204817": {
       "image": "/assets/shared/avatar_effect_sheets/f204817.png",
@@ -564,7 +595,8 @@
       "atlas_size": {
         "w": 515,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 228
     },
     "f204819": {
       "image": "/assets/shared/avatar_effect_sheets/f204819.png",
@@ -582,7 +614,8 @@
       "atlas_size": {
         "w": 902,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 228
     },
     "f204820": {
       "image": "/assets/shared/avatar_effect_sheets/f204820.png",
@@ -600,7 +633,8 @@
       "atlas_size": {
         "w": 1289,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 228
     },
     "f204822": {
       "image": "/assets/shared/avatar_effect_sheets/f204822.png",
@@ -618,7 +652,8 @@
       "atlas_size": {
         "w": 1462,
         "h": 130
-      }
+      },
+      "frame_duration_ms": 256
     },
     "f204823": {
       "image": "/assets/shared/avatar_effect_sheets/f204823.png",
@@ -636,7 +671,8 @@
       "atlas_size": {
         "w": 515,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 228
     },
     "f204825": {
       "image": "/assets/shared/avatar_effect_sheets/f204825.png",
@@ -653,7 +689,8 @@
       "atlas_size": {
         "w": 188,
         "h": 77
-      }
+      },
+      "frame_duration_ms": 232
     },
     "f204828": {
       "image": "/assets/shared/avatar_effect_sheets/f204828.png",
@@ -721,7 +758,8 @@
       "atlas_size": {
         "w": 438,
         "h": 41
-      }
+      },
+      "frame_duration_ms": 252
     },
     "f204830": {
       "image": "/assets/shared/avatar_effect_sheets/f204830.png",
@@ -739,7 +777,8 @@
       "atlas_size": {
         "w": 1418,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 252
     },
     "f204837": {
       "image": "/assets/shared/avatar_effect_sheets/f204837.png",
@@ -757,7 +796,8 @@
       "atlas_size": {
         "w": 59,
         "h": 10
-      }
+      },
+      "frame_duration_ms": 252
     },
     "f204839": {
       "image": "/assets/shared/avatar_effect_sheets/f204839.png",
@@ -804,7 +844,8 @@
       "atlas_size": {
         "w": 154,
         "h": 32
-      }
+      },
+      "frame_duration_ms": 252
     },
     "f204841": {
       "image": "/assets/shared/avatar_effect_sheets/f204841.png",
@@ -905,7 +946,8 @@
       "atlas_size": {
         "w": 351,
         "h": 27
-      }
+      },
+      "frame_duration_ms": 252
     },
     "f204844": {
       "image": "/assets/shared/avatar_effect_sheets/f204844.png",
@@ -923,7 +965,8 @@
       "atlas_size": {
         "w": 991,
         "h": 26
-      }
+      },
+      "frame_duration_ms": 252
     },
     "f204846": {
       "image": "/assets/shared/avatar_effect_sheets/f204846.png",
@@ -941,7 +984,8 @@
       "atlas_size": {
         "w": 377,
         "h": 26
-      }
+      },
+      "frame_duration_ms": 252
     },
     "f204849": {
       "image": "/assets/shared/avatar_effect_sheets/f204849.png",
@@ -990,7 +1034,8 @@
       "atlas_size": {
         "w": 295,
         "h": 31
-      }
+      },
+      "frame_duration_ms": 256
     },
     "f204851": {
       "image": "/assets/shared/avatar_effect_sheets/f204851.png",
@@ -1049,7 +1094,8 @@
       "atlas_size": {
         "w": 205,
         "h": 38
-      }
+      },
+      "frame_duration_ms": 252
     },
     "f204853": {
       "image": "/assets/shared/avatar_effect_sheets/f204853.png",
@@ -1103,7 +1149,8 @@
       "atlas_size": {
         "w": 1005,
         "h": 84
-      }
+      },
+      "frame_duration_ms": 256
     },
     "f204854": {
       "image": "/assets/shared/avatar_effect_sheets/f204854.png",
@@ -1198,7 +1245,8 @@
       "atlas_size": {
         "w": 4095,
         "h": 40
-      }
+      },
+      "frame_duration_ms": 256
     },
     "f204855": {
       "image": "/assets/shared/avatar_effect_sheets/f204855.png",
@@ -1293,7 +1341,8 @@
       "atlas_size": {
         "w": 4095,
         "h": 40
-      }
+      },
+      "frame_duration_ms": 256
     },
     "f204856": {
       "image": "/assets/shared/avatar_effect_sheets/f204856.png",
@@ -1310,7 +1359,8 @@
       "atlas_size": {
         "w": 19,
         "h": 20
-      }
+      },
+      "frame_duration_ms": 256
     },
     "f204858": {
       "image": "/assets/shared/avatar_effect_sheets/f204858.png",
@@ -1327,7 +1377,8 @@
       "atlas_size": {
         "w": 27,
         "h": 42
-      }
+      },
+      "frame_duration_ms": 252
     },
     "f204860": {
       "image": "/assets/shared/avatar_effect_sheets/f204860.png",
@@ -1344,7 +1395,8 @@
       "atlas_size": {
         "w": 188,
         "h": 77
-      }
+      },
+      "frame_duration_ms": 232
     },
     "f204862": {
       "image": "/assets/shared/avatar_effect_sheets/f204862.png",
@@ -1361,7 +1413,8 @@
       "atlas_size": {
         "w": 143,
         "h": 46
-      }
+      },
+      "frame_duration_ms": 232
     },
     "f204864": {
       "image": "/assets/shared/avatar_effect_sheets/f204864.png",
@@ -1378,7 +1431,8 @@
       "atlas_size": {
         "w": 60,
         "h": 25
-      }
+      },
+      "frame_duration_ms": 64
     }
   }
 }

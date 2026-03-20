@@ -5,15 +5,14 @@ const PREVIEW_ANCHOR_Y = 58;
 // +X moves right, +Y moves down.
 const PREVIEW_OFFSET_X = 15;
 const PREVIEW_OFFSET_Y = 20;
-// Tweak these values to reposition/resize EX background preview.
-const PREVIEW_BACKDROP_OFFSET_X = 8;
-const PREVIEW_BACKDROP_OFFSET_Y = 13;
-const PREVIEW_BACKDROP_WIDTH = 95;
-const PREVIEW_BACKDROP_HEIGHT = 88;
-const PREVIEW_FOREGROUND_OFFSET_X = 8;
-const PREVIEW_FOREGROUND_OFFSET_Y = 13;
-const PREVIEW_FOREGROUND_WIDTH = 95;
-const PREVIEW_FOREGROUND_HEIGHT = 88;
+// EX effect timing controls (ms per frame).
+const PREVIEW_EX_BACKGROUND_DEFAULT_FRAME_DURATION_MS = 250;
+const PREVIEW_EX_FOREGROUND_DEFAULT_FRAME_DURATION_MS = 250;
+// Original client updates animation on a timer; emulate its cadence.
+const PREVIEW_EX_EFFECT_TIMER_QUANTUM_MS = 50;
+const PREVIEW_EX_EFFECT_START_DELAY_MS = 500;
+// Optional per-folder timing overrides in ms (example: { f204808: 280 }).
+const PREVIEW_EX_EFFECT_FRAME_DURATION_OVERRIDES_MS = {};
 const DEFAULT_SHOP_ITEM_COUNT = 9;
 const SET_SHOP_ITEM_COUNT = 4;
 const AVATAR_ATLAS_METADATA_URL = '/assets/shared/avatar_sheets/avatar_metadata.json';
@@ -58,20 +57,131 @@ function getPreviewBaseY() {
     return PREVIEW_ANCHOR_Y + PREVIEW_OFFSET_Y;
 }
 
-function getPreviewBackdropX() {
-    return PREVIEW_BACKDROP_OFFSET_X;
+function getExEffectFrameDurationMs(layerKind, animation) {
+    const folder = String(animation?.folder || '').trim().toLowerCase();
+    const override = Number(PREVIEW_EX_EFFECT_FRAME_DURATION_OVERRIDES_MS?.[folder]);
+    if (Number.isFinite(override) && override > 0) {
+        return override;
+    }
+
+    const metadataDuration = Number(animation?.frameDurationMs);
+    if (Number.isFinite(metadataDuration) && metadataDuration > 0) {
+        return metadataDuration;
+    }
+
+    const baseDuration = layerKind === 'foreground'
+        ? Number(PREVIEW_EX_FOREGROUND_DEFAULT_FRAME_DURATION_MS)
+        : Number(PREVIEW_EX_BACKGROUND_DEFAULT_FRAME_DURATION_MS);
+    if (!Number.isFinite(baseDuration) || baseDuration <= 0) {
+        return 250;
+    }
+    return baseDuration;
 }
 
-function getPreviewBackdropY() {
-    return PREVIEW_BACKDROP_OFFSET_Y;
+function getExEffectFrameIntervalMs(layerKind, animation) {
+    const baseDurationMs = getExEffectFrameDurationMs(layerKind, animation);
+    const quantum = Math.max(1, Number(PREVIEW_EX_EFFECT_TIMER_QUANTUM_MS) || 1);
+    // Client-side check is strict ">" against lastTick + duration.
+    const strictDuration = Math.max(1, Math.floor(baseDurationMs)) + 1;
+    return Math.max(quantum, Math.ceil(strictDuration / quantum) * quantum);
 }
 
-function getPreviewForegroundX() {
-    return PREVIEW_FOREGROUND_OFFSET_X;
+function getCssNumberValue(style, cssVariableName, fallbackValue) {
+    const raw = String(style.getPropertyValue(cssVariableName) || '').trim();
+    const parsed = Number.parseFloat(raw);
+    return Number.isFinite(parsed) ? parsed : fallbackValue;
 }
 
-function getPreviewForegroundY() {
-    return PREVIEW_FOREGROUND_OFFSET_Y;
+function getCssBooleanValue(style, cssVariableName, fallbackValue) {
+    const raw = String(style.getPropertyValue(cssVariableName) || '').trim().toLowerCase();
+    if (raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on') {
+        return true;
+    }
+    if (raw === '0' || raw === 'false' || raw === 'no' || raw === 'off') {
+        return false;
+    }
+    return fallbackValue;
+}
+
+function getExLayerCssOptions(slotElement) {
+    const style = window.getComputedStyle(slotElement);
+    const slotWidth = Math.max(1, Math.round(slotElement.clientWidth || getCssNumberValue(style, 'width', 1)));
+    const slotHeight = Math.max(1, Math.round(slotElement.clientHeight || getCssNumberValue(style, 'height', 1)));
+    const fitModeRaw = String(style.getPropertyValue('--ex-fit-mode') || 'contain').trim().toLowerCase();
+    const fitMode = (fitModeRaw === 'width' || fitModeRaw === 'height' || fitModeRaw === 'none')
+        ? fitModeRaw
+        : 'contain';
+    const uniformScale = Math.max(0.05, getCssNumberValue(style, '--ex-scale', 1));
+    return {
+        slotWidth,
+        slotHeight,
+        fitMode,
+        autoFit: getCssBooleanValue(style, '--ex-auto-fit', true),
+        scaleX: Math.max(0.05, getCssNumberValue(style, '--ex-scale-x', uniformScale)),
+        scaleY: Math.max(0.05, getCssNumberValue(style, '--ex-scale-y', uniformScale)),
+        paddingX: Math.max(0, getCssNumberValue(style, '--ex-fit-padding-x', 0)),
+        paddingY: Math.max(0, getCssNumberValue(style, '--ex-fit-padding-y', 0)),
+        alignY: String(style.getPropertyValue('--ex-align-y') || 'center').trim().toLowerCase() === 'top'
+            ? 'top'
+            : 'center'
+    };
+}
+
+function getExEffectVisualScales(
+    frameWidth,
+    frameHeight,
+    slotWidth,
+    slotHeight,
+    fitMode,
+    autoFit,
+    scaleXMultiplier,
+    scaleYMultiplier
+) {
+    const safeFrameWidth = Math.max(1, Number(frameWidth) || 1);
+    const safeFrameHeight = Math.max(1, Number(frameHeight) || 1);
+    const safeSlotWidth = Math.max(1, Number(slotWidth) || 1);
+    const safeSlotHeight = Math.max(1, Number(slotHeight) || 1);
+    const safeScaleXMultiplier = Number.isFinite(Number(scaleXMultiplier)) && Number(scaleXMultiplier) > 0
+        ? Number(scaleXMultiplier)
+        : 1;
+    const safeScaleYMultiplier = Number.isFinite(Number(scaleYMultiplier)) && Number(scaleYMultiplier) > 0
+        ? Number(scaleYMultiplier)
+        : 1;
+
+    let fitScale = 1;
+    if (autoFit) {
+        if (fitMode === 'width') {
+            fitScale = Math.min(1, safeSlotWidth / safeFrameWidth);
+        } else if (fitMode === 'height') {
+            fitScale = Math.min(1, safeSlotHeight / safeFrameHeight);
+        } else if (fitMode === 'none') {
+            fitScale = 1;
+        } else {
+            fitScale = Math.min(1, safeSlotWidth / safeFrameWidth, safeSlotHeight / safeFrameHeight);
+        }
+    }
+    return {
+        x: Math.max(0.05, fitScale * safeScaleXMultiplier),
+        y: Math.max(0.05, fitScale * safeScaleYMultiplier)
+    };
+}
+
+function getExEffectFitLayout(frameWidth, frameHeight, slotWidth, slotHeight, scaleX, scaleY, padX, padY, alignY) {
+    const safePadX = Math.max(0, Number(padX) || 0);
+    const safePadY = Math.max(0, Number(padY) || 0);
+    const innerWidth = Math.max(1, slotWidth - (safePadX * 2));
+    const innerHeight = Math.max(1, slotHeight - (safePadY * 2));
+    const scaledWidth = frameWidth * scaleX;
+    const scaledHeight = frameHeight * scaleY;
+    const normalizedAlignY = String(alignY || 'center').toLowerCase() === 'top' ? 'top' : 'center';
+
+    const offsetX = (innerWidth - scaledWidth) / 2;
+    const offsetY = normalizedAlignY === 'top' ? 0 : ((innerHeight - scaledHeight) / 2);
+
+    return {
+        leftOffset: Math.round(safePadX + offsetX),
+        topOffset: Math.round(safePadY + offsetY)
+    };
 }
 
 function createEmptyShopCatalog() {
@@ -527,6 +637,8 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
         previewForegroundItemId: null,
         previewBackgroundAnimation: null,
         previewForegroundAnimation: null,
+        previewBackgroundPlayback: null,
+        previewForegroundPlayback: null,
         previewBackgroundFrameSrc: null,
         previewForegroundFrameSrc: null,
         previewBackgroundRequestId: 0,
@@ -547,53 +659,105 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
 
     const previewBackdrop = document.createElement('div');
     previewBackdrop.className = 'avatar-preview-backdrop';
-    previewBackdrop.style.left = `${getPreviewBackdropX()}px`;
-    previewBackdrop.style.top = `${getPreviewBackdropY()}px`;
-    previewBackdrop.style.width = `${Math.max(1, PREVIEW_BACKDROP_WIDTH)}px`;
-    previewBackdrop.style.height = `${Math.max(1, PREVIEW_BACKDROP_HEIGHT)}px`;
     previewBackdrop.style.display = 'none';
     root.appendChild(previewBackdrop);
+    const previewBackdropSprite = document.createElement('div');
+    previewBackdropSprite.className = 'avatar-preview-backdrop-sprite';
+    previewBackdrop.appendChild(previewBackdropSprite);
 
     const previewForeground = document.createElement('div');
     previewForeground.className = 'avatar-preview-foreground';
-    previewForeground.style.left = `${getPreviewForegroundX()}px`;
-    previewForeground.style.top = `${getPreviewForegroundY()}px`;
-    previewForeground.style.width = `${Math.max(1, PREVIEW_FOREGROUND_WIDTH)}px`;
-    previewForeground.style.height = `${Math.max(1, PREVIEW_FOREGROUND_HEIGHT)}px`;
     previewForeground.style.display = 'none';
     root.appendChild(previewForeground);
+    const previewForegroundSprite = document.createElement('div');
+    previewForegroundSprite.className = 'avatar-preview-foreground-sprite';
+    previewForeground.appendChild(previewForegroundSprite);
 
     const updatePreviewExtraLayerFrame = (layerKind, tick) => {
         const isBackground = layerKind === 'background';
-        const targetLayer = isBackground ? previewBackdrop : previewForeground;
+        const targetLayerSlot = isBackground ? previewBackdrop : previewForeground;
+        const targetLayerSprite = isBackground ? previewBackdropSprite : previewForegroundSprite;
         const animationKey = isBackground ? 'previewBackgroundAnimation' : 'previewForegroundAnimation';
+        const playbackKey = isBackground ? 'previewBackgroundPlayback' : 'previewForegroundPlayback';
         const frameSrcKey = isBackground ? 'previewBackgroundFrameSrc' : 'previewForegroundFrameSrc';
-        const fallbackWidth = Math.max(1, isBackground ? PREVIEW_BACKDROP_WIDTH : PREVIEW_FOREGROUND_WIDTH);
-        const fallbackHeight = Math.max(1, isBackground ? PREVIEW_BACKDROP_HEIGHT : PREVIEW_FOREGROUND_HEIGHT);
+        const cssOptions = getExLayerCssOptions(targetLayerSlot);
+        const fallbackWidth = cssOptions.slotWidth;
+        const fallbackHeight = cssOptions.slotHeight;
         const animation = state[animationKey];
 
         if (!animation || !Array.isArray(animation.frames) || animation.frames.length === 0) {
+            state[playbackKey] = null;
             state[frameSrcKey] = null;
-            targetLayer.style.display = 'none';
-            targetLayer.style.backgroundImage = '';
-            targetLayer.style.backgroundPosition = '';
-            targetLayer.style.backgroundSize = '';
-            targetLayer.style.width = `${fallbackWidth}px`;
-            targetLayer.style.height = `${fallbackHeight}px`;
+            targetLayerSlot.style.display = 'none';
+            targetLayerSprite.style.backgroundImage = '';
+            targetLayerSprite.style.backgroundPosition = '';
+            targetLayerSprite.style.transformOrigin = '';
+            targetLayerSprite.style.transform = '';
+            targetLayerSprite.style.left = '0px';
+            targetLayerSprite.style.top = '0px';
+            targetLayerSprite.style.width = `${fallbackWidth}px`;
+            targetLayerSprite.style.height = `${fallbackHeight}px`;
             return;
         }
 
-        const safeTick = Number.isFinite(tick) ? Math.max(0, Math.floor(tick)) : 0;
-        const frameIndex = safeTick % animation.frames.length;
+        const nowMs = (typeof performance !== 'undefined' && Number.isFinite(performance.now()))
+            ? performance.now()
+            : (Date.now() % 1000000000);
+        const frameCount = Math.max(1, animation.frames.length);
+        const startDelayMs = Math.max(0, Number(PREVIEW_EX_EFFECT_START_DELAY_MS) || 0);
+        const intervalMs = getExEffectFrameIntervalMs(layerKind, animation);
+
+        let playback = state[playbackKey];
+        if (!playback) {
+            playback = {
+                frameIndex: 0,
+                startMs: nowMs,
+                lastAdvanceMs: nowMs
+            };
+        }
+
+        const startMs = Number.isFinite(playback.startMs) ? playback.startMs : nowMs;
+        let frameIndex = Number.isFinite(playback.frameIndex) ? Math.floor(playback.frameIndex) : 0;
+        frameIndex = ((frameIndex % frameCount) + frameCount) % frameCount;
+
+        const activationMs = startMs + startDelayMs;
+        let lastAdvanceMs = Number.isFinite(playback.lastAdvanceMs) ? playback.lastAdvanceMs : activationMs;
+        if (lastAdvanceMs < activationMs) {
+            lastAdvanceMs = activationMs;
+        }
+
+        if (nowMs > activationMs) {
+            if (lastAdvanceMs > nowMs) {
+                lastAdvanceMs = nowMs;
+            }
+            const deltaMs = nowMs - lastAdvanceMs;
+            if (deltaMs > intervalMs) {
+                const steps = Math.max(1, Math.floor((deltaMs - Number.EPSILON) / intervalMs));
+                if (steps > 0) {
+                    frameIndex = (frameIndex + steps) % frameCount;
+                    lastAdvanceMs += steps * intervalMs;
+                }
+            }
+        }
+
+        state[playbackKey] = {
+            frameIndex,
+            startMs,
+            lastAdvanceMs
+        };
+
         const frame = animation.frames[frameIndex];
         if (!frame) {
             state[frameSrcKey] = null;
-            targetLayer.style.display = 'none';
-            targetLayer.style.backgroundImage = '';
-            targetLayer.style.backgroundPosition = '';
-            targetLayer.style.backgroundSize = '';
-            targetLayer.style.width = `${fallbackWidth}px`;
-            targetLayer.style.height = `${fallbackHeight}px`;
+            targetLayerSlot.style.display = 'none';
+            targetLayerSprite.style.backgroundImage = '';
+            targetLayerSprite.style.backgroundPosition = '';
+            targetLayerSprite.style.transformOrigin = '';
+            targetLayerSprite.style.transform = '';
+            targetLayerSprite.style.left = '0px';
+            targetLayerSprite.style.top = '0px';
+            targetLayerSprite.style.width = `${fallbackWidth}px`;
+            targetLayerSprite.style.height = `${fallbackHeight}px`;
             return;
         }
 
@@ -602,23 +766,52 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
         const frameHeight = Math.max(1, Number(frame.h) || fallbackHeight);
         if (!imageUrl) {
             state[frameSrcKey] = null;
-            targetLayer.style.display = 'none';
-            targetLayer.style.backgroundImage = '';
-            targetLayer.style.backgroundPosition = '';
-            targetLayer.style.backgroundSize = '';
-            targetLayer.style.width = `${fallbackWidth}px`;
-            targetLayer.style.height = `${fallbackHeight}px`;
+            targetLayerSlot.style.display = 'none';
+            targetLayerSprite.style.backgroundImage = '';
+            targetLayerSprite.style.backgroundPosition = '';
+            targetLayerSprite.style.transformOrigin = '';
+            targetLayerSprite.style.transform = '';
+            targetLayerSprite.style.left = '0px';
+            targetLayerSprite.style.top = '0px';
+            targetLayerSprite.style.width = `${fallbackWidth}px`;
+            targetLayerSprite.style.height = `${fallbackHeight}px`;
             return;
         }
+        const scales = getExEffectVisualScales(
+            frameWidth,
+            frameHeight,
+            fallbackWidth,
+            fallbackHeight,
+            cssOptions.fitMode,
+            cssOptions.autoFit,
+            cssOptions.scaleX,
+            cssOptions.scaleY
+        );
+        const fitLayout = getExEffectFitLayout(
+            frameWidth,
+            frameHeight,
+            fallbackWidth,
+            fallbackHeight,
+            scales.x,
+            scales.y,
+            cssOptions.paddingX,
+            cssOptions.paddingY,
+            cssOptions.alignY
+        );
+        const layerLeft = Math.round(fitLayout.leftOffset);
+        const layerTop = Math.round(fitLayout.topOffset);
         if (state[frameSrcKey] !== imageUrl) {
-            targetLayer.style.backgroundImage = `url('${imageUrl}')`;
+            targetLayerSprite.style.backgroundImage = `url('${imageUrl}')`;
             state[frameSrcKey] = imageUrl;
         }
-        targetLayer.style.width = `${frameWidth}px`;
-        targetLayer.style.height = `${frameHeight}px`;
-        targetLayer.style.backgroundSize = 'auto';
-        targetLayer.style.backgroundPosition = `-${Number(frame.sx || 0)}px -${Number(frame.sy || 0)}px`;
-        targetLayer.style.display = 'block';
+        targetLayerSprite.style.left = `${layerLeft}px`;
+        targetLayerSprite.style.top = `${layerTop}px`;
+        targetLayerSprite.style.width = `${frameWidth}px`;
+        targetLayerSprite.style.height = `${frameHeight}px`;
+        targetLayerSprite.style.backgroundPosition = `-${Number(frame.sx || 0)}px -${Number(frame.sy || 0)}px`;
+        targetLayerSprite.style.transformOrigin = 'top left';
+        targetLayerSprite.style.transform = `scale(${scales.x}, ${scales.y})`;
+        targetLayerSlot.style.display = 'block';
     };
 
     const renderPreviewExtraLayers = (tick) => {
@@ -629,9 +822,11 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
     const applyPreviewExtraLayer = async (layerKind) => {
         const isBackground = layerKind === 'background';
         const requestKey = isBackground ? 'previewBackgroundRequestId' : 'previewForegroundRequestId';
-        const targetLayer = isBackground ? previewBackdrop : previewForeground;
+        const targetLayerSlot = isBackground ? previewBackdrop : previewForeground;
+        const targetLayerSprite = isBackground ? previewBackdropSprite : previewForegroundSprite;
         const targetItemId = isBackground ? state.previewBackgroundItemId : state.previewForegroundItemId;
         const animationKey = isBackground ? 'previewBackgroundAnimation' : 'previewForegroundAnimation';
+        const playbackKey = isBackground ? 'previewBackgroundPlayback' : 'previewForegroundPlayback';
         const frameSrcKey = isBackground ? 'previewBackgroundFrameSrc' : 'previewForegroundFrameSrc';
 
         const currentRequest = state[requestKey] + 1;
@@ -640,9 +835,10 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
         const itemId = Number(targetItemId);
         if (!Number.isFinite(itemId) || itemId <= 0) {
             state[animationKey] = null;
+            state[playbackKey] = null;
             state[frameSrcKey] = null;
-            targetLayer.style.display = 'none';
-            targetLayer.style.backgroundImage = '';
+            targetLayerSlot.style.display = 'none';
+            targetLayerSprite.style.backgroundImage = '';
             return;
         }
 
@@ -653,12 +849,21 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
             }
             if (!animation || !Array.isArray(animation.frames) || animation.frames.length === 0) {
                 state[animationKey] = null;
+                state[playbackKey] = null;
                 state[frameSrcKey] = null;
-                targetLayer.style.display = 'none';
-                targetLayer.style.backgroundImage = '';
+                targetLayerSlot.style.display = 'none';
+                targetLayerSprite.style.backgroundImage = '';
                 return;
             }
             state[animationKey] = animation;
+            const nowMs = (typeof performance !== 'undefined' && Number.isFinite(performance.now()))
+                ? performance.now()
+                : (Date.now() % 1000000000);
+            state[playbackKey] = {
+                frameIndex: 0,
+                startMs: nowMs,
+                lastAdvanceMs: nowMs
+            };
             state[frameSrcKey] = null;
             renderPreviewExtraLayers(state.tick);
         } catch (error) {
@@ -666,9 +871,10 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
                 return;
             }
             state[animationKey] = null;
+            state[playbackKey] = null;
             state[frameSrcKey] = null;
-            targetLayer.style.display = 'none';
-            targetLayer.style.backgroundImage = '';
+            targetLayerSlot.style.display = 'none';
+            targetLayerSprite.style.backgroundImage = '';
         }
     };
 
@@ -1654,6 +1860,7 @@ async function resolveExEffectAtlasAnimationByFolder(folderCode) {
                     mode: 'atlas',
                     folder: normalized,
                     imageUrl,
+                    frameDurationMs: Number(atlasDef?.frame_duration_ms) || null,
                     frames
                 };
             } catch (error) {

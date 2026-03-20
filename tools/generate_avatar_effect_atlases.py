@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import struct
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -26,6 +27,8 @@ from PIL import Image
 
 EFFECT_FOLDER_RE = re.compile(r"^[bfBF]\d{6}$")
 FRAME_FILE_RE = re.compile(r"^(?P<folder>[bfBF]\d{6})_frame_(?P<index>\d+)\.png$")
+FRAME_META_STRUCT = struct.Struct("<HHIIIIIIIII")
+FRAME_META_SIZE = 40
 
 
 @dataclass(frozen=True)
@@ -42,6 +45,11 @@ def parse_args() -> argparse.Namespace:
         "--input-root",
         default="C:/tools/client_graphics",
         help="Folder containing b204xxx/f204xxx effect folders.",
+    )
+    parser.add_argument(
+        "--img-root",
+        default="C:/tools/xfs2",
+        help="Folder containing source .img files used to derive frame timing hints.",
     )
     parser.add_argument(
         "--output-root",
@@ -134,7 +142,36 @@ def read_frames(folder_path: Path) -> list[FrameInfo]:
     return frames
 
 
-def build_folder_atlas(folder_path: Path, output_root: Path) -> dict[str, Any]:
+def read_effect_frame_duration_ms(effect_id: str, img_root: Path) -> int | None:
+    img_path = img_root / f"{effect_id}.img"
+    if not img_path.is_file():
+        return None
+
+    try:
+        with img_path.open("rb") as f:
+            header = f.read(8)
+            if len(header) < 8:
+                return None
+            frame_count = struct.unpack("<I", header[4:8])[0]
+            if frame_count <= 0:
+                return None
+
+            raw_meta = f.read(FRAME_META_SIZE)
+            if len(raw_meta) < FRAME_META_SIZE:
+                return None
+
+            (_k1, i2, *_rest) = FRAME_META_STRUCT.unpack(raw_meta)
+            # Reverse-engineered timing hint from IMG frame meta.
+            # Low byte maps closely to EX effect pacing in the original client.
+            delay_ms = int(i2) & 0xFF
+            if delay_ms <= 0:
+                delay_ms = 256
+            return delay_ms
+    except Exception:
+        return None
+
+
+def build_folder_atlas(folder_path: Path, output_root: Path, img_root: Path) -> dict[str, Any]:
     frames = read_frames(folder_path)
     if not frames:
         raise RuntimeError(f"No frame PNGs found in folder: {folder_path}")
@@ -170,12 +207,14 @@ def build_folder_atlas(folder_path: Path, output_root: Path) -> dict[str, Any]:
         "g": compress_graphics(graphics),
         "frame_count": len(frames),
         "atlas_size": {"w": total_width, "h": max_height},
+        "frame_duration_ms": read_effect_frame_duration_ms(folder_path.name.lower(), img_root),
     }
 
 
 def main() -> int:
     args = parse_args()
     input_root = Path(args.input_root)
+    img_root = Path(args.img_root)
     output_root = Path(args.output_root)
     metadata_output = Path(args.metadata_output)
 
@@ -191,7 +230,7 @@ def main() -> int:
         folder_path = input_root / folder
         if not folder_path.is_dir():
             continue
-        entry = build_folder_atlas(folder_path, output_root)
+        entry = build_folder_atlas(folder_path, output_root, img_root)
         generated.append(entry)
         print(f"Generated atlas: {entry['image']} ({entry['frame_count']} frames)")
 
@@ -207,6 +246,7 @@ def main() -> int:
                 "y": 0,
                 "g": row["g"],
                 "atlas_size": row["atlas_size"],
+                "frame_duration_ms": row.get("frame_duration_ms"),
             }
             for row in generated
         },
