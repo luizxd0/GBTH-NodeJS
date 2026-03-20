@@ -13,6 +13,8 @@ const io = new Server(server);
 const userSockets = new Map(); // nickname -> socket.id
 const socketData = new Map(); // socket.id -> { nickname, id }
 const pendingNotifications = new Map(); // userId -> timeoutId
+const pendingDisconnects = new Map(); // userId -> timeoutId
+const RECONNECT_GRACE_MS = 2500;
 
 function getUKTimestamp() {
     const now = new Date();
@@ -404,8 +406,10 @@ io.on('connection', (socket) => {
 
     socket.on('set_user_data', async (data) => {
         if (data && data.nickname) {
+            let resumedFromReconnect = false;
             // Fetch latest data from DB to ensure sync
             try {
+                const existingSocketUser = socketData.get(socket.id);
                 const [rows] = await pool.execute(
                     `SELECT u.UserId, u.Authority, u.Gender, g.Nickname, g.Guild, g.Gold, g.Cash, g.TotalScore, g.TotalGrade, g.TotalRank
                      FROM user u
@@ -416,6 +420,29 @@ io.on('connection', (socket) => {
 
                 if (rows.length > 0) {
                     const dbUser = rows[0];
+                    const userId = dbUser.UserId;
+                    const nicknameKey = dbUser.Nickname.toLowerCase();
+                    const hadPendingDisconnect = pendingDisconnects.has(userId);
+                    if (hadPendingDisconnect) {
+                        clearTimeout(pendingDisconnects.get(userId));
+                        pendingDisconnects.delete(userId);
+                        resumedFromReconnect = true;
+                    }
+
+                    const previousSocketId = userSockets.get(nicknameKey);
+                    const previousSocketData = previousSocketId ? socketData.get(previousSocketId) : null;
+                    const alreadyOnlineOnOtherSocket = Boolean(
+                        previousSocketData
+                        && previousSocketData.id === userId
+                        && previousSocketId !== socket.id
+                    );
+                    const isRepeatIdentificationOnSameSocket = Boolean(
+                        existingSocketUser && existingSocketUser.id === userId
+                    );
+                    const shouldLogLogin = !hadPendingDisconnect
+                        && !alreadyOnlineOnOtherSocket
+                        && !isRepeatIdentificationOnSameSocket;
+
                     userSockets.set(dbUser.Nickname.toLowerCase(), socket.id);
                     socketData.set(socket.id, {
                         nickname: dbUser.Nickname,
@@ -431,12 +458,15 @@ io.on('connection', (socket) => {
 
                     // Send updated user info back to client
                     socket.emit('user_info_update', buildUserPayload(dbUser));
+
+                    if (shouldLogLogin) {
+                        console.log(`[Login] [${getUKTimestamp()}] ${data.nickname} logged in.`);
+                    }
                 }
             } catch (err) {
                 console.error('[UserSync] Error fetching latest data:', err);
             }
 
-            console.log(`[Login] [${getUKTimestamp()}] ${data.nickname} logged in.`);
             io.emit('playerCountUpdate', getActivePlayerCount());
 
             // Automatically send buddy list on identification
@@ -444,10 +474,11 @@ io.on('connection', (socket) => {
             const currentData = socketData.get(socket.id);
             if (currentData) {
                 sendBuddyList(socket, currentData.id);
-                notifyBuddiesOfStatusChange(currentData.id, 0);
+                if (!resumedFromReconnect) {
+                    notifyBuddiesOfStatusChange(currentData.id, 0);
+                }
+                broadcastChannelUsers(currentData.channelId);
             }
-
-            broadcastChannelUsers(currentData.channelId);
         }
     });
 
@@ -781,21 +812,35 @@ io.on('connection', (socket) => {
             const nicknameKey = nickname.toLowerCase();
             const linkedSocketId = userSockets.get(nicknameKey);
             const isCurrentLinkedSocket = linkedSocketId === socket.id;
+            const disconnectedChannelId = data.channelId;
 
             if (isCurrentLinkedSocket) {
                 userSockets.delete(nicknameKey);
             }
 
             socketData.delete(socket.id);
-            console.log(`[Logoff] [${getUKTimestamp()}] ${nickname} logged off.`);
-            io.emit('playerCountUpdate', getActivePlayerCount());
-
-            // Only notify offline if this socket is still the active mapping for that nickname.
-            // This prevents page-transition races from clearing a newer socket status.
             if (isCurrentLinkedSocket) {
-                notifyBuddiesOfStatusChange(userId, 100);
+                if (pendingDisconnects.has(userId)) {
+                    clearTimeout(pendingDisconnects.get(userId));
+                    pendingDisconnects.delete(userId);
+                }
+
+                const timeoutId = setTimeout(() => {
+                    pendingDisconnects.delete(userId);
+                    const activeSocketId = userSockets.get(nicknameKey);
+                    const activeSocketData = activeSocketId ? socketData.get(activeSocketId) : null;
+                    const isStillOnline = Boolean(activeSocketData && activeSocketData.id === userId);
+                    if (isStillOnline) {
+                        return;
+                    }
+                    console.log(`[Logoff] [${getUKTimestamp()}] ${nickname} logged off.`);
+                    notifyBuddiesOfStatusChange(userId, 100);
+                }, RECONNECT_GRACE_MS);
+
+                pendingDisconnects.set(userId, timeoutId);
             }
-            broadcastChannelUsers(data.channelId);
+            io.emit('playerCountUpdate', getActivePlayerCount());
+            broadcastChannelUsers(disconnectedChannelId);
         }
     });
 });
