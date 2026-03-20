@@ -1638,21 +1638,11 @@ body {
 }
 
 #avatar-shop-list.exitem-mode .avatar-shop-item {
-    background-image:
-        url('/assets/screens/avatar_shop/store_avatar/store_avatar_frame_13.png'),
-        url('/assets/screens/avatar_shop/store_avatar/store_avatar_frame_0.png');
-    background-repeat: no-repeat, no-repeat;
-    background-position: 9px 1px, top left;
-    background-size: auto, 160px 156px;
+    background-image: url('/assets/screens/avatar_shop/store_avatar/store_avatar_frame_11.png');
 }
 
 #avatar-shop-list.exitem-mode .avatar-shop-item.selected {
-    background-image:
-        url('/assets/screens/avatar_shop/store_avatar/store_avatar_frame_13.png'),
-        url('/assets/screens/avatar_shop/store_avatar/store_avatar_frame_1.png');
-    background-repeat: no-repeat, no-repeat;
-    background-position: 9px 1px, top left;
-    background-size: auto, 160px 156px;
+    background-image: url('/assets/screens/avatar_shop/store_avatar/store_avatar_frame_12.png');
 }
 
 .avatar-shop-item-content {

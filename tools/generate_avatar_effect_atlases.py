@@ -261,6 +261,50 @@ def read_effect_first_frame_meta(effect_id: str, img_root: Path) -> dict[str, An
         return None
 
 
+def read_effect_epa_timeline(effect_id: str, img_root: Path) -> dict[str, Any] | None:
+    epa_path = img_root / f"{effect_id}.epa"
+    if not epa_path.is_file():
+        return None
+
+    try:
+        payload = epa_path.read_bytes()
+        if len(payload) < 16:
+            return None
+
+        version, name_len = struct.unpack_from("<II", payload, 0)
+        pos = 8
+        if name_len < 0 or pos + name_len + 1 + 4 > len(payload):
+            return None
+
+        anim_name = payload[pos : pos + name_len].decode("latin1", errors="ignore")
+        pos += name_len
+        anim_flag = payload[pos]
+        pos += 1
+
+        frame_steps = struct.unpack_from("<I", payload, pos)[0]
+        pos += 4
+        if frame_steps <= 0:
+            return None
+
+        required = pos + (frame_steps * 4) + (frame_steps * 4)
+        if required > len(payload):
+            return None
+
+        sequence = list(struct.unpack_from(f"<{frame_steps}I", payload, pos))
+        pos += frame_steps * 4
+        durations = list(struct.unpack_from(f"<{frame_steps}I", payload, pos))
+
+        return {
+            "epa_version": int(version),
+            "epa_anim": anim_name,
+            "epa_flag": int(anim_flag),
+            "epa_sequence": [int(v) for v in sequence],
+            "epa_durations": [max(1, int(v)) for v in durations],
+        }
+    except Exception:
+        return None
+
+
 def build_folder_atlas(
     folder_path: Path,
     output_root: Path,
@@ -297,6 +341,7 @@ def build_folder_atlas(
     atlas.save(atlas_path, format="PNG")
 
     first_meta = read_effect_first_frame_meta(folder_path.name.lower(), img_root) or {}
+    epa_timeline = read_effect_epa_timeline(folder_path.name.lower(), img_root) or {}
 
     return {
         "id": folder_path.name.lower(),
@@ -307,6 +352,11 @@ def build_folder_atlas(
         "frame_duration_ms": first_meta.get("frame_duration_ms"),
         "offset_x": int(first_meta.get("offset_x", 0)),
         "offset_y": int(first_meta.get("offset_y", 0)),
+        "epa_version": epa_timeline.get("epa_version"),
+        "epa_anim": epa_timeline.get("epa_anim"),
+        "epa_flag": epa_timeline.get("epa_flag"),
+        "epa_sequence": epa_timeline.get("epa_sequence"),
+        "epa_durations": epa_timeline.get("epa_durations"),
     }
 
 
@@ -351,6 +401,11 @@ def main() -> int:
                 "frame_duration_ms": row.get("frame_duration_ms"),
                 "offset_x": int(row.get("offset_x", 0)),
                 "offset_y": int(row.get("offset_y", 0)),
+                "epa_version": row.get("epa_version"),
+                "epa_anim": row.get("epa_anim"),
+                "epa_flag": row.get("epa_flag"),
+                "epa_sequence": row.get("epa_sequence"),
+                "epa_durations": row.get("epa_durations"),
             }
             for row in generated
         },

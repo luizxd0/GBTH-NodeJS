@@ -1,16 +1,28 @@
 ﻿(function () {
 const AVATAR_ANIMATION_FPS = 10;
 const AVATAR_ANIMATION_TICK_MS = Math.floor(1000 / AVATAR_ANIMATION_FPS);
+// Fine-tuning knob for shop preview parity (1.0 = base tick speed).
+const PREVIEW_ANIMATION_SPEED_MULTIPLIER = 1.0;
 // Locked visual calibration for Avatar Shop preview (position/size confirmed in QA).
 const PREVIEW_ANCHOR_X = 31;
 const PREVIEW_ANCHOR_Y = 58;
 const PREVIEW_OFFSET_X = 15;
 const PREVIEW_OFFSET_Y = 20;
 // GBTH client parity: EX layers are advanced from the same master avatar tick.
-// Use this divisor to tune EX cadence in whole-tick steps (1 = 10 FPS, 2 = 5 FPS).
-const PREVIEW_EX_EFFECT_TICK_DIVISOR = 1;
+const PREVIEW_EX_BACKGROUND_TICK_DIVISOR = 1;
+const PREVIEW_EX_FOREGROUND_TICK_DIVISOR = 1;
 // Optional per-folder tick-divisor overrides (example: { f204808: 2 }).
 const PREVIEW_EX_EFFECT_TICK_DIVISOR_OVERRIDES = {};
+const PREVIEW_EX_FOREGROUND_SPEED_MULTIPLIER = 1.0;
+// Optional per-effect speed tuning when specific foreground effects need nudging.
+const PREVIEW_EX_EFFECT_SPEED_MULTIPLIER_OVERRIDES = {};
+// Calibrated GBTH EPA timeline unit for shop preview.
+const PREVIEW_EX_EFFECT_EPA_DURATION_UNIT_MS = 50;
+// Position overrides are intentionally narrow; many effects already align correctly.
+const PREVIEW_EX_EFFECT_POSITION_OFFSETS = {
+    f204851: { x: 18, y: 46 },
+    sf204851: { x: 0, y: 39 }
+};
 const AVATAR_ATLAS_METADATA_URL = '/assets/shared/avatar_sheets/avatar_metadata.json';
 const AVATAR_SHEET_TEST_MODE = 'atlas_avatar';
 const AVATAR_LAYERED_BASE_URLS = [
@@ -44,13 +56,98 @@ function getNowMs() {
     return Date.now() % 1000000000;
 }
 
-function getExEffectTickDivisor(animation) {
+function getPreviewAnimationTick(nowMs, startMs, tickMs) {
+    const elapsed = Math.max(0, Number(nowMs) - Number(startMs));
+    const speed = Number.isFinite(PREVIEW_ANIMATION_SPEED_MULTIPLIER) && PREVIEW_ANIMATION_SPEED_MULTIPLIER > 0
+        ? PREVIEW_ANIMATION_SPEED_MULTIPLIER
+        : 1;
+    return Math.max(0, Math.floor((elapsed / tickMs) * speed));
+}
+
+function getExEffectTickDivisor(layerKind, animation) {
     const folder = String(animation?.folder || '').trim().toLowerCase();
     const override = Number(PREVIEW_EX_EFFECT_TICK_DIVISOR_OVERRIDES?.[folder]);
     if (Number.isFinite(override) && override > 0) {
         return Math.max(1, Math.floor(override));
     }
-    return Math.max(1, Math.floor(Number(PREVIEW_EX_EFFECT_TICK_DIVISOR) || 1));
+    const baseDivisor = layerKind === 'foreground'
+        ? Number(PREVIEW_EX_FOREGROUND_TICK_DIVISOR)
+        : Number(PREVIEW_EX_BACKGROUND_TICK_DIVISOR);
+    return Math.max(1, Math.floor(baseDivisor || 1));
+}
+
+function getExEffectSpeedMultiplier(layerKind, animation) {
+    if (layerKind !== 'foreground') {
+        return 1;
+    }
+    const folder = String(animation?.folder || '').trim().toLowerCase();
+    const override = Number(PREVIEW_EX_EFFECT_SPEED_MULTIPLIER_OVERRIDES?.[folder]);
+    if (Number.isFinite(override) && override > 0) {
+        return override;
+    }
+    const base = Number(PREVIEW_EX_FOREGROUND_SPEED_MULTIPLIER);
+    return Number.isFinite(base) && base > 0 ? base : 1;
+}
+
+function getExEffectPositionOffset(layerKind, animation) {
+    if (layerKind !== 'foreground') {
+        return { x: 0, y: 0 };
+    }
+    const folder = String(animation?.folder || '').trim().toLowerCase();
+    const override = PREVIEW_EX_EFFECT_POSITION_OFFSETS?.[folder];
+    if (!override || typeof override !== 'object') {
+        return { x: 0, y: 0 };
+    }
+    const x = Number(override.x);
+    const y = Number(override.y);
+    return {
+        x: Number.isFinite(x) ? x : 0,
+        y: Number.isFinite(y) ? y : 0
+    };
+}
+
+function getExEffectFrameIndexByEpa(animation, frameCount, playbackStartMs, nowMs) {
+    const sequence = Array.isArray(animation?.epaSequence) ? animation.epaSequence : null;
+    const durations = Array.isArray(animation?.epaDurations) ? animation.epaDurations : null;
+    if (!sequence || !durations || sequence.length === 0 || durations.length !== sequence.length) {
+        return null;
+    }
+    if (frameCount <= 0) {
+        return null;
+    }
+
+    const unitMs = Math.max(1, Number(PREVIEW_EX_EFFECT_EPA_DURATION_UNIT_MS) || 20);
+    const startMs = Number(playbackStartMs);
+    const currentMs = Number(nowMs);
+    if (!Number.isFinite(startMs) || !Number.isFinite(currentMs)) {
+        return null;
+    }
+
+    let totalUnits = 0;
+    const normalizedDurations = durations.map((value) => {
+        const parsed = Number(value);
+        const unit = Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 1;
+        totalUnits += unit;
+        return unit;
+    });
+    if (totalUnits <= 0) {
+        return null;
+    }
+
+    const elapsedMs = Math.max(0, currentMs - startMs);
+    const elapsedUnits = Math.floor(elapsedMs / unitMs);
+    let cursor = ((elapsedUnits % totalUnits) + totalUnits) % totalUnits;
+    for (let i = 0; i < normalizedDurations.length; i += 1) {
+        const durationUnits = normalizedDurations[i];
+        if (cursor < durationUnits) {
+            const rawFrameIndex = Math.floor(Number(sequence[i]) || 0);
+            return Math.max(0, Math.min(frameCount - 1, rawFrameIndex));
+        }
+        cursor -= durationUnits;
+    }
+
+    const rawTailFrame = Math.floor(Number(sequence[sequence.length - 1]) || 0);
+    return Math.max(0, Math.min(frameCount - 1, rawTailFrame));
 }
 
 function getCssNumberValue(style, cssVariableName, fallbackValue) {
@@ -81,6 +178,8 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
         previewForegroundItemId: null,
         previewBackgroundAnimation: null,
         previewForegroundAnimation: null,
+        previewBackgroundPlaybackStartMs: null,
+        previewForegroundPlaybackStartMs: null,
         previewBackgroundFrameSrc: null,
         previewForegroundFrameSrc: null,
         previewBackgroundRequestId: 0,
@@ -120,6 +219,7 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
         const targetLayerSlot = isBackground ? previewBackdrop : previewForeground;
         const targetLayerSprite = isBackground ? previewBackdropSprite : previewForegroundSprite;
         const animationKey = isBackground ? 'previewBackgroundAnimation' : 'previewForegroundAnimation';
+        const playbackStartKey = isBackground ? 'previewBackgroundPlaybackStartMs' : 'previewForegroundPlaybackStartMs';
         const frameSrcKey = isBackground ? 'previewBackgroundFrameSrc' : 'previewForegroundFrameSrc';
         const slotRect = targetLayerSlot.getBoundingClientRect();
         const fallbackWidth = Math.max(1, Math.round(slotRect.width) || targetLayerSlot.clientWidth || 1);
@@ -142,10 +242,16 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
         }
 
         const frameCount = Math.max(1, animation.frames.length);
-        const normalizedTick = Number.isFinite(tick) ? Math.max(0, Math.floor(tick)) : 0;
-        const frameTickDivisor = getExEffectTickDivisor(animation);
-        const steps = Math.floor(normalizedTick / frameTickDivisor);
-        const frameIndex = ((steps % frameCount) + frameCount) % frameCount;
+        const nowMs = getNowMs();
+        const playbackStartMs = state[playbackStartKey];
+        let frameIndex = getExEffectFrameIndexByEpa(animation, frameCount, playbackStartMs, nowMs);
+        if (!Number.isFinite(frameIndex)) {
+            const normalizedTick = Number.isFinite(tick) ? Math.max(0, Math.floor(tick)) : 0;
+            const frameTickDivisor = getExEffectTickDivisor(layerKind, animation);
+            const frameSpeedMultiplier = getExEffectSpeedMultiplier(layerKind, animation);
+            const steps = Math.floor((normalizedTick / frameTickDivisor) * frameSpeedMultiplier);
+            frameIndex = ((steps % frameCount) + frameCount) % frameCount;
+        }
 
         const frame = animation.frames[frameIndex];
         if (!frame) {
@@ -184,8 +290,9 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
         const frameOy = Number(frame.oy || 0);
         const effectOffsetX = Number(cssFrameOffset.x || 0);
         const effectOffsetY = Number(cssFrameOffset.y || 0);
-        const layerLeft = Math.round(frameOx - frameCx + effectOffsetX);
-        const layerTop = Math.round(frameOy - frameCy + effectOffsetY);
+        const effectPositionOffset = getExEffectPositionOffset(layerKind, animation);
+        const layerLeft = Math.round(frameOx - frameCx + effectOffsetX + effectPositionOffset.x);
+        const layerTop = Math.round(frameOy - frameCy + effectOffsetY + effectPositionOffset.y);
         if (state[frameSrcKey] !== imageUrl) {
             targetLayerSprite.style.backgroundImage = `url('${imageUrl}')`;
             state[frameSrcKey] = imageUrl;
@@ -212,6 +319,7 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
         const targetLayerSprite = isBackground ? previewBackdropSprite : previewForegroundSprite;
         const targetItemId = isBackground ? state.previewBackgroundItemId : state.previewForegroundItemId;
         const animationKey = isBackground ? 'previewBackgroundAnimation' : 'previewForegroundAnimation';
+        const playbackStartKey = isBackground ? 'previewBackgroundPlaybackStartMs' : 'previewForegroundPlaybackStartMs';
         const frameSrcKey = isBackground ? 'previewBackgroundFrameSrc' : 'previewForegroundFrameSrc';
 
         const currentRequest = state[requestKey] + 1;
@@ -220,6 +328,7 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
         const itemId = Number(targetItemId);
         if (!Number.isFinite(itemId) || itemId <= 0) {
             state[animationKey] = null;
+            state[playbackStartKey] = null;
             state[frameSrcKey] = null;
             targetLayerSlot.style.display = 'none';
             targetLayerSprite.style.backgroundImage = '';
@@ -238,12 +347,14 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
             }
             if (!animation || !Array.isArray(animation.frames) || animation.frames.length === 0) {
                 state[animationKey] = null;
+                state[playbackStartKey] = null;
                 state[frameSrcKey] = null;
                 targetLayerSlot.style.display = 'none';
                 targetLayerSprite.style.backgroundImage = '';
                 return;
             }
             state[animationKey] = animation;
+            state[playbackStartKey] = getNowMs();
             state[frameSrcKey] = null;
             renderPreviewExtraLayers(state.tick);
         } catch (error) {
@@ -251,6 +362,7 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
                 return;
             }
             state[animationKey] = null;
+            state[playbackStartKey] = null;
             state[frameSrcKey] = null;
             targetLayerSlot.style.display = 'none';
             targetLayerSprite.style.backgroundImage = '';
@@ -291,7 +403,6 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
             renderInFlight = true;
             try {
                 await testRuntime.render(targetTick);
-                renderPreviewExtraLayers(targetTick);
                 lastRenderedTick = targetTick;
             } catch (error) {
                     console.warn('[AvatarPreview] Test runtime render error:', error);
@@ -306,7 +417,7 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
             }
         };
         const renderTick = async () => {
-            const currentTick = Math.max(0, Math.floor((getNowMs() - timerStartMs) / tickMs));
+            const currentTick = getPreviewAnimationTick(getNowMs(), timerStartMs, tickMs);
             if (currentTick !== lastRenderedTick) {
                 state.tick = currentTick;
                 if (renderInFlight) {
@@ -315,6 +426,7 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
                     void runRender(currentTick);
                 }
             }
+            renderPreviewExtraLayers(state.tick);
             state.rafId = window.requestAnimationFrame(renderTick);
         };
         state.rafId = window.requestAnimationFrame(renderTick);
@@ -364,11 +476,12 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
     const timerStartMs = getNowMs();
     let lastRenderedTick = -1;
     const renderLoop = () => {
-        const currentTick = Math.max(0, Math.floor((getNowMs() - timerStartMs) / tickMs));
+        const currentTick = getPreviewAnimationTick(getNowMs(), timerStartMs, tickMs);
         if (currentTick !== lastRenderedTick) {
             renderAvatarTick(currentTick);
             lastRenderedTick = currentTick;
         }
+        renderPreviewExtraLayers(state.tick);
         state.rafId = window.requestAnimationFrame(renderLoop);
     };
     state.rafId = window.requestAnimationFrame(renderLoop);
@@ -471,7 +584,6 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
             }
         });
 
-        renderPreviewExtraLayers(state.tick);
     }
 
     return {
@@ -800,6 +912,8 @@ async function resolveExEffectAtlasAnimationByFolder(folderCode) {
                     frameDurationMs: Number(atlasDef?.frame_duration_ms) || null,
                     offsetX: Number(atlasDef?.offset_x) || 0,
                     offsetY: Number(atlasDef?.offset_y) || 0,
+                    epaSequence: Array.isArray(atlasDef?.epa_sequence) ? atlasDef.epa_sequence : null,
+                    epaDurations: Array.isArray(atlasDef?.epa_durations) ? atlasDef.epa_durations : null,
                     frames
                 };
             } catch (error) {

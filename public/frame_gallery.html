@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Frame Gallery</title>
+<style>
+  body { background: #333; color: white; font-family: sans-serif; }
+  .frame-container { display: inline-block; margin: 10px; text-align: center; }
+  .frame-container img { border: 1px solid #ff0; }
+</style>
+</head>
+<body>
+  <h1>Avatar Shop Frames</h1>
+  <div id="gallery"></div>
+  <script>
+    const gallery = document.getElementById('gallery');
+    for (let i = 0; i <= 14; i++) {
+      const div = document.createElement('div');
+      div.className = 'frame-container';
+      div.innerHTML = `
+        <div>frame_${i}.png</div>
+        <img src="/assets/screens/avatar_shop/store_avatar/store_avatar_frame_${i}.png" alt="frame_${i}" />
+      `;
+      gallery.appendChild(div);
+    }
+  </script>
+</body>
+</html>

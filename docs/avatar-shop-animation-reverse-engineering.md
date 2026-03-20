@@ -67,6 +67,11 @@ GBTH shop preview behavior implemented in this repo:
 - Avatar frame counter: `a = floor(elapsedMs / 100)`.
 - All preview layers are driven from one master tick to avoid layer drift.
 - EX background/foreground playback is tick-based (not wall-clock ms metadata based).
+- EX background/foreground default cadence currently runs at master tick (`frame = a`) for visual parity with GBTH client behavior observed in side-by-side checks.
+- Global preview speed multiplier is kept at `1.0`; parity tweaks are done with per-effect overrides.
+- EX timing now reads GBTH `.epa` sequence/duration tables (`epa_sequence`, `epa_durations`) from `C:\tools\xfs2`.
+- EPA duration unit is currently calibrated to `50ms` per step in preview runtime.
+- Position overrides remain narrow and foreground-only (`Howling Wolf`) to avoid shifting already-correct effects.
 - `.img` header field `i2` is preserved for diagnostics only; it is not used as frame-duration source.
 
 ### Critical Positioning Discovery
