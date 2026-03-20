@@ -18,10 +18,10 @@ const PREVIEW_EX_FOREGROUND_SPEED_MULTIPLIER = 1.0;
 const PREVIEW_EX_EFFECT_SPEED_MULTIPLIER_OVERRIDES = {};
 // Calibrated GBTH EPA timeline unit for shop preview.
 const PREVIEW_EX_EFFECT_EPA_DURATION_UNIT_MS = 50;
-// Position overrides are intentionally narrow; many effects already align correctly.
+// Optional per-effect placement nudges (delta-only; base offset comes from metadata).
 const PREVIEW_EX_EFFECT_POSITION_OFFSETS = {
-    f204851: { x: 18, y: 46 },
-    sf204851: { x: 0, y: 39 }
+    // Heart in the sky: keep GBTH visual parity in shop preview.
+    sf204849: { x: 0, y: -21 }
 };
 const AVATAR_ATLAS_METADATA_URL = '/assets/shared/avatar_sheets/avatar_metadata.json';
 const AVATAR_SHEET_TEST_MODE = 'atlas_avatar';
@@ -288,11 +288,13 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
         const frameCy = Number(frame.cy || 0);
         const frameOx = Number(frame.ox || 0);
         const frameOy = Number(frame.oy || 0);
+        const animationOffsetX = Number(animation.offsetX || 0);
+        const animationOffsetY = Number(animation.offsetY || 0);
         const effectOffsetX = Number(cssFrameOffset.x || 0);
         const effectOffsetY = Number(cssFrameOffset.y || 0);
         const effectPositionOffset = getExEffectPositionOffset(layerKind, animation);
-        const layerLeft = Math.round(frameOx - frameCx + effectOffsetX + effectPositionOffset.x);
-        const layerTop = Math.round(frameOy - frameCy + effectOffsetY + effectPositionOffset.y);
+        const layerLeft = Math.round(frameOx - frameCx + animationOffsetX + effectOffsetX + effectPositionOffset.x);
+        const layerTop = Math.round(frameOy - frameCy + animationOffsetY + effectOffsetY + effectPositionOffset.y);
         if (state[frameSrcKey] !== imageUrl) {
             targetLayerSprite.style.backgroundImage = `url('${imageUrl}')`;
             state[frameSrcKey] = imageUrl;
