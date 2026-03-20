@@ -5,6 +5,15 @@ const PREVIEW_ANCHOR_Y = 58;
 // +X moves right, +Y moves down.
 const PREVIEW_OFFSET_X = 15;
 const PREVIEW_OFFSET_Y = 20;
+// Tweak these values to reposition/resize EX background preview.
+const PREVIEW_BACKDROP_OFFSET_X = 8;
+const PREVIEW_BACKDROP_OFFSET_Y = 13;
+const PREVIEW_BACKDROP_WIDTH = 95;
+const PREVIEW_BACKDROP_HEIGHT = 88;
+const PREVIEW_FOREGROUND_OFFSET_X = 8;
+const PREVIEW_FOREGROUND_OFFSET_Y = 13;
+const PREVIEW_FOREGROUND_WIDTH = 95;
+const PREVIEW_FOREGROUND_HEIGHT = 88;
 const DEFAULT_SHOP_ITEM_COUNT = 9;
 const SET_SHOP_ITEM_COUNT = 4;
 const AVATAR_ATLAS_METADATA_URL = '/assets/shared/avatar_sheets/avatar_metadata.json';
@@ -14,9 +23,11 @@ const AVATAR_LAYERED_BASE_URLS = [
     '/assets/shared/client_avatars'
 ];
 const AVATAR_THUMB_BASE_URLS = [
+    '/assets/shared/avatar_thumbs',
     '/assets/shared/avatar_sheets/gbth',
     '/assets/shared/avatar_sheets/dragonbound'
 ];
+const AVATAR_EXITEM_THUMB_BASE_URL = '/assets/shared/avatar_thumbs';
 const STORE_ICON_BASE_URL = '/assets/screens/avatar_shop/store_icon/store_icon_frame_';
 const STORE_AVATAR_BASE_URL = '/assets/screens/avatar_shop/store_avatar/store_avatar_frame_';
 const SHOP_BUTTON_CATEGORY = {
@@ -44,6 +55,22 @@ function getPreviewBaseX() {
 
 function getPreviewBaseY() {
     return PREVIEW_ANCHOR_Y + PREVIEW_OFFSET_Y;
+}
+
+function getPreviewBackdropX() {
+    return PREVIEW_BACKDROP_OFFSET_X;
+}
+
+function getPreviewBackdropY() {
+    return PREVIEW_BACKDROP_OFFSET_Y;
+}
+
+function getPreviewForegroundX() {
+    return PREVIEW_FOREGROUND_OFFSET_X;
+}
+
+function getPreviewForegroundY() {
+    return PREVIEW_FOREGROUND_OFFSET_Y;
 }
 
 function createEmptyShopCatalog() {
@@ -87,6 +114,65 @@ function resolveGenderBadgeIcon(itemData) {
     if (gender === 'm') return getStoreAvatarFrameUrl(2);
     if (gender === 'f') return getStoreAvatarFrameUrl(3);
     return null;
+}
+
+function isCatalogNewBadgeItem(itemData) {
+    const slot = String(itemData?.slot || '').toLowerCase();
+    const refId = Number(itemData?.source_ref_id);
+    return slot === 'background' && Number.isFinite(refId) && refId >= 50 && refId <= 54;
+}
+
+function formatPriceValue(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric) || numeric <= 0) {
+        return 0;
+    }
+    return Math.floor(numeric);
+}
+
+function pickPriceAmount(itemData, keyPrefix) {
+    return formatPriceValue(itemData?.[`${keyPrefix}_perm`])
+        || formatPriceValue(itemData?.[`${keyPrefix}_month`])
+        || formatPriceValue(itemData?.[`${keyPrefix}_week`]);
+}
+
+function resolveCatalogPriceLines(itemData) {
+    const cash = pickPriceAmount(itemData, 'cash');
+    const gold = pickPriceAmount(itemData, 'gold');
+
+    if (cash > 0 && gold > 0) {
+        return {
+            line1: `${cash.toLocaleString()} CASH`,
+            line2: `${gold.toLocaleString()} GOLD`,
+            line1Kind: 'cash',
+            line2Kind: 'gold'
+        };
+    }
+
+    if (cash > 0) {
+        return {
+            line1: `${cash.toLocaleString()} CASH`,
+            line2: 'CASH ONLY',
+            line1Kind: 'cash',
+            line2Kind: 'cash'
+        };
+    }
+
+    if (gold > 0) {
+        return {
+            line1: 'GOLD ONLY',
+            line2: `${gold.toLocaleString()} GOLD`,
+            line1Kind: 'gold',
+            line2Kind: 'gold'
+        };
+    }
+
+    return {
+        line1: '',
+        line2: '',
+        line1Kind: '',
+        line2Kind: ''
+    };
 }
 
 function resolveSlotIconFrame(itemData, categoryKey, userData) {
@@ -436,6 +522,10 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
         tick: 0,
         timer: null,
         layerState: {},
+        previewBackgroundItemId: null,
+        previewForegroundItemId: null,
+        previewBackgroundRequestId: 0,
+        previewForegroundRequestId: 0,
         avatar: {
             gender: isFemale ? 'f' : 'm',
             // Shop preview should default to naked base when avatar slots are not provided.
@@ -449,6 +539,85 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
     const root = document.createElement('div');
     root.id = 'avatar-shop-character-preview';
     hostElement.appendChild(root);
+
+    const previewBackdrop = document.createElement('div');
+    previewBackdrop.className = 'avatar-preview-backdrop';
+    previewBackdrop.style.left = `${getPreviewBackdropX()}px`;
+    previewBackdrop.style.top = `${getPreviewBackdropY()}px`;
+    previewBackdrop.style.width = `${Math.max(1, PREVIEW_BACKDROP_WIDTH)}px`;
+    previewBackdrop.style.height = `${Math.max(1, PREVIEW_BACKDROP_HEIGHT)}px`;
+    previewBackdrop.style.display = 'none';
+    root.appendChild(previewBackdrop);
+
+    const previewForeground = document.createElement('div');
+    previewForeground.className = 'avatar-preview-foreground';
+    previewForeground.style.left = `${getPreviewForegroundX()}px`;
+    previewForeground.style.top = `${getPreviewForegroundY()}px`;
+    previewForeground.style.width = `${Math.max(1, PREVIEW_FOREGROUND_WIDTH)}px`;
+    previewForeground.style.height = `${Math.max(1, PREVIEW_FOREGROUND_HEIGHT)}px`;
+    previewForeground.style.display = 'none';
+    root.appendChild(previewForeground);
+
+    const applyPreviewExtraLayer = async (layerKind) => {
+        const isBackground = layerKind === 'background';
+        const requestKey = isBackground ? 'previewBackgroundRequestId' : 'previewForegroundRequestId';
+        const targetLayer = isBackground ? previewBackdrop : previewForeground;
+        const targetItemId = isBackground ? state.previewBackgroundItemId : state.previewForegroundItemId;
+
+        const currentRequest = state[requestKey] + 1;
+        state[requestKey] = currentRequest;
+
+        const itemId = Number(targetItemId);
+        if (!Number.isFinite(itemId) || itemId <= 0) {
+            targetLayer.style.display = 'none';
+            targetLayer.style.backgroundImage = '';
+            return;
+        }
+
+        try {
+            const thumbAsset = await resolveExitemThumbAsset({ source_ref_id: itemId, avatar_code: `ex2_${itemId}` });
+            if (state[requestKey] !== currentRequest) {
+                return;
+            }
+            const imageUrl = String(thumbAsset?.url || '');
+            if (!imageUrl) {
+                targetLayer.style.display = 'none';
+                targetLayer.style.backgroundImage = '';
+                return;
+            }
+            targetLayer.style.backgroundImage = `url('${imageUrl}')`;
+            targetLayer.style.display = 'block';
+        } catch (error) {
+            if (state[requestKey] !== currentRequest) {
+                return;
+            }
+            targetLayer.style.display = 'none';
+            targetLayer.style.backgroundImage = '';
+        }
+    };
+
+    const applyEquipToState = (slot, itemId) => {
+        if (slot === 'background') {
+            state.previewBackgroundItemId = parseAvatarItemId(itemId, null, false);
+            void applyPreviewExtraLayer('background');
+            return;
+        }
+        if (slot === 'foreground') {
+            state.previewForegroundItemId = parseAvatarItemId(itemId, null, false);
+            void applyPreviewExtraLayer('foreground');
+            return;
+        }
+        if (slot === 'exitem') {
+            // Power-user style EX items are non-visual in preview.
+            return;
+        }
+        if (!['head', 'body', 'eyes', 'flag'].includes(slot)) return;
+        if (slot === 'eyes' || slot === 'flag') {
+            state.avatar[slot] = parseAvatarItemId(itemId, null, false);
+            return;
+        }
+        state.avatar[slot] = parseAvatarItemId(itemId, 0, true);
+    };
 
     const testRuntime = await tryCreateTestRuntime(root, state);
     if (testRuntime) {
@@ -473,12 +642,7 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
 
         return {
             setEquip(slot, itemId) {
-                if (!['head', 'body', 'eyes', 'flag'].includes(slot)) return;
-                if (slot === 'eyes' || slot === 'flag') {
-                    state.avatar[slot] = parseAvatarItemId(itemId, null, false);
-                    return;
-                }
-                state.avatar[slot] = parseAvatarItemId(itemId, 0, true);
+                applyEquipToState(slot, itemId);
             },
             setGender(genderValue) {
                 state.avatar.gender = Number(genderValue) === 1 || genderValue === 'f' ? 'f' : 'm';
@@ -620,12 +784,7 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
 
     return {
         setEquip(slot, itemId) {
-            if (!['head', 'body', 'eyes', 'flag'].includes(slot)) return;
-            if (slot === 'eyes' || slot === 'flag') {
-                state.avatar[slot] = parseAvatarItemId(itemId, null, false);
-                return;
-            }
-            state.avatar[slot] = parseAvatarItemId(itemId, 0, true);
+            applyEquipToState(slot, itemId);
         },
         setGender(genderValue) {
             state.avatar.gender = Number(genderValue) === 1 || genderValue === 'f' ? 'f' : 'm';
@@ -1166,8 +1325,13 @@ function initializeAvatarShopList(container) {
                     <div class="avatar-shop-item-name"></div>
                     <img class="avatar-shop-item-gender-badge" alt="">
                 </div>
+                <img class="avatar-shop-item-new-badge" alt="">
                 <div class="avatar-shop-item-preview">
                     <div class="avatar-shop-item-thumb"></div>
+                </div>
+                <div class="avatar-shop-item-price">
+                    <div class="avatar-shop-item-price-line1"></div>
+                    <div class="avatar-shop-item-price-line2"></div>
                 </div>
             </div>
         `;
@@ -1240,7 +1404,15 @@ function getSlotByCategory(categoryKey, item) {
     if (categoryKey === 'flag') return 'flag';
 
     const slot = String(item?.slot || '').toLowerCase();
-    if (slot === 'body' || slot === 'head' || slot === 'eyes' || slot === 'flag') {
+    if (
+        slot === 'body'
+        || slot === 'head'
+        || slot === 'eyes'
+        || slot === 'flag'
+        || slot === 'background'
+        || slot === 'foreground'
+        || slot === 'exitem'
+    ) {
         return slot;
     }
     return null;
@@ -1275,6 +1447,78 @@ function buildThumbCodeCandidates(itemData, folderCode) {
         });
     });
     return out;
+}
+
+function collectExitemThumbRefCandidates(itemData) {
+    const candidates = [];
+    const seen = new Set();
+    const addRefCandidate = (value) => {
+        const parsed = Number(value);
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+            return;
+        }
+        const ref = Math.floor(parsed);
+        if (seen.has(ref)) {
+            return;
+        }
+        seen.add(ref);
+        candidates.push(ref);
+    };
+
+    addRefCandidate(itemData?.source_ref_id);
+
+    const sourceAvatarId = Number(itemData?.source_avatar_id);
+    if (Number.isFinite(sourceAvatarId) && sourceAvatarId >= 204801 && sourceAvatarId <= 204899) {
+        addRefCandidate(sourceAvatarId - 204800);
+    }
+
+    const avatarCode = String(itemData?.avatar_code || '').trim().toLowerCase();
+    const ex2Match = avatarCode.match(/^ex2_(\d+)$/);
+    if (ex2Match) {
+        const parsed = Number(ex2Match[1]);
+        addRefCandidate(parsed);
+        if (parsed >= 204801 && parsed <= 204899) {
+            addRefCandidate(parsed - 204800);
+        }
+    }
+
+    // Historical rows may reference Power User variants without dedicated ex2_* assets.
+    if (seen.has(31) || seen.has(32) || seen.has(33) || seen.has(34) || seen.has(35)) {
+        addRefCandidate(1);
+    }
+
+    return candidates;
+}
+
+function buildExitemThumbPathCandidates(itemData) {
+    const refs = collectExitemThumbRefCandidates(itemData);
+    const urls = [];
+    refs.forEach((ref) => {
+        urls.push(`${AVATAR_EXITEM_THUMB_BASE_URL}/ex2_${ref}.png`);
+        // Keep legacy fallback path for compatibility with older local assets.
+        urls.push(`/assets/shared/avatar_shop_thumbs/ex2_${ref}/ex2_${ref}_frame_0.png`);
+    });
+    return urls;
+}
+
+async function resolveExitemThumbAsset(itemData) {
+    const pathCandidates = buildExitemThumbPathCandidates(itemData);
+    const cacheKey = `exitem|${pathCandidates.join('|')}`;
+    if (!resolvedThumbImagePromises.has(cacheKey)) {
+        resolvedThumbImagePromises.set(cacheKey, (async () => {
+            let lastError = null;
+            for (const url of pathCandidates) {
+                try {
+                    await preloadImage(url);
+                    return { url, code: '', atlasPrefix: '' };
+                } catch (error) {
+                    lastError = error;
+                }
+            }
+            throw lastError || new Error('Failed to resolve exitem thumbnail');
+        })());
+    }
+    return resolvedThumbImagePromises.get(cacheKey);
 }
 
 async function resolveStaticThumbAsset(codeCandidates) {
@@ -1359,8 +1603,11 @@ async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) 
     const nameEl = itemButton.querySelector('.avatar-shop-item-name');
     const slotIconEl = itemButton.querySelector('.avatar-shop-item-slot-icon');
     const genderBadgeEl = itemButton.querySelector('.avatar-shop-item-gender-badge');
+    const newBadgeEl = itemButton.querySelector('.avatar-shop-item-new-badge');
     const thumbEl = itemButton.querySelector('.avatar-shop-item-thumb');
-    if (!nameEl || !thumbEl || !slotIconEl || !genderBadgeEl) {
+    const priceLine1El = itemButton.querySelector('.avatar-shop-item-price-line1');
+    const priceLine2El = itemButton.querySelector('.avatar-shop-item-price-line2');
+    if (!nameEl || !thumbEl || !slotIconEl || !genderBadgeEl || !newBadgeEl || !priceLine1El || !priceLine2El) {
         return;
     }
 
@@ -1370,6 +1617,12 @@ async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) 
         slotIconEl.removeAttribute('src');
         genderBadgeEl.style.display = 'none';
         genderBadgeEl.removeAttribute('src');
+        newBadgeEl.style.display = 'none';
+        newBadgeEl.removeAttribute('src');
+        priceLine1El.textContent = '';
+        priceLine2El.textContent = '';
+        priceLine1El.classList.remove('is-cash', 'is-gold');
+        priceLine2El.classList.remove('is-cash', 'is-gold');
         thumbEl.style.display = 'none';
         thumbEl.style.backgroundImage = '';
         thumbEl.style.backgroundPosition = '';
@@ -1389,6 +1642,21 @@ async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) 
         genderBadgeEl.style.display = 'none';
         genderBadgeEl.removeAttribute('src');
     }
+    if (isCatalogNewBadgeItem(itemData)) {
+        newBadgeEl.src = getStoreAvatarFrameUrl(14);
+        newBadgeEl.style.display = 'block';
+    } else {
+        newBadgeEl.style.display = 'none';
+        newBadgeEl.removeAttribute('src');
+    }
+
+    const priceInfo = resolveCatalogPriceLines(itemData);
+    priceLine1El.textContent = priceInfo.line1;
+    priceLine2El.textContent = priceInfo.line2;
+    priceLine1El.classList.toggle('is-cash', priceInfo.line1Kind === 'cash');
+    priceLine1El.classList.toggle('is-gold', priceInfo.line1Kind === 'gold');
+    priceLine2El.classList.toggle('is-cash', priceInfo.line2Kind === 'cash');
+    priceLine2El.classList.toggle('is-gold', priceInfo.line2Kind === 'gold');
 
     const slot = getSlotByCategory(categoryKey, itemData);
     const itemId = Number(itemData?.source_ref_id);
@@ -1404,13 +1672,33 @@ async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) 
     }
 
     try {
-        const codeCandidates = buildThumbCodeCandidates(itemData, folderCode);
-        if (!codeCandidates.length) {
-            thumbEl.style.display = 'none';
-            return;
+        const slotLower = String(itemData?.slot || '').toLowerCase();
+        const isExitemLike = categoryKey === 'exitem'
+            || slotLower === 'exitem'
+            || slotLower === 'background'
+            || slotLower === 'foreground';
+
+        let thumbAsset = null;
+        let cropFrame = null;
+
+        if (isExitemLike) {
+            try {
+                thumbAsset = await resolveExitemThumbAsset(itemData);
+            } catch (error) {
+                thumbAsset = null;
+            }
         }
 
-        const thumbAsset = await resolveStaticThumbAsset(codeCandidates);
+        if (!thumbAsset) {
+            const codeCandidates = buildThumbCodeCandidates(itemData, folderCode);
+            if (!codeCandidates.length) {
+                thumbEl.style.display = 'none';
+                return;
+            }
+            thumbAsset = await resolveStaticThumbAsset(codeCandidates);
+            cropFrame = await resolveThumbCropFrame(thumbAsset);
+        }
+
         const imageUrl = String(thumbAsset?.url || '');
         thumbEl.style.display = 'block';
         thumbEl.style.backgroundImage = `url('${imageUrl}')`;
@@ -1419,7 +1707,6 @@ async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) 
         thumbEl.style.width = '100%';
         thumbEl.style.height = '100%';
 
-        const cropFrame = await resolveThumbCropFrame(thumbAsset);
         if (cropFrame) {
             thumbEl.style.width = `${Math.max(1, Number(cropFrame.w) || 1)}px`;
             thumbEl.style.height = `${Math.max(1, Number(cropFrame.h) || 1)}px`;

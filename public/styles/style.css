@@ -1524,6 +1524,24 @@ body {
     pointer-events: none;
 }
 
+.avatar-preview-backdrop {
+    position: absolute;
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: contain;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.avatar-preview-foreground {
+    position: absolute;
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: contain;
+    pointer-events: none;
+    z-index: 9;
+}
+
 .avatar-preview-sheet {
     position: absolute;
     pointer-events: none;
@@ -1602,7 +1620,7 @@ body {
 
 #avatar-shop-list.exitem-mode .avatar-shop-item.selected {
     background-image:
-        url('/assets/screens/avatar_shop/store_avatar/store_avatar_frame_8.png'),
+        url('/assets/screens/avatar_shop/store_avatar/store_avatar_frame_13.png'),
         url('/assets/screens/avatar_shop/store_avatar/store_avatar_frame_1.png');
     background-repeat: no-repeat, no-repeat;
     background-position: 9px 1px, top left;
@@ -1646,6 +1664,17 @@ body {
     image-rendering: pixelated;
 }
 
+.avatar-shop-item-new-badge {
+    position: absolute;
+    top: 0;
+    left: -4px;
+    width: 47px;
+    height: 47px;
+    display: none;
+    image-rendering: pixelated;
+    pointer-events: none;
+}
+
 .avatar-shop-item-name {
     position: absolute;
     top: 2px;
@@ -1687,6 +1716,53 @@ body {
     background-position: center center;
     background-size: auto;
     image-rendering: pixelated;
+}
+
+.avatar-shop-item-price {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0;
+    pointer-events: none;
+}
+
+.avatar-shop-item-price-line1,
+.avatar-shop-item-price-line2 {
+    min-height: 14px;
+    font-family: var(--gbth-ui-font);
+    font-size: 11px;
+    line-height: 11px;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-align: center;
+    text-shadow:
+        1px 0 0 #00344d,
+        0 1px 0 #00344d;
+    -webkit-font-smoothing: none;
+    font-smooth: never;
+}
+
+.avatar-shop-item-price-line1 {
+    color: #ffe34a;
+}
+
+.avatar-shop-item-price-line2 {
+    color: #6affff;
+}
+
+.avatar-shop-item-price-line1.is-cash,
+.avatar-shop-item-price-line2.is-cash {
+    color: #ffe34a;
+}
+
+.avatar-shop-item-price-line1.is-gold,
+.avatar-shop-item-price-line2.is-gold {
+    color: #6affff;
 }
 
 .avatar-shop-item.not-tryable .avatar-shop-item-thumb {
