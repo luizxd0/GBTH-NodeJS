@@ -32,6 +32,7 @@ from PIL import Image
 
 
 HEADER_META_STRUCT = struct.Struct("<HHIIIIIIIII")
+HEADER_META_STRUCT_SIGNED = struct.Struct("<HHIIiiIIIII")
 FRAME_META_SIZE = 40
 MAX_DIMENSION = 8192
 MAX_DATA_SIZE = 64 * 1024 * 1024
@@ -157,7 +158,8 @@ def decode_format_1_rle_rgb565(data_words: array, width: int, height: int) -> Im
             idx += 1
             run_len = data_words[idx]
             idx += 1
-            x = max(x, min(offset_x, width))
+            # Format-1 run offsets are absolute row X positions.
+            x = max(0, min(width, offset_x))
 
             for _ in range(run_len):
                 if idx >= len(data_words):
@@ -254,14 +256,27 @@ def decode_img_file(
                 _i2,
                 width,
                 height,
-                center_x,
-                center_y,
+                _center_x_u,
+                _center_y_u,
                 _k3,
                 _i4,
                 _j4,
                 _k4,
                 data_size,
             ) = HEADER_META_STRUCT.unpack(raw_meta)
+            (
+                _k1s,
+                _i2s,
+                _width_s,
+                _height_s,
+                center_x,
+                center_y,
+                _k3s,
+                _i4s,
+                _j4s,
+                _k4s,
+                _data_size_s,
+            ) = HEADER_META_STRUCT_SIGNED.unpack(raw_meta)
 
             fmt = k1 & 0xFF
             format_counts[fmt] += 1

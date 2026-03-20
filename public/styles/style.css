@@ -1502,12 +1502,18 @@ body {
     height: 545px;
     background-image: url('/assets/screens/avatar_shop/store_myavatar/store_myavatar_frame_0.png');
     background-repeat: no-repeat;
+    --avatar-preview-slot-left: 16px;
+    --avatar-preview-slot-top: 30px;
+    --avatar-preview-slot-width: 88px;
+    --avatar-preview-slot-height: 70px;
+    --avatar-preview-slot-radius: 8px;
     overflow: visible;
     pointer-events: none;
     z-index: 10;
 }
 
-#avatar-shop-character-preview {
+#avatar-shop-character-preview,
+.avatar-character-preview {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -1526,38 +1532,30 @@ body {
 
 .avatar-preview-backdrop {
     position: absolute;
-    left: 8px;
-    top: 13px;
-    width: 95px;
-    height: 88px;
+    left: var(--avatar-preview-slot-left);
+    top: var(--avatar-preview-slot-top);
+    width: var(--avatar-preview-slot-width);
+    height: var(--avatar-preview-slot-height);
     overflow: hidden;
-    --ex-fit-mode: contain;
-    --ex-auto-fit: 1;
-    --ex-scale: 1;
-    --ex-scale-x: 1;
-    --ex-scale-y: 1;
-    --ex-fit-padding-x: 0;
-    --ex-fit-padding-y: 0;
-    --ex-align-y: top;
+    --ex-clip-radius: var(--avatar-preview-slot-radius);
+    border-radius: var(--ex-clip-radius);
+    --ex-frame-offset-x: 0px;
+    --ex-frame-offset-y: 0px;
     pointer-events: none;
     z-index: 0;
 }
 
 .avatar-preview-foreground {
     position: absolute;
-    left: 8px;
-    top: 13px;
-    width: 95px;
-    height: 88px;
+    left: var(--avatar-preview-slot-left);
+    top: var(--avatar-preview-slot-top);
+    width: var(--avatar-preview-slot-width);
+    height: var(--avatar-preview-slot-height);
     overflow: hidden;
-    --ex-fit-mode: contain;
-    --ex-auto-fit: 1;
-    --ex-scale: 1;
-    --ex-scale-x: 1;
-    --ex-scale-y: 1;
-    --ex-fit-padding-x: 0;
-    --ex-fit-padding-y: 0;
-    --ex-align-y: center;
+    --ex-clip-radius: var(--avatar-preview-slot-radius);
+    border-radius: var(--ex-clip-radius);
+    --ex-frame-offset-x: 0px;
+    --ex-frame-offset-y: 0px;
     pointer-events: none;
     z-index: 9;
 }
@@ -1750,9 +1748,9 @@ body {
 
 .avatar-shop-item-price {
     position: absolute;
-    left: 0;
+    left: 57px;
     right: 0;
-    bottom: 4px;
+    bottom: 14px;
     display: flex;
     flex-direction: column;
     align-items: center;

@@ -74,6 +74,40 @@ function toBaseAvatarValue(value) {
     return parsed;
 }
 
+function pickAvatarCatalogPriceAmount(item, keyPrefix) {
+    const week = toBaseAvatarValue(item?.[`${keyPrefix}_week`]);
+    const month = toBaseAvatarValue(item?.[`${keyPrefix}_month`]);
+    const perm = toBaseAvatarValue(item?.[`${keyPrefix}_perm`]);
+    return perm || month || week || 0;
+}
+
+function hasAvatarCatalogPrice(item) {
+    return pickAvatarCatalogPriceAmount(item, 'cash') > 0
+        || pickAvatarCatalogPriceAmount(item, 'gold') > 0;
+}
+
+function getAvatarCatalogDedupeKey(item) {
+    const slot = String(item?.slot || '').trim().toLowerCase();
+    const gender = String(item?.gender || 'u').trim().toLowerCase();
+
+    const sourceRefId = Number(item?.source_ref_id);
+    if (Number.isFinite(sourceRefId) && sourceRefId >= 0) {
+        return `${slot}|${gender}|ref:${Math.floor(sourceRefId)}`;
+    }
+
+    const code = String(item?.avatar_code || '').trim().toLowerCase();
+    if (code) {
+        return `${slot}|${gender}|code:${code}`;
+    }
+
+    const sourceAvatarId = Number(item?.source_avatar_id);
+    if (Number.isFinite(sourceAvatarId) && sourceAvatarId >= 0) {
+        return `${slot}|${gender}|src:${Math.floor(sourceAvatarId)}`;
+    }
+
+    return `${slot}|${gender}|id:${toBaseAvatarValue(item?.id)}`;
+}
+
 function buildUserPayload(row) {
     return {
         id: row.UserId,
@@ -370,6 +404,7 @@ app.get('/api/avatar-shop/catalog', async (req, res) => {
             .filter((item) =>
                 item.enabled === 1
                 && (item.remove_time === null || item.remove_time === 0 || item.remove_time > nowMs)
+                && hasAvatarCatalogPrice(item)
             )
             .sort((a, b) => {
                 const codeCompare = String(a.avatar_code).localeCompare(String(b.avatar_code));
@@ -379,7 +414,18 @@ app.get('/api/avatar-shop/catalog', async (req, res) => {
                 return Number(a.id) - Number(b.id);
             });
 
-        res.json({ items: normalized });
+        const deduped = [];
+        const seen = new Set();
+        for (const item of normalized) {
+            const dedupeKey = getAvatarCatalogDedupeKey(item);
+            if (seen.has(dedupeKey)) {
+                continue;
+            }
+            seen.add(dedupeKey);
+            deduped.push(item);
+        }
+
+        res.json({ items: deduped });
     } catch (error) {
         console.warn(`[AvatarShop] Catalog load fallback to empty list (${error?.code || 'UNKNOWN'}):`, error?.message || error);
         res.json({ items: [] });
