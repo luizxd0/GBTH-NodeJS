@@ -1,14 +1,23 @@
 # Avatar Shop Character Animation Reverse Engineering
 
-Date: 2026-03-19
+Date: 2026-03-20
 
 ## Goal
 Replicate GunBound Thor's Hammer avatar-shop character animation (equip/unequip preview) with extracted assets.
 
 ## Sources Used
 - Original client binaries: `C:\GBTH-Client\Gunbound.gme`, `graphics.xfs`, `avatar.xfs`.
-- Extracted assets: `C:\tools\output`.
-- Logic reference only (not asset source): `C:\Users\ldpeb\Downloads\DragonBound-master\DragonBound-master\src\web\public_html\data\js\DLL.dll`.
+- Extracted assets: `C:\tools\xfs2`, `C:\tools\client_graphics`.
+
+## Locked Shop Layout (Do Not Drift)
+- JS anchor: `PREVIEW_ANCHOR_X=31`, `PREVIEW_ANCHOR_Y=58`
+- JS offset: `PREVIEW_OFFSET_X=15`, `PREVIEW_OFFSET_Y=20`
+- CSS slot rect:
+  - `--avatar-preview-slot-left: 18px`
+  - `--avatar-preview-slot-top: 34px`
+  - `--avatar-preview-slot-width: 88px`
+  - `--avatar-preview-slot-height: 70px`
+  - `--avatar-preview-slot-radius: 8px`
 
 ## What Was Copied Into This Repo
 Copied avatar-related assets into:
@@ -53,10 +62,12 @@ ID mapping:
 
 ## Animation Model (Recovered)
 
-Reference implementation behavior (from DragonBound renderer):
+GBTH shop preview behavior implemented in this repo:
 - Global avatar tick: `ANIMATIONS_FPS = 10` (100 ms/frame).
 - Avatar frame counter: `a = floor(elapsedMs / 100)`.
-- Background/foreground/exitem update at half rate (`a % 2 == 0`, frame `a/2`).
+- All preview layers are driven from one master tick to avoid layer drift.
+- EX background/foreground playback is tick-based (not wall-clock ms metadata based).
+- `.img` header field `i2` is preserved for diagnostics only; it is not used as frame-duration source.
 
 ### Critical Positioning Discovery
 - `.img` frame metadata includes signed per-frame centers:
@@ -128,4 +139,4 @@ Frame selection:
 ## Open Items
 - Confirm exact female flag fallback behavior in original TH for "no flag equipped" state (`ff00001` vs none).
 - Confirm whether any TH-specific forced-loop/z-order overrides exist in `Gunbound.gme` for this asset set.
-- Implement this in `avatar_shop.js` with canvas composition and equip state from inventory data.
+- Validate whether any GBTH EX items require per-folder tick-divisor overrides.

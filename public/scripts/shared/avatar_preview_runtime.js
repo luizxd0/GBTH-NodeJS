@@ -1,19 +1,16 @@
 ﻿(function () {
 const AVATAR_ANIMATION_FPS = 10;
+const AVATAR_ANIMATION_TICK_MS = Math.floor(1000 / AVATAR_ANIMATION_FPS);
+// Locked visual calibration for Avatar Shop preview (position/size confirmed in QA).
 const PREVIEW_ANCHOR_X = 31;
 const PREVIEW_ANCHOR_Y = 58;
-// Tweak these two values to reposition the avatar preview.
-// +X moves right, +Y moves down.
 const PREVIEW_OFFSET_X = 15;
 const PREVIEW_OFFSET_Y = 20;
-// EX effect timing controls (ms per frame).
-const PREVIEW_EX_BACKGROUND_DEFAULT_FRAME_DURATION_MS = 250;
-const PREVIEW_EX_FOREGROUND_DEFAULT_FRAME_DURATION_MS = 250;
-// Original client updates animation on a timer; emulate its cadence.
-const PREVIEW_EX_EFFECT_TIMER_QUANTUM_MS = 50;
-const PREVIEW_EX_EFFECT_START_DELAY_MS = 500;
-// Optional per-folder timing overrides in ms (example: { f204808: 280 }).
-const PREVIEW_EX_EFFECT_FRAME_DURATION_OVERRIDES_MS = {};
+// GBTH client parity: EX layers are advanced from the same master avatar tick.
+// Use this divisor to tune EX cadence in whole-tick steps (1 = 10 FPS, 2 = 5 FPS).
+const PREVIEW_EX_EFFECT_TICK_DIVISOR = 1;
+// Optional per-folder tick-divisor overrides (example: { f204808: 2 }).
+const PREVIEW_EX_EFFECT_TICK_DIVISOR_OVERRIDES = {};
 const AVATAR_ATLAS_METADATA_URL = '/assets/shared/avatar_sheets/avatar_metadata.json';
 const AVATAR_SHEET_TEST_MODE = 'atlas_avatar';
 const AVATAR_LAYERED_BASE_URLS = [
@@ -40,33 +37,20 @@ function getPreviewBaseY() {
     return PREVIEW_ANCHOR_Y + PREVIEW_OFFSET_Y;
 }
 
-function getExEffectFrameDurationMs(layerKind, animation) {
-    const folder = String(animation?.folder || '').trim().toLowerCase();
-    const override = Number(PREVIEW_EX_EFFECT_FRAME_DURATION_OVERRIDES_MS?.[folder]);
-    if (Number.isFinite(override) && override > 0) {
-        return override;
+function getNowMs() {
+    if (typeof performance !== 'undefined' && Number.isFinite(performance.now())) {
+        return performance.now();
     }
-
-    const metadataDuration = Number(animation?.frameDurationMs);
-    if (Number.isFinite(metadataDuration) && metadataDuration > 0) {
-        return metadataDuration;
-    }
-
-    const baseDuration = layerKind === 'foreground'
-        ? Number(PREVIEW_EX_FOREGROUND_DEFAULT_FRAME_DURATION_MS)
-        : Number(PREVIEW_EX_BACKGROUND_DEFAULT_FRAME_DURATION_MS);
-    if (!Number.isFinite(baseDuration) || baseDuration <= 0) {
-        return 250;
-    }
-    return baseDuration;
+    return Date.now() % 1000000000;
 }
 
-function getExEffectFrameIntervalMs(layerKind, animation) {
-    const baseDurationMs = getExEffectFrameDurationMs(layerKind, animation);
-    const quantum = Math.max(1, Number(PREVIEW_EX_EFFECT_TIMER_QUANTUM_MS) || 1);
-    // Client-side check is strict ">" against lastTick + duration.
-    const strictDuration = Math.max(1, Math.floor(baseDurationMs)) + 1;
-    return Math.max(quantum, Math.ceil(strictDuration / quantum) * quantum);
+function getExEffectTickDivisor(animation) {
+    const folder = String(animation?.folder || '').trim().toLowerCase();
+    const override = Number(PREVIEW_EX_EFFECT_TICK_DIVISOR_OVERRIDES?.[folder]);
+    if (Number.isFinite(override) && override > 0) {
+        return Math.max(1, Math.floor(override));
+    }
+    return Math.max(1, Math.floor(Number(PREVIEW_EX_EFFECT_TICK_DIVISOR) || 1));
 }
 
 function getCssNumberValue(style, cssVariableName, fallbackValue) {
@@ -90,14 +74,13 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
     const state = {
         tick: 0,
         timer: null,
+        rafId: null,
         layerState: {},
         effectVariant,
         previewBackgroundItemId: null,
         previewForegroundItemId: null,
         previewBackgroundAnimation: null,
         previewForegroundAnimation: null,
-        previewBackgroundPlayback: null,
-        previewForegroundPlayback: null,
         previewBackgroundFrameSrc: null,
         previewForegroundFrameSrc: null,
         previewBackgroundRequestId: 0,
@@ -137,7 +120,6 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
         const targetLayerSlot = isBackground ? previewBackdrop : previewForeground;
         const targetLayerSprite = isBackground ? previewBackdropSprite : previewForegroundSprite;
         const animationKey = isBackground ? 'previewBackgroundAnimation' : 'previewForegroundAnimation';
-        const playbackKey = isBackground ? 'previewBackgroundPlayback' : 'previewForegroundPlayback';
         const frameSrcKey = isBackground ? 'previewBackgroundFrameSrc' : 'previewForegroundFrameSrc';
         const slotRect = targetLayerSlot.getBoundingClientRect();
         const fallbackWidth = Math.max(1, Math.round(slotRect.width) || targetLayerSlot.clientWidth || 1);
@@ -146,7 +128,6 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
         const animation = state[animationKey];
 
         if (!animation || !Array.isArray(animation.frames) || animation.frames.length === 0) {
-            state[playbackKey] = null;
             state[frameSrcKey] = null;
             targetLayerSlot.style.display = 'none';
             targetLayerSprite.style.backgroundImage = '';
@@ -160,51 +141,11 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
             return;
         }
 
-        const nowMs = (typeof performance !== 'undefined' && Number.isFinite(performance.now()))
-            ? performance.now()
-            : (Date.now() % 1000000000);
         const frameCount = Math.max(1, animation.frames.length);
-        const startDelayMs = Math.max(0, Number(PREVIEW_EX_EFFECT_START_DELAY_MS) || 0);
-        const intervalMs = getExEffectFrameIntervalMs(layerKind, animation);
-
-        let playback = state[playbackKey];
-        if (!playback) {
-            playback = {
-                frameIndex: 0,
-                startMs: nowMs,
-                lastAdvanceMs: nowMs
-            };
-        }
-
-        const startMs = Number.isFinite(playback.startMs) ? playback.startMs : nowMs;
-        let frameIndex = Number.isFinite(playback.frameIndex) ? Math.floor(playback.frameIndex) : 0;
-        frameIndex = ((frameIndex % frameCount) + frameCount) % frameCount;
-
-        const activationMs = startMs + startDelayMs;
-        let lastAdvanceMs = Number.isFinite(playback.lastAdvanceMs) ? playback.lastAdvanceMs : activationMs;
-        if (lastAdvanceMs < activationMs) {
-            lastAdvanceMs = activationMs;
-        }
-
-        if (nowMs > activationMs) {
-            if (lastAdvanceMs > nowMs) {
-                lastAdvanceMs = nowMs;
-            }
-            const deltaMs = nowMs - lastAdvanceMs;
-            if (deltaMs > intervalMs) {
-                const steps = Math.max(1, Math.floor((deltaMs - Number.EPSILON) / intervalMs));
-                if (steps > 0) {
-                    frameIndex = (frameIndex + steps) % frameCount;
-                    lastAdvanceMs += steps * intervalMs;
-                }
-            }
-        }
-
-        state[playbackKey] = {
-            frameIndex,
-            startMs,
-            lastAdvanceMs
-        };
+        const normalizedTick = Number.isFinite(tick) ? Math.max(0, Math.floor(tick)) : 0;
+        const frameTickDivisor = getExEffectTickDivisor(animation);
+        const steps = Math.floor(normalizedTick / frameTickDivisor);
+        const frameIndex = ((steps % frameCount) + frameCount) % frameCount;
 
         const frame = animation.frames[frameIndex];
         if (!frame) {
@@ -271,7 +212,6 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
         const targetLayerSprite = isBackground ? previewBackdropSprite : previewForegroundSprite;
         const targetItemId = isBackground ? state.previewBackgroundItemId : state.previewForegroundItemId;
         const animationKey = isBackground ? 'previewBackgroundAnimation' : 'previewForegroundAnimation';
-        const playbackKey = isBackground ? 'previewBackgroundPlayback' : 'previewForegroundPlayback';
         const frameSrcKey = isBackground ? 'previewBackgroundFrameSrc' : 'previewForegroundFrameSrc';
 
         const currentRequest = state[requestKey] + 1;
@@ -280,7 +220,6 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
         const itemId = Number(targetItemId);
         if (!Number.isFinite(itemId) || itemId <= 0) {
             state[animationKey] = null;
-            state[playbackKey] = null;
             state[frameSrcKey] = null;
             targetLayerSlot.style.display = 'none';
             targetLayerSprite.style.backgroundImage = '';
@@ -299,21 +238,12 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
             }
             if (!animation || !Array.isArray(animation.frames) || animation.frames.length === 0) {
                 state[animationKey] = null;
-                state[playbackKey] = null;
                 state[frameSrcKey] = null;
                 targetLayerSlot.style.display = 'none';
                 targetLayerSprite.style.backgroundImage = '';
                 return;
             }
             state[animationKey] = animation;
-            const nowMs = (typeof performance !== 'undefined' && Number.isFinite(performance.now()))
-                ? performance.now()
-                : (Date.now() % 1000000000);
-            state[playbackKey] = {
-                frameIndex: 0,
-                startMs: nowMs,
-                lastAdvanceMs: nowMs
-            };
             state[frameSrcKey] = null;
             renderPreviewExtraLayers(state.tick);
         } catch (error) {
@@ -321,7 +251,6 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
                 return;
             }
             state[animationKey] = null;
-            state[playbackKey] = null;
             state[frameSrcKey] = null;
             targetLayerSlot.style.display = 'none';
             targetLayerSprite.style.backgroundImage = '';
@@ -353,25 +282,42 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
 
     const testRuntime = await tryCreateTestRuntime(root, state);
     if (testRuntime) {
-        const tickMs = Math.floor(1000 / AVATAR_ANIMATION_FPS);
+        const tickMs = AVATAR_ANIMATION_TICK_MS;
+        const timerStartMs = getNowMs();
         let renderInFlight = false;
-        const renderTick = async () => {
-            if (renderInFlight) {
-                return;
-            }
+        let pendingTick = null;
+        let lastRenderedTick = -1;
+        const runRender = async (targetTick) => {
             renderInFlight = true;
             try {
-                await testRuntime.render(state.tick);
-                renderPreviewExtraLayers(state.tick);
-                state.tick += 1;
+                await testRuntime.render(targetTick);
+                renderPreviewExtraLayers(targetTick);
+                lastRenderedTick = targetTick;
             } catch (error) {
                     console.warn('[AvatarPreview] Test runtime render error:', error);
             } finally {
                 renderInFlight = false;
+                if (Number.isFinite(pendingTick) && pendingTick !== lastRenderedTick) {
+                    const queuedTick = pendingTick;
+                    pendingTick = null;
+                    state.tick = queuedTick;
+                    void runRender(queuedTick);
+                }
             }
         };
-        renderTick();
-        state.timer = window.setInterval(renderTick, tickMs);
+        const renderTick = async () => {
+            const currentTick = Math.max(0, Math.floor((getNowMs() - timerStartMs) / tickMs));
+            if (currentTick !== lastRenderedTick) {
+                state.tick = currentTick;
+                if (renderInFlight) {
+                    pendingTick = currentTick;
+                } else {
+                    void runRender(currentTick);
+                }
+            }
+            state.rafId = window.requestAnimationFrame(renderTick);
+        };
+        state.rafId = window.requestAnimationFrame(renderTick);
 
         return {
             setEquip(slot, itemId) {
@@ -383,6 +329,9 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
             destroy() {
                 if (state.timer) {
                     window.clearInterval(state.timer);
+                }
+                if (state.rafId) {
+                    window.cancelAnimationFrame(state.rafId);
                 }
                 testRuntime.destroy();
                 root.remove();
@@ -411,11 +360,21 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
         };
     });
 
-    const tickMs = Math.floor(1000 / AVATAR_ANIMATION_FPS);
-    renderAvatarTick();
-    state.timer = window.setInterval(renderAvatarTick, tickMs);
+    const tickMs = AVATAR_ANIMATION_TICK_MS;
+    const timerStartMs = getNowMs();
+    let lastRenderedTick = -1;
+    const renderLoop = () => {
+        const currentTick = Math.max(0, Math.floor((getNowMs() - timerStartMs) / tickMs));
+        if (currentTick !== lastRenderedTick) {
+            renderAvatarTick(currentTick);
+            lastRenderedTick = currentTick;
+        }
+        state.rafId = window.requestAnimationFrame(renderLoop);
+    };
+    state.rafId = window.requestAnimationFrame(renderLoop);
 
-    function renderAvatarTick() {
+    function renderAvatarTick(currentTick) {
+        state.tick = Number.isFinite(currentTick) ? currentTick : 0;
         const visibleLayers = [];
 
         SLOT_ORDER.forEach(({ key, back }) => {
@@ -513,7 +472,6 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
         });
 
         renderPreviewExtraLayers(state.tick);
-        state.tick += 1;
     }
 
     return {
@@ -533,6 +491,9 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
         destroy() {
             if (state.timer) {
                 window.clearInterval(state.timer);
+            }
+            if (state.rafId) {
+                window.cancelAnimationFrame(state.rafId);
             }
             root.remove();
         }
@@ -710,7 +671,9 @@ function computeAvatarSpecialFrameIndex(frameCount, tick, layerState, noReverse,
     } else if (forcedState && typeof forcedState.isSpecial === 'boolean') {
         isSpecial = forcedState.isSpecial;
     } else {
-        const cycleBase = Math.max(1, frameCount - 2);
+        const cycleBase = noReverse
+            ? Math.max(1, frameCount)
+            : Math.max(1, frameCount - 2);
         const cycle = Math.floor(tick / cycleBase);
         if (!Number.isFinite(layerState.turnCycle) || cycle > layerState.turnCycle) {
             layerState.turnCycle = randomInt(cycle, cycle + 6);

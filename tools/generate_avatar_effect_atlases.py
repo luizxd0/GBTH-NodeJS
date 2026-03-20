@@ -220,7 +220,7 @@ def load_effect_anchor_maps(
     return out
 
 
-def read_effect_first_frame_meta(effect_id: str, img_root: Path) -> dict[str, int] | None:
+def read_effect_first_frame_meta(effect_id: str, img_root: Path) -> dict[str, Any] | None:
     img_path = img_root / f"{effect_id}.img"
     if not img_path.is_file():
         return None
@@ -240,11 +240,9 @@ def read_effect_first_frame_meta(effect_id: str, img_root: Path) -> dict[str, in
 
             (_k1, i2, width, height, *_rest_u) = FRAME_META_STRUCT.unpack(raw_meta)
             (_k1s, _i2s, _ws, _hs, offset_x, offset_y, *_rest_s) = FRAME_META_STRUCT_SIGNED.unpack(raw_meta)
-            # Reverse-engineered timing hint from IMG frame meta.
-            # Low byte maps closely to EX effect pacing in the original client.
-            delay_ms = int(i2) & 0xFF
-            if delay_ms <= 0:
-                delay_ms = 256
+            # GBTH IMG field `i2` is not a reliable timing source across files.
+            # Keep raw bytes for diagnostics, but do not emit frame-duration pacing from it.
+            raw_i2_low = int(i2) & 0xFF
 
             if not (-1024 <= int(offset_x) <= 1024):
                 offset_x = 0
@@ -252,11 +250,12 @@ def read_effect_first_frame_meta(effect_id: str, img_root: Path) -> dict[str, in
                 offset_y = 0
 
             return {
-                "frame_duration_ms": int(delay_ms),
+                "frame_duration_ms": None,
                 "frame_width": int(width),
                 "frame_height": int(height),
                 "offset_x": int(offset_x),
                 "offset_y": int(offset_y),
+                "raw_i2_low_byte": int(raw_i2_low),
             }
     except Exception:
         return None
