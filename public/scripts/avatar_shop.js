@@ -1,6 +1,7 @@
 const DEFAULT_SHOP_ITEM_COUNT = 9;
 const SET_SHOP_ITEM_COUNT = 4;
 const AVATAR_ATLAS_METADATA_URL = '/assets/shared/avatar_sheets/avatar_metadata.json';
+const AVATAR_EX_EFFECT_METADATA_URL = '/assets/shared/avatar_effect_sheets/effect_metadata.json';
 const AVATAR_THUMB_BASE_URLS = [
     '/assets/shared/avatar_thumbs',
     '/assets/shared/avatar_sheets/gbth',
@@ -117,6 +118,23 @@ function resolveCatalogPriceLines(itemData) {
         line1Kind: '',
         line2Kind: ''
     };
+}
+
+function resolveCatalogHoverDescription(itemData) {
+    const candidates = [
+        itemData?.note,
+        itemData?.description,
+        itemData?.name
+    ];
+
+    for (const value of candidates) {
+        const normalized = String(value || '').trim();
+        if (normalized && normalized !== '0') {
+            return normalized;
+        }
+    }
+
+    return '';
 }
 
 function resolveSlotIconFrame(itemData, categoryKey, userData) {
@@ -392,7 +410,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const currentPage = Math.max(0, Number(avatarShopList.dataset.pageIndex || 0));
             const totalPages = Math.max(0, Number(avatarShopList.dataset.totalPages || 0));
             const targetPage = totalPages > 0
-                ? Math.min(totalPages - 1, currentPage + 1)
+                ? ((currentPage + 1) % totalPages)
                 : 0;
             await updateShopGridForCategoryButton(
                 avatarShopList,
@@ -605,7 +623,7 @@ function updateMainPagerButtons(upButton, downButton, pageIndex, totalPages) {
         upButton.disabled = totalPages <= 1;
     }
     if (downButton) {
-        downButton.disabled = totalPages <= 1 || pageIndex >= (totalPages - 1);
+        downButton.disabled = totalPages <= 1;
     }
 }
 
@@ -771,6 +789,7 @@ function initializeAvatarShopList(container) {
                 <div class="avatar-shop-item-preview">
                     <div class="avatar-shop-item-thumb"></div>
                 </div>
+                <div class="avatar-shop-item-hover-desc"></div>
                 <div class="avatar-shop-item-price">
                     <div class="avatar-shop-item-price-line1"></div>
                     <div class="avatar-shop-item-price-line2"></div>
@@ -957,6 +976,162 @@ async function resolveExitemThumbAsset(itemData) {
     return resolvedThumbImagePromises.get(cacheKey);
 }
 
+function toExEffectSourceAvatarId(itemData) {
+    const sourceAvatarId = Number(itemData?.source_avatar_id);
+    if (Number.isFinite(sourceAvatarId) && sourceAvatarId > 0) {
+        const normalized = Math.floor(sourceAvatarId);
+        return normalized >= 204800 ? normalized : (204800 + normalized);
+    }
+
+    const avatarCode = String(itemData?.avatar_code || '').trim().toLowerCase();
+    const ex2Match = avatarCode.match(/^ex2_(\d+)$/);
+    if (ex2Match) {
+        const parsed = Number(ex2Match[1]);
+        if (Number.isFinite(parsed) && parsed > 0) {
+            const normalized = Math.floor(parsed);
+            return normalized >= 204800 ? normalized : (204800 + normalized);
+        }
+    }
+
+    const sourceRefId = Number(itemData?.source_ref_id);
+    if (Number.isFinite(sourceRefId) && sourceRefId > 0) {
+        return 204800 + Math.floor(sourceRefId);
+    }
+
+    return null;
+}
+
+function buildExEffectFolderCandidates(sourceAvatarId, slotLower) {
+    const id = Number(sourceAvatarId);
+    if (!Number.isFinite(id) || id <= 0) {
+        return [];
+    }
+    const normalizedId = Math.floor(id);
+    const isForeground = slotLower === 'foreground';
+    const out = isForeground
+        ? [`sf${normalizedId}`, `f${normalizedId}`, `sb${normalizedId}`, `b${normalizedId}`]
+        : [`sb${normalizedId}`, `b${normalizedId}`, `sf${normalizedId}`, `f${normalizedId}`];
+    return [...new Set(out)];
+}
+
+function decompressGraphics(rawFrames) {
+    if (!Array.isArray(rawFrames)) {
+        return [];
+    }
+    const out = [];
+    let previousFrame = null;
+    for (const entry of rawFrames) {
+        if (typeof entry === 'number' && previousFrame && out.length > 0) {
+            for (let i = 0; i < entry; i += 1) {
+                out.push(previousFrame);
+            }
+            continue;
+        }
+        if (Array.isArray(entry)) {
+            previousFrame = entry;
+            out.push(entry);
+        }
+    }
+    return out;
+}
+
+function expandAtlasFrames(atlasDef) {
+    const decompressed = decompressGraphics(atlasDef?.g);
+    const frames = [];
+    let cursorX = Number(atlasDef?.x || 0);
+    let cursorY = Number(atlasDef?.y || 0);
+
+    for (const src of decompressed) {
+        const w = Number(src[0] || 0);
+        const h = Number(src[1] || 0);
+        const cx = Number(src[2] || 0);
+        const cy = Number(src[3] || 0);
+        const ox = Number(src[4] || 0);
+        const oy = Number(src[5] || 0);
+
+        let sx;
+        let sy;
+        if (src.length >= 8) {
+            sx = Number(src[6] || 0);
+            sy = Number(src[7] || 0);
+        } else if (src.length >= 7) {
+            sx = Number(src[6] || 0);
+            sy = cursorY;
+        } else {
+            sx = cursorX;
+            sy = cursorY;
+        }
+
+        frames.push({ w, h, cx, cy, ox, oy, sx, sy });
+        if (src.length < 7) {
+            cursorX += w + 1;
+        }
+    }
+
+    return frames;
+}
+
+function pickFirstThumbFrame(frames) {
+    if (!Array.isArray(frames)) {
+        return null;
+    }
+    return frames.find((frame) => Number(frame?.w) > 0 && Number(frame?.h) > 0) || null;
+}
+
+async function resolveExEffectThumbAsset(itemData, slotLower) {
+    if (slotLower !== 'foreground' && slotLower !== 'background') {
+        return null;
+    }
+    const sourceAvatarId = toExEffectSourceAvatarId(itemData);
+    if (!sourceAvatarId) {
+        return null;
+    }
+
+    const folderCandidates = buildExEffectFolderCandidates(sourceAvatarId, slotLower);
+    if (!folderCandidates.length) {
+        return null;
+    }
+
+    const cacheKey = `exeffect|${slotLower}|${folderCandidates.join('|')}`;
+    if (!resolvedThumbImagePromises.has(cacheKey)) {
+        resolvedThumbImagePromises.set(cacheKey, (async () => {
+            const metadata = await loadExEffectMetadata();
+            const atlases = metadata?.atlases;
+            if (!atlases || typeof atlases !== 'object') {
+                throw new Error('Invalid EX effect metadata');
+            }
+
+            let lastError = null;
+            for (const folderCode of folderCandidates) {
+                const atlasDef = atlases[folderCode] || atlases[`fx_${folderCode}`] || null;
+                if (!atlasDef || !atlasDef.image) {
+                    continue;
+                }
+                const imageUrl = String(atlasDef.image || '');
+                if (!imageUrl) {
+                    continue;
+                }
+
+                try {
+                    await preloadImage(imageUrl);
+                    const frames = expandAtlasFrames(atlasDef);
+                    const frame = pickFirstThumbFrame(frames);
+                    if (!frame) {
+                        continue;
+                    }
+                    return { url: imageUrl, code: '', atlasPrefix: '', cropFrame: frame };
+                } catch (error) {
+                    lastError = error;
+                }
+            }
+
+            throw lastError || new Error('Failed to resolve EX effect thumbnail');
+        })());
+    }
+
+    return resolvedThumbImagePromises.get(cacheKey);
+}
+
 async function resolveStaticThumbAsset(codeCandidates) {
     const cacheKey = codeCandidates.join('|');
     if (!resolvedThumbImagePromises.has(cacheKey)) {
@@ -1041,9 +1216,10 @@ async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) 
     const genderBadgeEl = itemButton.querySelector('.avatar-shop-item-gender-badge');
     const newBadgeEl = itemButton.querySelector('.avatar-shop-item-new-badge');
     const thumbEl = itemButton.querySelector('.avatar-shop-item-thumb');
+    const hoverDescEl = itemButton.querySelector('.avatar-shop-item-hover-desc');
     const priceLine1El = itemButton.querySelector('.avatar-shop-item-price-line1');
     const priceLine2El = itemButton.querySelector('.avatar-shop-item-price-line2');
-    if (!nameEl || !thumbEl || !slotIconEl || !genderBadgeEl || !newBadgeEl || !priceLine1El || !priceLine2El) {
+    if (!nameEl || !thumbEl || !hoverDescEl || !slotIconEl || !genderBadgeEl || !newBadgeEl || !priceLine1El || !priceLine2El) {
         return;
     }
 
@@ -1059,6 +1235,7 @@ async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) 
         priceLine2El.textContent = '';
         priceLine1El.classList.remove('is-cash', 'is-gold');
         priceLine2El.classList.remove('is-cash', 'is-gold');
+        hoverDescEl.textContent = '';
         thumbEl.style.display = 'none';
         thumbEl.style.backgroundImage = '';
         thumbEl.style.backgroundPosition = '';
@@ -1093,6 +1270,7 @@ async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) 
     priceLine1El.classList.toggle('is-gold', priceInfo.line1Kind === 'gold');
     priceLine2El.classList.toggle('is-cash', priceInfo.line2Kind === 'cash');
     priceLine2El.classList.toggle('is-gold', priceInfo.line2Kind === 'gold');
+    hoverDescEl.textContent = resolveCatalogHoverDescription(itemData);
 
     const slot = getSlotByCategory(categoryKey, itemData);
     const itemId = Number(itemData?.source_ref_id);
@@ -1117,9 +1295,21 @@ async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) 
         let thumbAsset = null;
         let cropFrame = null;
 
+        if (slotLower === 'background' || slotLower === 'foreground') {
+            try {
+                thumbAsset = await resolveExEffectThumbAsset(itemData, slotLower);
+                cropFrame = thumbAsset?.cropFrame || null;
+            } catch (error) {
+                thumbAsset = null;
+                cropFrame = null;
+            }
+        }
+
         if (isExitemLike) {
             try {
-                thumbAsset = await resolveExitemThumbAsset(itemData);
+                if (!thumbAsset) {
+                    thumbAsset = await resolveExitemThumbAsset(itemData);
+                }
             } catch (error) {
                 thumbAsset = null;
             }
@@ -1132,7 +1322,9 @@ async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) 
                 return;
             }
             thumbAsset = await resolveStaticThumbAsset(codeCandidates);
-            cropFrame = await resolveThumbCropFrame(thumbAsset);
+            if (!isExitemLike) {
+                cropFrame = await resolveThumbCropFrame(thumbAsset);
+            }
         }
 
         const imageUrl = String(thumbAsset?.url || '');
@@ -1155,6 +1347,7 @@ async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) 
 }
 
 let atlasMetadataPromise = null;
+let exEffectMetadataPromise = null;
 const preloadedImagePromises = new Map();
 const resolvedAtlasImagePromises = new Map();
 const resolvedThumbImagePromises = new Map();
@@ -1170,6 +1363,19 @@ async function loadAtlasMetadata() {
         })();
     }
     return atlasMetadataPromise;
+}
+
+async function loadExEffectMetadata() {
+    if (!exEffectMetadataPromise) {
+        exEffectMetadataPromise = (async () => {
+            const response = await fetch(`${AVATAR_EX_EFFECT_METADATA_URL}?v=${Date.now()}`, { cache: 'no-store' });
+            if (!response.ok) {
+                throw new Error(`Unable to load EX effect metadata (${response.status})`);
+            }
+            return response.json();
+        })();
+    }
+    return exEffectMetadataPromise;
 }
 
 function preloadImage(src) {

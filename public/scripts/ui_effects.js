@@ -78,6 +78,10 @@ window.playTransition = function(type, callback) {
     clickSound.volume = 0.5;
 
     let lastHoveredElement = null;
+    const shouldSuppressHoverSound = (target) => {
+        if (!target) return false;
+        return target.classList?.contains('avatar-shop-item') === true;
+    };
 
     document.addEventListener('mouseover', (e) => {
         // Find the closest interactive element
@@ -85,7 +89,7 @@ window.playTransition = function(type, callback) {
         
         if (target && target !== lastHoveredElement) {
             // Check if it's not disabled
-            if (!target.disabled && !target.classList.contains('disabled')) {
+            if (!target.disabled && !target.classList.contains('disabled') && !shouldSuppressHoverSound(target)) {
                 // Play hover sound
                 const soundClone = hoverSound.cloneNode();
                 soundClone.volume = hoverSound.volume;

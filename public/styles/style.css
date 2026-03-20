@@ -1675,6 +1675,14 @@ body {
         160px 156px;
 }
 
+#avatar-shop-list.exitem-mode .avatar-shop-item-preview {
+    top: 22px;
+    left: 9px;
+    width: 142px;
+    height: 82px;
+    background-color: #ffffff;
+}
+
 .avatar-shop-item-content {
     position: relative;
     width: 100%;
@@ -1688,6 +1696,7 @@ body {
     left: 7px;
     right: 8px;
     height: 16px;
+    z-index: 3;
 }
 
 .avatar-shop-item-slot-icon {
@@ -1721,6 +1730,7 @@ body {
     display: none;
     image-rendering: pixelated;
     pointer-events: none;
+    z-index: 4;
 }
 
 .avatar-shop-item-name {
@@ -1754,6 +1764,8 @@ body {
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    background-color: transparent;
+    z-index: 1;
 }
 
 .avatar-shop-item-thumb {
@@ -1764,6 +1776,50 @@ body {
     background-position: center center;
     background-size: auto;
     image-rendering: pixelated;
+    opacity: 1;
+    transition: opacity 0.12s linear;
+    transition-delay: 0s;
+}
+
+.avatar-shop-item-hover-desc {
+    position: absolute;
+    top: 22px;
+    left: 9px;
+    width: 142px;
+    height: 82px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 4px 6px;
+    background-color: rgba(0, 27, 44, 0.9);
+    font-family: var(--gbth-ui-font);
+    font-size: 11px;
+    line-height: 12px;
+    font-weight: 700;
+    color: #d8f5ff;
+    text-align: left;
+    white-space: normal;
+    overflow: hidden;
+    text-shadow:
+        1px 0 0 #001623,
+        0 1px 0 #001623;
+    -webkit-font-smoothing: none;
+    font-smooth: never;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+        opacity 0.12s linear,
+        visibility 0s linear 0.12s;
+    transition-delay: 0s, 0.12s;
+}
+
+#avatar-shop-list.set-mode .avatar-shop-item-hover-desc {
+    top: 20px;
+    left: 8px;
+    width: 223px;
+    height: 82px;
 }
 
 .avatar-shop-item-price {
@@ -1815,6 +1871,17 @@ body {
 
 .avatar-shop-item.not-tryable .avatar-shop-item-thumb {
     opacity: 0.55;
+}
+
+.avatar-shop-item[data-has-item='1']:hover .avatar-shop-item-thumb {
+    transition-delay: 2s;
+    opacity: 0;
+}
+
+.avatar-shop-item[data-has-item='1']:hover .avatar-shop-item-hover-desc {
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 2s, 2s;
 }
 
 #avatar-shop-list.set-mode .avatar-shop-item-name {

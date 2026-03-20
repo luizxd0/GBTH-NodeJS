@@ -23,6 +23,13 @@ const PREVIEW_EX_EFFECT_POSITION_OFFSETS = {
     // Heart in the sky: keep GBTH visual parity in shop preview.
     sf204849: { x: 0, y: -21 }
 };
+// Some effects have frame metadata that oscillates the anchor by 1px; lock Y to avoid visible jitter.
+const PREVIEW_EX_EFFECT_LOCK_Y_FOLDERS = new Set([
+    'sf204854',
+    'sf204855',
+    'f204854',
+    'f204855'
+]);
 const AVATAR_ATLAS_METADATA_URL = '/assets/shared/avatar_sheets/avatar_metadata.json';
 const AVATAR_SHEET_TEST_MODE = 'atlas_avatar';
 const AVATAR_LAYERED_BASE_URLS = [
@@ -104,6 +111,11 @@ function getExEffectPositionOffset(layerKind, animation) {
         x: Number.isFinite(x) ? x : 0,
         y: Number.isFinite(y) ? y : 0
     };
+}
+
+function shouldLockExEffectY(animation) {
+    const folder = String(animation?.folder || '').trim().toLowerCase();
+    return PREVIEW_EX_EFFECT_LOCK_Y_FOLDERS.has(folder);
 }
 
 function getExEffectFrameIndexByEpa(animation, frameCount, playbackStartMs, nowMs) {
@@ -294,7 +306,15 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
         const effectOffsetY = Number(cssFrameOffset.y || 0);
         const effectPositionOffset = getExEffectPositionOffset(layerKind, animation);
         const layerLeft = Math.round(frameOx - frameCx + animationOffsetX + effectOffsetX + effectPositionOffset.x);
-        const layerTop = Math.round(frameOy - frameCy + animationOffsetY + effectOffsetY + effectPositionOffset.y);
+        let layerTop = Math.round(frameOy - frameCy + animationOffsetY + effectOffsetY + effectPositionOffset.y);
+        if (shouldLockExEffectY(animation)) {
+            const anchorFrame = Array.isArray(animation.frames) && animation.frames.length > 0
+                ? animation.frames[0]
+                : frame;
+            const anchorCy = Number(anchorFrame?.cy || 0);
+            const anchorOy = Number(anchorFrame?.oy || 0);
+            layerTop = Math.round(anchorOy - anchorCy + animationOffsetY + effectOffsetY + effectPositionOffset.y);
+        }
         if (state[frameSrcKey] !== imageUrl) {
             targetLayerSprite.style.backgroundImage = `url('${imageUrl}')`;
             state[frameSrcKey] = imageUrl;
