@@ -28,6 +28,7 @@ const AVATAR_THUMB_BASE_URLS = [
     '/assets/shared/avatar_sheets/dragonbound'
 ];
 const AVATAR_EXITEM_THUMB_BASE_URL = '/assets/shared/avatar_thumbs';
+const AVATAR_EX_EFFECT_METADATA_URL = '/assets/shared/avatar_effect_sheets/effect_metadata.json';
 const STORE_ICON_BASE_URL = '/assets/screens/avatar_shop/store_icon/store_icon_frame_';
 const STORE_AVATAR_BASE_URL = '/assets/screens/avatar_shop/store_avatar/store_avatar_frame_';
 const SHOP_BUTTON_CATEGORY = {
@@ -524,6 +525,10 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
         layerState: {},
         previewBackgroundItemId: null,
         previewForegroundItemId: null,
+        previewBackgroundAnimation: null,
+        previewForegroundAnimation: null,
+        previewBackgroundFrameSrc: null,
+        previewForegroundFrameSrc: null,
         previewBackgroundRequestId: 0,
         previewForegroundRequestId: 0,
         avatar: {
@@ -558,39 +563,110 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
     previewForeground.style.display = 'none';
     root.appendChild(previewForeground);
 
+    const updatePreviewExtraLayerFrame = (layerKind, tick) => {
+        const isBackground = layerKind === 'background';
+        const targetLayer = isBackground ? previewBackdrop : previewForeground;
+        const animationKey = isBackground ? 'previewBackgroundAnimation' : 'previewForegroundAnimation';
+        const frameSrcKey = isBackground ? 'previewBackgroundFrameSrc' : 'previewForegroundFrameSrc';
+        const fallbackWidth = Math.max(1, isBackground ? PREVIEW_BACKDROP_WIDTH : PREVIEW_FOREGROUND_WIDTH);
+        const fallbackHeight = Math.max(1, isBackground ? PREVIEW_BACKDROP_HEIGHT : PREVIEW_FOREGROUND_HEIGHT);
+        const animation = state[animationKey];
+
+        if (!animation || !Array.isArray(animation.frames) || animation.frames.length === 0) {
+            state[frameSrcKey] = null;
+            targetLayer.style.display = 'none';
+            targetLayer.style.backgroundImage = '';
+            targetLayer.style.backgroundPosition = '';
+            targetLayer.style.backgroundSize = '';
+            targetLayer.style.width = `${fallbackWidth}px`;
+            targetLayer.style.height = `${fallbackHeight}px`;
+            return;
+        }
+
+        const safeTick = Number.isFinite(tick) ? Math.max(0, Math.floor(tick)) : 0;
+        const frameIndex = safeTick % animation.frames.length;
+        const frame = animation.frames[frameIndex];
+        if (!frame) {
+            state[frameSrcKey] = null;
+            targetLayer.style.display = 'none';
+            targetLayer.style.backgroundImage = '';
+            targetLayer.style.backgroundPosition = '';
+            targetLayer.style.backgroundSize = '';
+            targetLayer.style.width = `${fallbackWidth}px`;
+            targetLayer.style.height = `${fallbackHeight}px`;
+            return;
+        }
+
+        const imageUrl = String(animation.imageUrl || '');
+        const frameWidth = Math.max(1, Number(frame.w) || fallbackWidth);
+        const frameHeight = Math.max(1, Number(frame.h) || fallbackHeight);
+        if (!imageUrl) {
+            state[frameSrcKey] = null;
+            targetLayer.style.display = 'none';
+            targetLayer.style.backgroundImage = '';
+            targetLayer.style.backgroundPosition = '';
+            targetLayer.style.backgroundSize = '';
+            targetLayer.style.width = `${fallbackWidth}px`;
+            targetLayer.style.height = `${fallbackHeight}px`;
+            return;
+        }
+        if (state[frameSrcKey] !== imageUrl) {
+            targetLayer.style.backgroundImage = `url('${imageUrl}')`;
+            state[frameSrcKey] = imageUrl;
+        }
+        targetLayer.style.width = `${frameWidth}px`;
+        targetLayer.style.height = `${frameHeight}px`;
+        targetLayer.style.backgroundSize = 'auto';
+        targetLayer.style.backgroundPosition = `-${Number(frame.sx || 0)}px -${Number(frame.sy || 0)}px`;
+        targetLayer.style.display = 'block';
+    };
+
+    const renderPreviewExtraLayers = (tick) => {
+        updatePreviewExtraLayerFrame('background', tick);
+        updatePreviewExtraLayerFrame('foreground', tick);
+    };
+
     const applyPreviewExtraLayer = async (layerKind) => {
         const isBackground = layerKind === 'background';
         const requestKey = isBackground ? 'previewBackgroundRequestId' : 'previewForegroundRequestId';
         const targetLayer = isBackground ? previewBackdrop : previewForeground;
         const targetItemId = isBackground ? state.previewBackgroundItemId : state.previewForegroundItemId;
+        const animationKey = isBackground ? 'previewBackgroundAnimation' : 'previewForegroundAnimation';
+        const frameSrcKey = isBackground ? 'previewBackgroundFrameSrc' : 'previewForegroundFrameSrc';
 
         const currentRequest = state[requestKey] + 1;
         state[requestKey] = currentRequest;
 
         const itemId = Number(targetItemId);
         if (!Number.isFinite(itemId) || itemId <= 0) {
+            state[animationKey] = null;
+            state[frameSrcKey] = null;
             targetLayer.style.display = 'none';
             targetLayer.style.backgroundImage = '';
             return;
         }
 
         try {
-            const thumbAsset = await resolveExitemThumbAsset({ source_ref_id: itemId, avatar_code: `ex2_${itemId}` });
+            const animation = await resolveExEffectAnimation(itemId, layerKind);
             if (state[requestKey] !== currentRequest) {
                 return;
             }
-            const imageUrl = String(thumbAsset?.url || '');
-            if (!imageUrl) {
+            if (!animation || !Array.isArray(animation.frames) || animation.frames.length === 0) {
+                state[animationKey] = null;
+                state[frameSrcKey] = null;
                 targetLayer.style.display = 'none';
                 targetLayer.style.backgroundImage = '';
                 return;
             }
-            targetLayer.style.backgroundImage = `url('${imageUrl}')`;
-            targetLayer.style.display = 'block';
+            state[animationKey] = animation;
+            state[frameSrcKey] = null;
+            renderPreviewExtraLayers(state.tick);
         } catch (error) {
             if (state[requestKey] !== currentRequest) {
                 return;
             }
+            state[animationKey] = null;
+            state[frameSrcKey] = null;
             targetLayer.style.display = 'none';
             targetLayer.style.backgroundImage = '';
         }
@@ -630,6 +706,7 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
             renderInFlight = true;
             try {
                 await testRuntime.render(state.tick);
+                renderPreviewExtraLayers(state.tick);
                 state.tick += 1;
             } catch (error) {
                 console.warn('[AvatarShop] Test runtime render error:', error);
@@ -779,6 +856,7 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
             }
         });
 
+        renderPreviewExtraLayers(state.tick);
         state.tick += 1;
     }
 
@@ -1515,6 +1593,102 @@ async function resolveExitemThumbAsset(itemData) {
     return resolvedThumbImagePromises.get(cacheKey);
 }
 
+function toExEffectSourceAvatarId(itemId) {
+    const parsed = Number(itemId);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+        return null;
+    }
+    const normalized = Math.floor(parsed);
+    if (normalized >= 204800) {
+        return normalized;
+    }
+    return 204800 + normalized;
+}
+
+function buildExEffectFolderCandidates(sourceAvatarId, layerKind) {
+    const normalized = Number(sourceAvatarId);
+    if (!Number.isFinite(normalized) || normalized <= 0) {
+        return [];
+    }
+
+    const id = Math.floor(normalized);
+    const primaryPrefix = layerKind === 'foreground' ? 'f' : 'b';
+    const secondaryPrefix = primaryPrefix === 'f' ? 'b' : 'f';
+    return [`${primaryPrefix}${id}`, `${secondaryPrefix}${id}`];
+}
+
+async function resolveExEffectAtlasAnimationByFolder(folderCode) {
+    const normalized = String(folderCode || '').trim().toLowerCase();
+    if (!normalized) {
+        return null;
+    }
+
+    if (!resolvedExEffectAtlasAnimationPromises.has(normalized)) {
+        resolvedExEffectAtlasAnimationPromises.set(normalized, (async () => {
+            try {
+                const metadata = await loadExEffectMetadata();
+                const atlases = metadata?.atlases;
+                if (!atlases || typeof atlases !== 'object') {
+                    return null;
+                }
+
+                const atlasDef = atlases[normalized]
+                    || atlases[`fx_${normalized}`]
+                    || null;
+                if (!atlasDef || !atlasDef.image) {
+                    return null;
+                }
+
+                const imageUrl = String(atlasDef.image || '');
+                if (!imageUrl) {
+                    return null;
+                }
+
+                await preloadImage(imageUrl);
+                const frames = expandAtlasFrames(atlasDef);
+                if (!Array.isArray(frames) || frames.length === 0) {
+                    return null;
+                }
+
+                return {
+                    mode: 'atlas',
+                    folder: normalized,
+                    imageUrl,
+                    frames
+                };
+            } catch (error) {
+                return null;
+            }
+        })());
+    }
+
+    return resolvedExEffectAtlasAnimationPromises.get(normalized);
+}
+
+async function resolveExEffectAnimation(itemId, layerKind) {
+    const normalizedLayer = layerKind === 'foreground' ? 'foreground' : 'background';
+    const sourceAvatarId = toExEffectSourceAvatarId(itemId);
+    if (!sourceAvatarId) {
+        return null;
+    }
+
+    const cacheKey = `${normalizedLayer}|${sourceAvatarId}`;
+    if (!resolvedExEffectAnimationPromises.has(cacheKey)) {
+        resolvedExEffectAnimationPromises.set(cacheKey, (async () => {
+            const folderCandidates = buildExEffectFolderCandidates(sourceAvatarId, normalizedLayer);
+            for (const folderCode of folderCandidates) {
+                const atlasAnimation = await resolveExEffectAtlasAnimationByFolder(folderCode);
+                if (atlasAnimation && Array.isArray(atlasAnimation.frames) && atlasAnimation.frames.length > 0) {
+                    return atlasAnimation;
+                }
+            }
+            return null;
+        })());
+    }
+
+    return resolvedExEffectAnimationPromises.get(cacheKey);
+}
+
 async function resolveStaticThumbAsset(codeCandidates) {
     const cacheKey = codeCandidates.join('|');
     if (!resolvedThumbImagePromises.has(cacheKey)) {
@@ -1713,9 +1887,25 @@ async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) 
 }
 
 let atlasMetadataPromise = null;
+let exEffectMetadataPromise = null;
 const preloadedImagePromises = new Map();
 const resolvedAtlasImagePromises = new Map();
 const resolvedThumbImagePromises = new Map();
+const resolvedExEffectAnimationPromises = new Map();
+const resolvedExEffectAtlasAnimationPromises = new Map();
+
+async function loadExEffectMetadata() {
+    if (!exEffectMetadataPromise) {
+        exEffectMetadataPromise = (async () => {
+            const response = await fetch(`${AVATAR_EX_EFFECT_METADATA_URL}?v=${Date.now()}`, { cache: 'no-store' });
+            if (!response.ok) {
+                throw new Error(`Unable to load EX effect metadata (${response.status})`);
+            }
+            return response.json();
+        })();
+    }
+    return exEffectMetadataPromise;
+}
 
 async function loadAtlasMetadata() {
     if (!atlasMetadataPromise) {

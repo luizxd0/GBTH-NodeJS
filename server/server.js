@@ -14,6 +14,12 @@ const userSockets = new Map(); // nickname -> socket.id
 const socketData = new Map(); // socket.id -> { nickname, id }
 const pendingNotifications = new Map(); // userId -> timeoutId
 
+function getUKTimestamp() {
+    const now = new Date();
+    const pad = (n) => n.toString().padStart(2, '0');
+    return `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+}
+
 function getActivePlayerCount() {
     let count = 0;
     for (const data of socketData.values()) {
@@ -183,7 +189,6 @@ app.post('/api/signup', async (req, res) => {
 
 // Ranking Logic Function
 async function updateRanks() {
-    console.log('[Ranking] Updating player ranks and grades...');
     let connection;
     try {
         connection = await pool.getConnection();
@@ -273,7 +278,6 @@ async function updateRanks() {
                 [up.Grade, up.Rank, up.Id]
             );
         }
-        console.log(`[Ranking] Successfully updated ${allUpdates.length} player ranks.`);
     } catch (err) {
         console.error('[Ranking] Error updating ranks:', err);
     } finally {
@@ -394,7 +398,6 @@ app.get('/api/worlds', (req, res) => {
 });
 
 io.on('connection', (socket) => {
-    console.log('User connected:', socket.id);
 
     // Send current lobby count to new connections (e.g. World List)
     socket.emit('playerCountUpdate', userSockets.size);
@@ -433,7 +436,7 @@ io.on('connection', (socket) => {
                 console.error('[UserSync] Error fetching latest data:', err);
             }
 
-            console.log(`[Buddy] Linked ${data.nickname} to ${socket.id} at ${data.location || 'unknown'} (Auth: ${data.authority || 0})`);
+            console.log(`[Login] [${getUKTimestamp()}] ${data.nickname} logged in.`);
             io.emit('playerCountUpdate', getActivePlayerCount());
 
             // Automatically send buddy list on identification
@@ -460,6 +463,8 @@ io.on('connection', (socket) => {
                 return;
             }
 
+            console.log(`[Chat] [${getUKTimestamp()}] ${user.nickname} to Lobby/Channel: ${trimmedMessage}`);
+
             // Broadcasting to users in the same channel
             const usersInChannel = [];
             for (const [sId, data] of socketData.entries()) {
@@ -481,7 +486,6 @@ io.on('connection', (socket) => {
         if (user && user.location === 'channel') {
             const oldChannelId = user.channelId;
             user.channelId = parseInt(newChannelId);
-            console.log(`[Channel] ${user.nickname} switched from CH${oldChannelId} to CH${user.channelId}`);
             
             // Re-broadcast user lists for both channels
             broadcastChannelUsers(oldChannelId);
@@ -496,6 +500,8 @@ io.on('connection', (socket) => {
         const { toNickname, message } = data;
         const sender = socketData.get(socket.id);
         if (!sender || !toNickname || !message || message.trim() === '') return;
+
+        console.log(`[Whisper] [${getUKTimestamp()}] ${sender.nickname} to ${toNickname}: ${message.trim()}`);
 
         const targetSocketId = userSockets.get(toNickname.toLowerCase());
         if (targetSocketId) {
@@ -640,7 +646,6 @@ io.on('connection', (socket) => {
                 userSockets.delete(nicknameKey);
             }
             socketData.delete(socket.id);
-            console.log(`[Buddy] User left lobby: ${nickname}`);
             io.emit('playerCountUpdate', getActivePlayerCount());
 
             broadcastChannelUsers(data.channelId);
@@ -650,6 +655,8 @@ io.on('connection', (socket) => {
     socket.on('send_buddy_request', (targetNickname) => {
         const sender = socketData.get(socket.id);
         if (!sender) return;
+
+        console.log(`[Buddy] [${getUKTimestamp()}] ${sender.nickname} is trying to add ${targetNickname}`);
 
         const targetSocketId = userSockets.get(targetNickname.toLowerCase());
         if (targetSocketId && io.sockets.sockets.get(targetSocketId)) {
@@ -694,7 +701,7 @@ io.on('connection', (socket) => {
                     );
 
                     await connection.commit();
-                    console.log(`[Buddy] Mutual relationship created for ${receiver.nickname} and ${fromNickname}`);
+                    console.log(`[Buddy] [${getUKTimestamp()}] ${receiver.nickname} accepted buddy request from ${fromNickname}`);
 
                     // Refresh buddy list instantly
                     sendBuddyList(socket, receiver.id);
@@ -715,7 +722,7 @@ io.on('connection', (socket) => {
                 console.error('[Buddy] Connection Error:', error);
             }
         } else {
-            console.log(`[Buddy] ${receiver.nickname} rejected ${fromNickname}`);
+            console.log(`[Buddy] [${getUKTimestamp()}] ${receiver.nickname} rejected buddy request from ${fromNickname}`);
             if (senderSocketId) {
                 io.to(senderSocketId).emit('buddy_request_rejected', { nickname: receiver.nickname });
             }
@@ -737,7 +744,7 @@ io.on('connection', (socket) => {
                 );
 
                 await connection.commit();
-                console.log(`[Buddy] Deleted relationship between ${user.nickname} and ID ${targetId}`);
+                console.log(`[Buddy] [${getUKTimestamp()}] ${user.nickname} deleted a buddy (ID: ${targetId})`);
 
                 // Send updated list to the user who deleted
                 sendBuddyList(socket, user.id);
@@ -780,7 +787,7 @@ io.on('connection', (socket) => {
             }
 
             socketData.delete(socket.id);
-            console.log(`User disconnected: ${nickname}`);
+            console.log(`[Logoff] [${getUKTimestamp()}] ${nickname} logged off.`);
             io.emit('playerCountUpdate', getActivePlayerCount());
 
             // Only notify offline if this socket is still the active mapping for that nickname.
