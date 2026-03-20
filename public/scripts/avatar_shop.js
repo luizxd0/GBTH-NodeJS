@@ -408,13 +408,13 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
             });
         });
 
-        let headSpecial = null;
+        let headState = null;
         const headLayer =
             visibleLayers.find((entry) => entry.key === 'head' && !entry.back) ||
             visibleLayers.find((entry) => entry.key === 'head');
         if (headLayer) {
             const headResult = computeLayerFrameBySlot('head', headLayer.folderInfo.indexes.length, state.tick, headLayer.layerSlotState);
-            headSpecial = headResult.isSpecial;
+            headState = headResult;
         }
 
         visibleLayers.forEach(({ key, folder, layerSlotState, img, folderInfo }) => {
@@ -423,7 +423,7 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
                 folderInfo.indexes.length,
                 state.tick,
                 layerSlotState,
-                key === 'eyes' ? headSpecial : null
+                key === 'eyes' ? headState : null
             ).index;
             const frameIndex = folderInfo.indexes[Math.max(0, Math.min(logicalIndex, folderInfo.indexes.length - 1))];
             const assetBaseUrl = String(manifest.__assetBaseUrl || '/assets/shared/avatars');
@@ -576,9 +576,12 @@ function computeAvatarSpecialFrameIndex(frameCount, tick, layerState, noReverse,
         return { index: 0, isSpecial: false };
     }
 
+    const forcedState = (forcedSpecial && typeof forcedSpecial === 'object') ? forcedSpecial : null;
     let isSpecial;
     if (typeof forcedSpecial === 'boolean') {
         isSpecial = forcedSpecial;
+    } else if (forcedState && typeof forcedState.isSpecial === 'boolean') {
+        isSpecial = forcedState.isSpecial;
     } else {
         const cycleBase = Math.max(1, frameCount - 2);
         const cycle = Math.floor(tick / cycleBase);
@@ -588,17 +591,34 @@ function computeAvatarSpecialFrameIndex(frameCount, tick, layerState, noReverse,
         isSpecial = cycle === layerState.turnCycle;
     }
 
-    if (noReverse) {
-        const step = tick % half;
-        return { index: isSpecial ? step : step + half, isSpecial };
+    let forcedPhase = null;
+    if (forcedState && Number.isFinite(forcedState.phase)) {
+        const rawPhase = Math.max(0, Math.floor(Number(forcedState.phase)));
+        const rawMax = Number(forcedState.phaseMax);
+        if (Number.isFinite(rawMax) && rawMax > 0) {
+            const normalized = Math.max(0, Math.min(1, rawPhase / rawMax));
+            forcedPhase = Math.round(normalized * Math.max(0, half - 1));
+        } else {
+            forcedPhase = rawPhase;
+        }
     }
 
-    const period = Math.max(1, 2 * half - 2);
-    let step = tick % period;
-    if (step >= half) {
-        step = period - step;
+    if (noReverse) {
+        const step = forcedPhase === null ? (tick % half) : (forcedPhase % half);
+        return { index: isSpecial ? step : step + half, isSpecial, phase: step, phaseMax: Math.max(0, half - 1) };
     }
-    return { index: isSpecial ? step : step + half, isSpecial };
+
+    let step;
+    if (forcedPhase !== null) {
+        step = forcedPhase % half;
+    } else {
+        const period = Math.max(1, 2 * half - 2);
+        step = tick % period;
+        if (step >= half) {
+            step = period - step;
+        }
+    }
+    return { index: isSpecial ? step : step + half, isSpecial, phase: step, phaseMax: Math.max(0, half - 1) };
 }
 
 function parseAvatarItemId(value, fallback, allowZero) {
@@ -1021,7 +1041,7 @@ async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) 
         thumbEl.style.display = 'block';
         thumbEl.style.backgroundImage = `url('${imageUrl}')`;
         thumbEl.style.backgroundPosition = 'center center';
-        thumbEl.style.backgroundSize = 'contain';
+        thumbEl.style.backgroundSize = 'auto';
         thumbEl.style.width = '100%';
         thumbEl.style.height = '100%';
     } catch (error) {
@@ -1231,12 +1251,12 @@ async function tryCreateAtlasAvatarRuntime(root, state) {
             async render(tick) {
                 await Promise.all(runtimeLayers.map((layer) => ensureLayerAtlas(layer)));
 
-                let headSpecial = null;
+                let headState = null;
                 const headLayer = runtimeLayers.find((layer) => layer.slot === 'head' && !layer.back)
                     || runtimeLayers.find((layer) => layer.slot === 'head');
                 if (headLayer && headLayer.frames.length > 0) {
                     const headResult = computeLayerFrameBySlot('head', headLayer.frames.length, tick, headLayer.state);
-                    headSpecial = headResult.isSpecial;
+                    headState = headResult;
                 }
 
                 runtimeLayers.forEach((layer) => {
@@ -1245,7 +1265,7 @@ async function tryCreateAtlasAvatarRuntime(root, state) {
                         return;
                     }
 
-                    const forcedSpecial = layer.slot === 'eyes' ? headSpecial : null;
+                    const forcedSpecial = layer.slot === 'eyes' ? headState : null;
                     const result = computeLayerFrameBySlot(layer.slot, layer.frames.length, tick, layer.state, forcedSpecial);
                     const index = Math.max(0, Math.min(result.index, layer.frames.length - 1));
                     const frame = layer.frames[index];
@@ -1469,7 +1489,7 @@ async function tryCreateDragonboundAtlasRuntime(root) {
 
         return {
             render(tick) {
-                let headSpecial = null;
+                let headState = null;
                 const headLayer = runtimeLayers.find((layer) => layer.slot === 'head');
                 if (headLayer) {
                     const headResult = computeIndexByLoop(
@@ -1478,11 +1498,11 @@ async function tryCreateDragonboundAtlasRuntime(root) {
                         tick,
                         headLayer.state
                     );
-                    headSpecial = headResult.isSpecial;
+                    headState = headResult;
                 }
 
                 runtimeLayers.forEach((layer) => {
-                    const forcedSpecial = layer.slot === 'eyes' ? headSpecial : null;
+                    const forcedSpecial = layer.slot === 'eyes' ? headState : null;
                     const result = computeIndexByLoop(
                         layer.loop,
                         layer.frames.length,

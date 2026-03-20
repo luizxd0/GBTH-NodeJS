@@ -1650,7 +1650,7 @@ body {
     height: 100%;
     background-repeat: no-repeat;
     background-position: center center;
-    background-size: contain;
+    background-size: auto;
     image-rendering: pixelated;
 }
 
