@@ -1,0 +1,27 @@
+CREATE TABLE IF NOT EXISTS chest (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    owner_id VARCHAR(16) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL COMMENT 'Matches user.UserId',
+    avatar_id BIGINT UNSIGNED NULL COMMENT 'Optional logical ref to avatars.id',
+    item_id INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Protocol/shop item id (legacy: Item)',
+    item_code VARCHAR(64) NULL COMMENT 'Optional avatar code (example: mh00000)',
+    slot ENUM('head', 'body', 'eyes', 'flag', 'background', 'foreground', 'exitem') NOT NULL,
+    wearing TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = equipped (legacy: Wearing)',
+    acquisition_type ENUM('C', 'G', 'E', 'R', 'S', 'M') NOT NULL DEFAULT 'G' COMMENT 'legacy Acquisition; C=cash, G=gold',
+    expire_at DATETIME NULL COMMENT 'legacy Expire',
+    volume INT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'legacy Volume',
+    place_order INT NOT NULL DEFAULT 0 COMMENT 'legacy PlaceOrder',
+    recovered TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'legacy Recovered',
+    expire_type ENUM('I', 'W', 'M', 'P') NOT NULL DEFAULT 'I' COMMENT 'legacy ExpireType',
+    equipped_slot ENUM('head', 'body', 'eyes', 'flag', 'background', 'foreground', 'exitem')
+        GENERATED ALWAYS AS (CASE WHEN wearing = 1 THEN slot ELSE NULL END) STORED,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_chest_owner (owner_id),
+    KEY idx_chest_owner_slot (owner_id, slot),
+    KEY idx_chest_owner_wearing (owner_id, wearing),
+    KEY idx_chest_expire (expire_at),
+    KEY idx_chest_item (item_id),
+    UNIQUE KEY uq_chest_owner_item_slot_order (owner_id, item_id, slot, place_order),
+    UNIQUE KEY uq_chest_owner_equipped_slot (owner_id, equipped_slot)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

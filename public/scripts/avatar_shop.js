@@ -3,8 +3,26 @@ const PREVIEW_ANCHOR_X = 31;
 const PREVIEW_ANCHOR_Y = 58;
 const PREVIEW_NUDGE_X = 0;
 const PREVIEW_NUDGE_Y = 12;
+const DEFAULT_SHOP_ITEM_COUNT = 9;
+const SET_SHOP_ITEM_COUNT = 4;
 const AVATAR_ATLAS_METADATA_URL = '/assets/shared/avatar_sheets/avatar_metadata.json';
-const AVATAR_SHEET_TEST_MODE = 'dragonbound_random_avatar';
+const AVATAR_SHEET_TEST_MODE = 'atlas_avatar';
+const AVATAR_LAYERED_BASE_URLS = [
+    '/assets/shared/avatars',
+    '/assets/shared/client_avatars'
+];
+const AVATAR_THUMB_BASE_URLS = [
+    '/assets/shared/avatar_sheets/gbth',
+    '/assets/shared/avatar_sheets/dragonbound'
+];
+const SHOP_BUTTON_CATEGORY = {
+    'btn-store-cloth': 'cloth',
+    'btn-store-cap': 'cap',
+    'btn-store-glasse': 'glasse',
+    'btn-store-flag': 'flag',
+    'btn-store-setitem': 'setitem',
+    'btn-store-exitem': 'exitem'
+};
 const SLOT_ORDER = [
     { key: 'flag', back: true, z: 1 },
     { key: 'body', back: true, z: 2 },
@@ -16,9 +34,20 @@ const SLOT_ORDER = [
     { key: 'eyes', back: false, z: 8 }
 ];
 
+function createEmptyShopCatalog() {
+    return {
+        cloth: [],
+        cap: [],
+        glasse: [],
+        flag: [],
+        setitem: [],
+        exitem: []
+    };
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     const socket = io();
-    const userData = JSON.parse(sessionStorage.getItem('user'));
+    let userData = JSON.parse(sessionStorage.getItem('user'));
 
     const nicknameSpan = document.getElementById('lobby-nickname');
     const guildSpan = document.getElementById('lobby-guild');
@@ -61,16 +90,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     socket.on('user_info_update', (data) => {
+        userData = data;
         sessionStorage.setItem('user', JSON.stringify(data));
         updateUserInfo(data);
+        if (window.avatarShopPreview) {
+            window.avatarShopPreview.setGender(data?.gender);
+            window.avatarShopPreview.setEquip('head', data?.ahead);
+            window.avatarShopPreview.setEquip('body', data?.abody);
+            window.avatarShopPreview.setEquip('eyes', data?.aeyes);
+            window.avatarShopPreview.setEquip('flag', data?.aflag);
+        }
     });
 
     const btnStoreExit = document.getElementById('btn-store-exit');
     const btnStorePuton = document.getElementById('btn-store-puton');
     const btnStoreBuy = document.getElementById('btn-store-buy');
+    const btnStoreMainUp = document.getElementById('btn-store-main-up');
+    const btnStoreMainDown = document.getElementById('btn-store-main-down');
 
     if (btnStorePuton) btnStorePuton.disabled = true;
     if (btnStoreBuy) btnStoreBuy.disabled = true;
+    if (btnStoreMainUp) btnStoreMainUp.disabled = true;
+    if (btnStoreMainDown) btnStoreMainDown.disabled = true;
 
     if (btnStoreExit) {
         btnStoreExit.addEventListener('click', () => {
@@ -80,13 +121,143 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    const categoryButtons = document.querySelectorAll('.avatar-shop-toggle');
+    let shopCatalog = createEmptyShopCatalog();
+    try {
+        const catalogItems = await loadAvatarShopCatalogItems();
+        shopCatalog = buildShopCatalogByCategory(catalogItems);
+    } catch (error) {
+        console.warn('[AvatarShop] Failed to load catalog from DB, keeping default button visibility:', error);
+    }
+
+    const categoryButtons = Array.from(document.querySelectorAll('.avatar-shop-toggle'));
+    const avatarShopList = document.getElementById('avatar-shop-list');
+    const applyCurrentSelectionTry = () => {
+        if (!avatarShopList) {
+            return;
+        }
+        applySelectedShopItemToPreview(avatarShopList);
+    };
+
+    if (avatarShopList) {
+        avatarShopList.addEventListener('avatar-shop-selection-change', () => {
+            syncTryButtonState(avatarShopList, btnStorePuton);
+        });
+        avatarShopList.addEventListener('avatar-shop-item-activate', () => {
+            applyCurrentSelectionTry();
+        });
+    }
+
+    if (btnStorePuton) {
+        btnStorePuton.addEventListener('click', () => {
+            applyCurrentSelectionTry();
+        });
+    }
+
+    const firstVisibleCategoryButton = applyCategoryButtonVisibility(categoryButtons, shopCatalog);
+
     categoryButtons.forEach((button) => {
-        button.addEventListener('click', () => {
+        button.addEventListener('click', async () => {
+            if (button.disabled || button.style.display === 'none') {
+                return;
+            }
             categoryButtons.forEach((btn) => btn.classList.remove('active'));
             button.classList.add('active');
+
+            if (avatarShopList) {
+                await updateShopGridForCategoryButton(
+                    avatarShopList,
+                    button.id,
+                    shopCatalog,
+                    userData,
+                    0,
+                    btnStoreMainUp,
+                    btnStoreMainDown
+                );
+            }
         });
     });
+
+    if (btnStoreMainUp && avatarShopList) {
+        btnStoreMainUp.addEventListener('click', async () => {
+            if (btnStoreMainUp.disabled) {
+                return;
+            }
+            const activeCategoryId = avatarShopList.dataset.activeCategoryId;
+            if (!activeCategoryId) {
+                return;
+            }
+            const currentPage = Math.max(0, Number(avatarShopList.dataset.pageIndex || 0));
+            await updateShopGridForCategoryButton(
+                avatarShopList,
+                activeCategoryId,
+                shopCatalog,
+                userData,
+                Math.max(0, currentPage - 1),
+                btnStoreMainUp,
+                btnStoreMainDown
+            );
+        });
+    }
+
+    if (btnStoreMainDown && avatarShopList) {
+        btnStoreMainDown.addEventListener('click', async () => {
+            if (btnStoreMainDown.disabled) {
+                return;
+            }
+            const activeCategoryId = avatarShopList.dataset.activeCategoryId;
+            if (!activeCategoryId) {
+                return;
+            }
+            const currentPage = Math.max(0, Number(avatarShopList.dataset.pageIndex || 0));
+            const totalPages = Math.max(0, Number(avatarShopList.dataset.totalPages || 0));
+            const targetPage = totalPages > 0
+                ? Math.min(totalPages - 1, currentPage + 1)
+                : 0;
+            await updateShopGridForCategoryButton(
+                avatarShopList,
+                activeCategoryId,
+                shopCatalog,
+                userData,
+                targetPage,
+                btnStoreMainUp,
+                btnStoreMainDown
+            );
+        });
+    }
+
+    if (avatarShopList) {
+        let activeCategoryButton = categoryButtons.find((button) =>
+            button.id === 'btn-store-cap' && !button.disabled && button.style.display !== 'none'
+        );
+        if (!activeCategoryButton) {
+            activeCategoryButton = categoryButtons.find((button) =>
+                button.classList.contains('active') && !button.disabled && button.style.display !== 'none'
+            );
+        }
+        if (!activeCategoryButton) {
+            activeCategoryButton = firstVisibleCategoryButton || null;
+        }
+
+        categoryButtons.forEach((button) => {
+            button.classList.toggle('active', button === activeCategoryButton);
+        });
+
+        if (activeCategoryButton) {
+            await updateShopGridForCategoryButton(
+                avatarShopList,
+                activeCategoryButton.id,
+                shopCatalog,
+                userData,
+                0,
+                btnStoreMainUp,
+                btnStoreMainDown
+            );
+        } else {
+            syncAvatarShopListMode(avatarShopList, null, 0);
+            if (btnStoreMainUp) btnStoreMainUp.disabled = true;
+            if (btnStoreMainDown) btnStoreMainDown.disabled = true;
+        }
+    }
 
     const legacyCard = document.getElementById('avatar-shop-avatar-card');
     if (legacyCard) {
@@ -131,11 +302,23 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
     const testRuntime = await tryCreateTestRuntime(root, state);
     if (testRuntime) {
         const tickMs = Math.floor(1000 / AVATAR_ANIMATION_FPS);
-        testRuntime.render(state.tick);
-        state.timer = window.setInterval(() => {
-            testRuntime.render(state.tick);
-            state.tick += 1;
-        }, tickMs);
+        let renderInFlight = false;
+        const renderTick = async () => {
+            if (renderInFlight) {
+                return;
+            }
+            renderInFlight = true;
+            try {
+                await testRuntime.render(state.tick);
+                state.tick += 1;
+            } catch (error) {
+                console.warn('[AvatarShop] Test runtime render error:', error);
+            } finally {
+                renderInFlight = false;
+            }
+        };
+        renderTick();
+        state.timer = window.setInterval(renderTick, tickMs);
 
         return {
             setEquip(slot, itemId) {
@@ -243,7 +426,8 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
                 key === 'eyes' ? headSpecial : null
             ).index;
             const frameIndex = folderInfo.indexes[Math.max(0, Math.min(logicalIndex, folderInfo.indexes.length - 1))];
-            const src = `/assets/shared/avatars/${folder}/${folder}_frame_${frameIndex}.png`;
+            const assetBaseUrl = String(manifest.__assetBaseUrl || '/assets/shared/avatars');
+            const src = `${assetBaseUrl}/${folder}/${folder}_frame_${frameIndex}.png`;
             const anchor = (Array.isArray(folderInfo.anchors) && folderInfo.anchors[frameIndex])
                 ? folderInfo.anchors[frameIndex]
                 : { x: 0, y: 0 };
@@ -298,11 +482,23 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
 }
 
 async function loadAvatarManifest() {
-    const response = await fetch(`/assets/shared/avatars/manifest.json?v=${Date.now()}`, { cache: 'no-store' });
-    if (!response.ok) {
-        throw new Error(`Unable to load avatar manifest (${response.status})`);
+    const tried = [];
+    for (const baseUrl of AVATAR_LAYERED_BASE_URLS) {
+        const manifestUrl = `${baseUrl}/manifest.json?v=${Date.now()}`;
+        tried.push(manifestUrl);
+        const response = await fetch(manifestUrl, { cache: 'no-store' });
+        if (!response.ok) {
+            continue;
+        }
+
+        const json = await response.json();
+        return {
+            ...json,
+            __assetBaseUrl: baseUrl
+        };
     }
-    return response.json();
+
+    throw new Error(`Unable to load avatar manifest (tried: ${tried.join(', ')})`);
 }
 
 function resolveAvatarFolder(manifestFolders, gender, slot, itemId, isBackLayer) {
@@ -419,8 +615,424 @@ function parseAvatarItemId(value, fallback, allowZero) {
     return parsed;
 }
 
+async function loadAvatarShopCatalogItems() {
+    const response = await fetch('/api/avatar-shop/catalog', { cache: 'no-store' });
+    if (!response.ok) {
+        throw new Error(`Unable to load avatar shop catalog (${response.status})`);
+    }
+    const payload = await response.json();
+    if (!payload || !Array.isArray(payload.items)) {
+        return [];
+    }
+    return payload.items;
+}
+
+function resolveShopCategoryForItem(item) {
+    const slot = String(item?.slot || '').toLowerCase();
+    const name = String(item?.name || '').toLowerCase();
+    const setKey = String(item?.set_key || '').trim();
+
+    if (setKey !== '' || /\bset\b/.test(name)) {
+        return 'setitem';
+    }
+    if (slot === 'exitem' || slot === 'background' || slot === 'foreground') {
+        return 'exitem';
+    }
+    if (slot === 'body') {
+        return 'cloth';
+    }
+    if (slot === 'head') {
+        return 'cap';
+    }
+    if (slot === 'eyes') {
+        return 'glasse';
+    }
+    if (slot === 'flag') {
+        return 'flag';
+    }
+    return null;
+}
+
+function buildShopCatalogByCategory(items) {
+    const categories = createEmptyShopCatalog();
+    const seenSetKeys = new Set();
+
+    items.forEach((item) => {
+        const category = resolveShopCategoryForItem(item);
+        if (!category) {
+            return;
+        }
+        if (category === 'setitem') {
+            const setKey = String(item?.set_key || '').trim();
+            const dedupeKey = setKey !== ''
+                ? setKey
+                : `${String(item?.name || '').trim().toLowerCase()}|${String(item?.gender || '').trim().toLowerCase()}`;
+            if (seenSetKeys.has(dedupeKey)) {
+                return;
+            }
+            seenSetKeys.add(dedupeKey);
+        }
+        categories[category].push(item);
+    });
+
+    return categories;
+}
+
+function getCategoryKeyFromButtonId(buttonId) {
+    return SHOP_BUTTON_CATEGORY[buttonId] || null;
+}
+
+function getPageSizeForCategory(categoryKey) {
+    return categoryKey === 'setitem' ? SET_SHOP_ITEM_COUNT : DEFAULT_SHOP_ITEM_COUNT;
+}
+
+function getTotalPages(totalItems, pageSize) {
+    if (!Number.isFinite(totalItems) || totalItems <= 0 || !Number.isFinite(pageSize) || pageSize <= 0) {
+        return 0;
+    }
+    return Math.ceil(totalItems / pageSize);
+}
+
+function clampPageIndex(pageIndex, totalPages) {
+    const parsed = Number(pageIndex);
+    const base = Number.isFinite(parsed) ? Math.floor(parsed) : 0;
+    if (totalPages <= 0) {
+        return 0;
+    }
+    return Math.max(0, Math.min(totalPages - 1, base));
+}
+
+function updateMainPagerButtons(upButton, downButton, pageIndex, totalPages) {
+    if (upButton) {
+        upButton.disabled = totalPages <= 1 || pageIndex <= 0;
+    }
+    if (downButton) {
+        downButton.disabled = totalPages <= 1 || pageIndex >= (totalPages - 1);
+    }
+}
+
+function setSelectedShopCard(container, itemButton) {
+    if (!container) {
+        return;
+    }
+    const selected = container.querySelector('.avatar-shop-item.selected');
+    if (selected) {
+        selected.classList.remove('selected');
+    }
+    if (itemButton && container.contains(itemButton)) {
+        itemButton.classList.add('selected');
+    }
+}
+
+function getSelectedShopItem(container) {
+    if (!container) {
+        return null;
+    }
+    const selected = container.querySelector('.avatar-shop-item.selected');
+    if (!selected) {
+        return null;
+    }
+    return selected.__shopItemData || null;
+}
+
+function syncTryButtonState(container, tryButton) {
+    if (!tryButton) {
+        return;
+    }
+    tryButton.disabled = !getSelectedShopItem(container);
+}
+
+function resolvePreviewItemId(item) {
+    const sourceRefId = Number(item?.source_ref_id);
+    if (Number.isFinite(sourceRefId) && sourceRefId >= 0) {
+        return sourceRefId;
+    }
+
+    const avatarCode = String(item?.avatar_code || '').toLowerCase();
+    const codeMatch = avatarCode.match(/(\d{5})$/);
+    if (!codeMatch) {
+        return null;
+    }
+
+    const parsed = Number(codeMatch[1]);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function applySelectedShopItemToPreview(container) {
+    if (!container || !window.avatarShopPreview) {
+        return false;
+    }
+
+    const selectedItem = getSelectedShopItem(container);
+    if (!selectedItem) {
+        return false;
+    }
+
+    const categoryKey = String(container.dataset.activeCategoryKey || '');
+    const slot = getSlotByCategory(categoryKey, selectedItem);
+    const itemId = resolvePreviewItemId(selectedItem);
+
+    if (!slot || itemId === null) {
+        return false;
+    }
+
+    window.avatarShopPreview.setEquip(slot, itemId);
+    return true;
+}
+
+function applyCategoryButtonVisibility(buttons, catalogByCategory) {
+    let firstVisibleButton = null;
+    buttons.forEach((button) => {
+        button.style.display = '';
+        button.disabled = false;
+        if (!firstVisibleButton) {
+            firstVisibleButton = button;
+        }
+    });
+    return firstVisibleButton;
+}
+
+async function updateShopGridForCategoryButton(
+    container,
+    buttonId,
+    catalogByCategory,
+    userData,
+    pageIndex = 0,
+    upButton = null,
+    downButton = null
+) {
+    const categoryKey = getCategoryKeyFromButtonId(buttonId);
+    const rawCategoryItems = categoryKey && Array.isArray(catalogByCategory[categoryKey])
+        ? catalogByCategory[categoryKey]
+        : [];
+    const categoryItems = filterCatalogItemsByUserGender(rawCategoryItems, userData);
+
+    const pageSize = getPageSizeForCategory(categoryKey);
+    const totalPages = getTotalPages(categoryItems.length, pageSize);
+    const currentPage = clampPageIndex(pageIndex, totalPages);
+    const startIndex = currentPage * pageSize;
+    const visibleItems = categoryItems.slice(startIndex, startIndex + pageSize);
+
+    syncAvatarShopListMode(container, buttonId, visibleItems.length);
+
+    const cardButtons = Array.from(container.querySelectorAll('.avatar-shop-item'));
+    await Promise.all(cardButtons.map((cardButton, index) =>
+        applyGridItemVisual(cardButton, visibleItems[index], categoryKey, userData)
+    ));
+    cardButtons.forEach((cardButton, index) => {
+        cardButton.__shopItemData = visibleItems[index] || null;
+        cardButton.dataset.hasItem = visibleItems[index] ? '1' : '0';
+    });
+
+    container.dataset.activeCategoryId = String(buttonId || '');
+    container.dataset.activeCategoryKey = String(categoryKey || '');
+    container.dataset.pageIndex = String(currentPage);
+    container.dataset.totalPages = String(totalPages);
+    container.dataset.pageSize = String(pageSize);
+    container.dataset.totalItems = String(categoryItems.length);
+
+    updateMainPagerButtons(upButton, downButton, currentPage, totalPages);
+    container.dispatchEvent(new CustomEvent('avatar-shop-selection-change'));
+}
+
+function initializeAvatarShopList(container) {
+    const requestedCount = Number(container.dataset.itemCount);
+    const itemCount = Number.isFinite(requestedCount) && requestedCount >= 0
+        ? requestedCount
+        : DEFAULT_SHOP_ITEM_COUNT;
+
+    container.innerHTML = '';
+
+    for (let index = 0; index < itemCount; index += 1) {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'avatar-shop-item';
+        item.dataset.index = String(index);
+        item.innerHTML = `
+            <div class="avatar-shop-item-content">
+                <div class="avatar-shop-item-name"></div>
+                <div class="avatar-shop-item-preview">
+                    <div class="avatar-shop-item-thumb"></div>
+                </div>
+            </div>
+        `;
+        if (index === 0) {
+            item.classList.add('selected');
+        }
+        container.appendChild(item);
+    }
+
+    if (container.dataset.selectionHandlerBound === '1') {
+        return;
+    }
+    container.dataset.selectionHandlerBound = '1';
+
+    container.addEventListener('click', (event) => {
+        const item = event.target.closest('.avatar-shop-item');
+        if (!item || !container.contains(item)) {
+            return;
+        }
+
+        setSelectedShopCard(container, item);
+        container.dispatchEvent(new CustomEvent('avatar-shop-selection-change'));
+    });
+
+    container.addEventListener('dblclick', (event) => {
+        const item = event.target.closest('.avatar-shop-item');
+        if (!item || !container.contains(item)) {
+            return;
+        }
+
+        setSelectedShopCard(container, item);
+        container.dispatchEvent(new CustomEvent('avatar-shop-selection-change'));
+        container.dispatchEvent(new CustomEvent('avatar-shop-item-activate'));
+    });
+}
+
+function syncAvatarShopListMode(container, activeCategoryId, itemCountOverride) {
+    const isSetMode = activeCategoryId === 'btn-store-setitem';
+    const isExitemMode = activeCategoryId === 'btn-store-exitem';
+    const defaultCount = isSetMode ? SET_SHOP_ITEM_COUNT : DEFAULT_SHOP_ITEM_COUNT;
+    const itemCount = Number.isFinite(itemCountOverride) ? Math.max(0, Number(itemCountOverride)) : defaultCount;
+
+    container.classList.toggle('set-mode', isSetMode);
+    container.classList.toggle('exitem-mode', isExitemMode);
+    container.classList.toggle('is-empty', itemCount === 0);
+
+    const currentCount = container.querySelectorAll('.avatar-shop-item').length;
+    if (currentCount !== itemCount) {
+        container.dataset.itemCount = String(itemCount);
+        initializeAvatarShopList(container);
+    }
+}
+
+function filterCatalogItemsByUserGender(items, userData) {
+    const genderCode = Number(userData?.gender) === 1 ? 'f' : 'm';
+    return (items || []).filter((item) => {
+        const rawGender = String(item?.gender || 'u').toLowerCase();
+        const itemGender = rawGender === '1' ? 'f' : (rawGender === '0' ? 'm' : rawGender);
+        return itemGender === 'u' || itemGender === genderCode;
+    });
+}
+
+function getSlotByCategory(categoryKey, item) {
+    if (categoryKey === 'cloth') return 'body';
+    if (categoryKey === 'cap') return 'head';
+    if (categoryKey === 'glasse') return 'eyes';
+    if (categoryKey === 'flag') return 'flag';
+
+    const slot = String(item?.slot || '').toLowerCase();
+    if (slot === 'body' || slot === 'head' || slot === 'eyes' || slot === 'flag') {
+        return slot;
+    }
+    return null;
+}
+
+function buildThumbCodeCandidates(itemData, folderCode) {
+    const inputCodes = [];
+    const avatarCode = String(itemData?.avatar_code || '').trim();
+    if (avatarCode) {
+        inputCodes.push(avatarCode.toLowerCase());
+    }
+    if (folderCode) {
+        inputCodes.push(String(folderCode).toLowerCase());
+    }
+
+    const seen = new Set();
+    const out = [];
+    inputCodes.forEach((code) => {
+        if (!code) {
+            return;
+        }
+        const normalized = code.endsWith('l') ? code.slice(0, -1) : code;
+        const variants = normalized.startsWith('s')
+            ? [normalized, normalized.slice(1)]
+            : [`s${normalized}`, normalized];
+        variants.forEach((variant) => {
+            if (!variant || seen.has(variant)) {
+                return;
+            }
+            seen.add(variant);
+            out.push(variant);
+        });
+    });
+    return out;
+}
+
+async function resolveStaticThumbUrl(codeCandidates) {
+    const cacheKey = codeCandidates.join('|');
+    if (!resolvedThumbImagePromises.has(cacheKey)) {
+        resolvedThumbImagePromises.set(cacheKey, (async () => {
+            let lastError = null;
+            for (const code of codeCandidates) {
+                for (const baseUrl of AVATAR_THUMB_BASE_URLS) {
+                    const url = `${baseUrl}/${code}.png`;
+                    try {
+                        await preloadImage(url);
+                        return url;
+                    } catch (error) {
+                        lastError = error;
+                    }
+                }
+            }
+            throw lastError || new Error(`Failed to resolve thumbnail for: ${codeCandidates.join(', ')}`);
+        })());
+    }
+    return resolvedThumbImagePromises.get(cacheKey);
+}
+
+async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) {
+    const nameEl = itemButton.querySelector('.avatar-shop-item-name');
+    const thumbEl = itemButton.querySelector('.avatar-shop-item-thumb');
+    if (!nameEl || !thumbEl) {
+        return;
+    }
+
+    if (!itemData) {
+        nameEl.textContent = '';
+        thumbEl.style.display = 'none';
+        thumbEl.style.backgroundImage = '';
+        thumbEl.style.backgroundPosition = '';
+        thumbEl.style.width = '';
+        thumbEl.style.height = '';
+        return;
+    }
+
+    nameEl.textContent = String(itemData?.name || '');
+
+    const slot = getSlotByCategory(categoryKey, itemData);
+    const itemId = Number(itemData?.source_ref_id);
+    const genderCode = Number(userData?.gender) === 1 ? 'f' : 'm';
+    const folderCode = resolveAtlasFolderCode(genderCode, slot, itemId, false)
+        || String(itemData?.avatar_code || '').trim();
+    if (!folderCode) {
+        thumbEl.style.display = 'none';
+        return;
+    }
+
+    try {
+        const codeCandidates = buildThumbCodeCandidates(itemData, folderCode);
+        if (!codeCandidates.length) {
+            thumbEl.style.display = 'none';
+            return;
+        }
+
+        const imageUrl = await resolveStaticThumbUrl(codeCandidates);
+        thumbEl.style.display = 'block';
+        thumbEl.style.backgroundImage = `url('${imageUrl}')`;
+        thumbEl.style.backgroundPosition = 'center center';
+        thumbEl.style.backgroundSize = 'contain';
+        thumbEl.style.width = '100%';
+        thumbEl.style.height = '100%';
+    } catch (error) {
+        thumbEl.style.display = 'none';
+    }
+}
+
 let atlasMetadataPromise = null;
 const preloadedImagePromises = new Map();
+const resolvedAtlasImagePromises = new Map();
+const resolvedThumbImagePromises = new Map();
 
 async function loadAtlasMetadata() {
     if (!atlasMetadataPromise) {
@@ -447,6 +1059,221 @@ function preloadImage(src) {
     return preloadedImagePromises.get(src);
 }
 
+function getAtlasImageCandidates(rawImageUrl, atlasKey) {
+    const raw = String(rawImageUrl || '').trim();
+    if (!raw) {
+        return [];
+    }
+
+    const swappedToGbth = raw.replace('/assets/shared/avatar_sheets/dragonbound/', '/assets/shared/avatar_sheets/gbth/');
+    const swappedToDragonbound = raw.replace('/assets/shared/avatar_sheets/gbth/', '/assets/shared/avatar_sheets/dragonbound/');
+    const candidates = [];
+    const addCandidate = (value) => {
+        if (value && !candidates.includes(value)) {
+            candidates.push(value);
+        }
+    };
+
+    if (String(atlasKey || '').startsWith('gbth_')) {
+        addCandidate(swappedToGbth);
+        addCandidate(raw);
+    } else if (String(atlasKey || '').startsWith('db_')) {
+        addCandidate(swappedToDragonbound);
+        addCandidate(raw);
+    } else {
+        addCandidate(raw);
+        addCandidate(swappedToGbth);
+        addCandidate(swappedToDragonbound);
+    }
+    return candidates;
+}
+
+async function resolveAtlasImageUrl(rawImageUrl, atlasKey) {
+    const cacheKey = `${String(atlasKey || '')}|${String(rawImageUrl || '')}`;
+    if (!resolvedAtlasImagePromises.has(cacheKey)) {
+        resolvedAtlasImagePromises.set(cacheKey, (async () => {
+            const candidates = getAtlasImageCandidates(rawImageUrl, atlasKey);
+            let lastError = null;
+            for (const candidate of candidates) {
+                try {
+                    await preloadImage(candidate);
+                    return candidate;
+                } catch (error) {
+                    lastError = error;
+                }
+            }
+            throw lastError || new Error(`Failed to resolve atlas image: ${rawImageUrl}`);
+        })());
+    }
+    return resolvedAtlasImagePromises.get(cacheKey);
+}
+
+function resolveAtlasFolderCode(gender, slot, itemId, isBackLayer) {
+    if (itemId === null || itemId === undefined) {
+        return null;
+    }
+
+    const id = Number(itemId);
+    if (!Number.isFinite(id)) {
+        return null;
+    }
+
+    const idPart = String(Math.max(0, id)).padStart(5, '0');
+    const backSuffix = isBackLayer ? 'l' : '';
+    const malePrefixBySlot = { head: 'mh', body: 'mb', eyes: 'mg', flag: 'mf' };
+    const femalePrefixBySlot = { head: 'fh', body: 'fb', eyes: 'fg', flag: 'mf' };
+    const prefixBySlot = gender === 'f' ? femalePrefixBySlot : malePrefixBySlot;
+    const prefix = prefixBySlot[slot];
+
+    if (!prefix) {
+        return null;
+    }
+
+    if (slot === 'flag' && gender === 'f' && id === 1) {
+        return `ff00001${backSuffix}`;
+    }
+
+    return `${prefix}${idPart}${backSuffix}`;
+}
+
+function findAtlasEntryByFolderCode(atlases, folderCode) {
+    if (!folderCode || !atlases || typeof atlases !== 'object') {
+        return null;
+    }
+
+    const candidates = [`gbth_${folderCode}`, `db_${folderCode}`, folderCode];
+    for (const key of candidates) {
+        if (atlases[key]) {
+            return { key, atlas: atlases[key] };
+        }
+    }
+    return null;
+}
+
+async function tryCreateAtlasAvatarRuntime(root, state) {
+    try {
+        const meta = await loadAtlasMetadata();
+        const atlases = meta?.atlases;
+        if (!atlases || typeof atlases !== 'object') {
+            return null;
+        }
+
+        const runtimeLayers = SLOT_ORDER.map(({ key, back, z }) => {
+            const el = document.createElement('div');
+            el.className = 'avatar-preview-sheet';
+            el.style.position = 'absolute';
+            el.style.pointerEvents = 'none';
+            el.style.backgroundRepeat = 'no-repeat';
+            el.style.zIndex = String(z);
+            el.style.display = 'none';
+            root.appendChild(el);
+
+            return {
+                slot: key,
+                back,
+                z,
+                el,
+                folderCode: null,
+                atlasKey: null,
+                frames: [],
+                state: { turnCycle: undefined }
+            };
+        });
+
+        async function ensureLayerAtlas(layer) {
+            const itemId = state.avatar[layer.slot];
+            const folderCode = resolveAtlasFolderCode(state.avatar.gender, layer.slot, itemId, layer.back);
+            if (!folderCode) {
+                layer.folderCode = null;
+                layer.atlasKey = null;
+                layer.frames = [];
+                layer.state.turnCycle = undefined;
+                layer.el.style.display = 'none';
+                return false;
+            }
+
+            const entry = findAtlasEntryByFolderCode(atlases, folderCode);
+            if (!entry) {
+                layer.folderCode = null;
+                layer.atlasKey = null;
+                layer.frames = [];
+                layer.state.turnCycle = undefined;
+                layer.el.style.display = 'none';
+                return false;
+            }
+
+            if (layer.folderCode === folderCode && layer.atlasKey === entry.key && layer.frames.length > 0) {
+                return true;
+            }
+
+            const imageUrl = await resolveAtlasImageUrl(entry.atlas.image, entry.key);
+            const frames = expandAtlasFrames(entry.atlas);
+            if (!frames.length) {
+                layer.folderCode = null;
+                layer.atlasKey = null;
+                layer.frames = [];
+                layer.state.turnCycle = undefined;
+                layer.el.style.display = 'none';
+                return false;
+            }
+
+            layer.folderCode = folderCode;
+            layer.atlasKey = entry.key;
+            layer.frames = frames;
+            layer.state.turnCycle = undefined;
+            layer.el.style.backgroundImage = `url('${imageUrl}')`;
+            return true;
+        }
+
+        await Promise.all(runtimeLayers.map((layer) => ensureLayerAtlas(layer)));
+
+        return {
+            async render(tick) {
+                await Promise.all(runtimeLayers.map((layer) => ensureLayerAtlas(layer)));
+
+                let headSpecial = null;
+                const headLayer = runtimeLayers.find((layer) => layer.slot === 'head' && !layer.back)
+                    || runtimeLayers.find((layer) => layer.slot === 'head');
+                if (headLayer && headLayer.frames.length > 0) {
+                    const headResult = computeLayerFrameBySlot('head', headLayer.frames.length, tick, headLayer.state);
+                    headSpecial = headResult.isSpecial;
+                }
+
+                runtimeLayers.forEach((layer) => {
+                    if (!layer.frames.length) {
+                        layer.el.style.display = 'none';
+                        return;
+                    }
+
+                    const forcedSpecial = layer.slot === 'eyes' ? headSpecial : null;
+                    const result = computeLayerFrameBySlot(layer.slot, layer.frames.length, tick, layer.state, forcedSpecial);
+                    const index = Math.max(0, Math.min(result.index, layer.frames.length - 1));
+                    const frame = layer.frames[index];
+                    if (!frame) {
+                        layer.el.style.display = 'none';
+                        return;
+                    }
+
+                    const left = PREVIEW_ANCHOR_X + PREVIEW_NUDGE_X + Number(frame.ox || 0) - Number(frame.cx || 0);
+                    const top = PREVIEW_ANCHOR_Y + PREVIEW_NUDGE_Y + Number(frame.oy || 0) - Number(frame.cy || 0);
+                    layer.el.style.left = `${left}px`;
+                    layer.el.style.top = `${top}px`;
+                    layer.el.style.width = `${frame.w}px`;
+                    layer.el.style.height = `${frame.h}px`;
+                    layer.el.style.backgroundPosition = `-${frame.sx}px -${frame.sy}px`;
+                    layer.el.style.display = '';
+                });
+            },
+            destroy() {
+                runtimeLayers.forEach((layer) => layer.el.remove());
+            }
+        };
+    } catch (error) {
+        console.warn('[AvatarShop] Atlas runtime disabled (fallback to layered):', error);
+        return null;
+    }
+}
+
 function isDefaultMaleAvatar(avatarState) {
     return avatarState.gender === 'm'
         && Number(avatarState.head) === 0
@@ -458,6 +1285,12 @@ function isDefaultMaleAvatar(avatarState) {
 async function tryCreateTestRuntime(root, state) {
     if (AVATAR_SHEET_TEST_MODE === 'dragonbound_random_avatar') {
         return tryCreateDragonboundAtlasRuntime(root);
+    }
+    if (AVATAR_SHEET_TEST_MODE === 'atlas_avatar' || AVATAR_SHEET_TEST_MODE === '') {
+        const atlasRuntime = await tryCreateAtlasAvatarRuntime(root, state);
+        if (atlasRuntime) {
+            return atlasRuntime;
+        }
     }
     if (AVATAR_SHEET_TEST_MODE === 'default_male' || (AVATAR_SHEET_TEST_MODE === '' && isDefaultMaleAvatar(state.avatar))) {
         return tryCreateDefaultMaleSheetRuntime(root, state);
@@ -477,11 +1310,11 @@ async function tryCreateDefaultMaleSheetRuntime(root, state) {
             return null;
         }
 
-        const imageUrl = String(sheetDef.image || '').trim();
-        if (!imageUrl) {
+        const rawImageUrl = String(sheetDef.image || '').trim();
+        if (!rawImageUrl) {
             return null;
         }
-        await preloadImage(imageUrl);
+        const imageUrl = await resolveAtlasImageUrl(rawImageUrl, 'default_male');
 
         const sprite = document.createElement('div');
         sprite.className = 'avatar-preview-sheet';

@@ -13,6 +13,7 @@ const io = new Server(server);
 const userSockets = new Map(); // nickname -> socket.id
 const socketData = new Map(); // socket.id -> { nickname, id }
 const pendingNotifications = new Map(); // userId -> timeoutId
+let chestDefaultsDisabled = false;
 
 function getActivePlayerCount() {
     let count = 0;
@@ -22,6 +23,158 @@ function getActivePlayerCount() {
         }
     }
     return count;
+}
+
+function normalizeGender(genderValue) {
+    return Number(genderValue) === 1 ? 1 : 0;
+}
+
+function normalizeAvatarCatalogGender(genderValue) {
+    const raw = String(genderValue ?? '').trim().toLowerCase();
+    if (raw === '1' || raw === 'f' || raw === 'female' || raw === 'girl') {
+        return 'f';
+    }
+    if (raw === '0' || raw === 'm' || raw === 'male' || raw === 'boy') {
+        return 'm';
+    }
+    return 'u';
+}
+
+function normalizeAvatarCatalogSlot(slotValue) {
+    const raw = String(slotValue ?? '').trim().toLowerCase();
+    if (raw === 'cloth' || raw === 'body') return 'body';
+    if (raw === 'cap' || raw === 'head') return 'head';
+    if (raw === 'glasse' || raw === 'glass' || raw === 'eyes' || raw === 'eye') return 'eyes';
+    if (raw === 'flag') return 'flag';
+    if (raw === 'set' || raw === 'setitem') return 'setitem';
+    if (raw === 'exitem' || raw === 'background' || raw === 'foreground') return raw;
+    return raw;
+}
+
+function toOptionalAvatarValue(value) {
+    if (value === null || value === undefined) {
+        return null;
+    }
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function toBaseAvatarValue(value) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+        return 0;
+    }
+    return parsed;
+}
+
+function buildUserPayload(row) {
+    return {
+        id: row.UserId,
+        nickname: row.Nickname,
+        guild: row.Guild,
+        authority: row.Authority,
+        gender: normalizeGender(row.Gender),
+        ahead: toBaseAvatarValue(row.ahead),
+        abody: toBaseAvatarValue(row.abody),
+        aeyes: toOptionalAvatarValue(row.aeyes),
+        aflag: toOptionalAvatarValue(row.aflag),
+        gold: row.Gold,
+        cash: row.Cash,
+        score: row.TotalScore,
+        grade: row.TotalGrade,
+        rank: row.TotalRank
+    };
+}
+
+function getDefaultAvatarCodesByGender(genderValue) {
+    if (normalizeGender(genderValue) === 1) {
+        return {
+            head: 'fh00000',
+            body: 'fb00000'
+        };
+    }
+    return {
+        head: 'mh00000',
+        body: 'mb00000'
+    };
+}
+
+async function ensureDefaultChestBaseItems(userId, genderValue, existingConnection = null) {
+    if (!userId || chestDefaultsDisabled) {
+        return;
+    }
+
+    const defaults = getDefaultAvatarCodesByGender(genderValue);
+    const ownsConnection = !existingConnection;
+    let connection = existingConnection;
+
+    try {
+        if (!connection) {
+            connection = await pool.getConnection();
+        }
+
+        const slots = [
+            { slot: 'head', code: defaults.head },
+            { slot: 'body', code: defaults.body }
+        ];
+
+        for (const item of slots) {
+            const [equippedRows] = await connection.execute(
+                `SELECT id
+                 FROM chest
+                 WHERE owner_id = ? AND slot = ? AND wearing = 1
+                 LIMIT 1`,
+                [userId, item.slot]
+            );
+
+            if (equippedRows.length > 0) {
+                continue;
+            }
+
+            const [avatarRows] = await connection.execute(
+                `SELECT id, source_ref_id
+                 FROM avatars
+                 WHERE avatar_code = ?
+                 LIMIT 1`,
+                [item.code]
+            );
+
+            const avatarId = avatarRows[0]?.id ?? null;
+            const sourceRefId = Number(avatarRows[0]?.source_ref_id);
+            const itemId = Number.isFinite(sourceRefId) && sourceRefId >= 0 ? sourceRefId : 0;
+
+            try {
+                await connection.execute(
+                    `INSERT INTO chest
+                        (owner_id, avatar_id, item_id, item_code, slot, wearing, acquisition_type, expire_type, place_order)
+                     VALUES
+                        (?, ?, ?, ?, ?, 1, 'S', 'I', 0)`,
+                    [userId, avatarId, itemId, item.code, item.slot]
+                );
+            } catch (slotError) {
+                if (slotError?.code !== 'ER_DUP_ENTRY') {
+                    throw slotError;
+                }
+                await connection.execute(
+                    `UPDATE chest
+                     SET wearing = 1, avatar_id = ?, item_code = ?
+                     WHERE owner_id = ? AND slot = ? AND item_id = ? AND place_order = 0`,
+                    [avatarId, item.code, userId, item.slot, itemId]
+                );
+            }
+        }
+    } catch (error) {
+        if (error && (error.code === 'ER_NO_SUCH_TABLE' || error.code === 'ER_BAD_FIELD_ERROR')) {
+            chestDefaultsDisabled = true;
+            console.warn(`[Avatar] Default chest seed disabled (${error.code}). Run latest SQL migrations.`);
+            return;
+        }
+        console.error('[Avatar] Failed to ensure default chest base items:', error);
+    } finally {
+        if (ownsConnection && connection) {
+            connection.release();
+        }
+    }
 }
 
 app.use(express.json());
@@ -61,6 +214,7 @@ const pool = mysql.createPool({
 // Signup Endpoint
 app.post('/api/signup', async (req, res) => {
     const { username, nickname, gender, password, email } = req.body;
+    const normalizedGender = normalizeGender(gender);
 
     const authority = 0;
     const gold = 10000;
@@ -75,13 +229,15 @@ app.post('/api/signup', async (req, res) => {
         try {
             await connection.execute(
                 `INSERT INTO user (UserId, Gender, Password, Status, Authority, E_Mail, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-                [username, parseInt(gender), password, 'OK', authority, email]
+                [username, normalizedGender, password, 'OK', authority, email]
             );
 
             await connection.execute(
                 `INSERT INTO game (Id, Nickname, Gold, Cash, TotalScore, TotalGrade, SeasonScore, SeasonGrade) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
                 [username, nickname, gold, cash, score, grade, score, grade]
             );
+
+            await ensureDefaultChestBaseItems(username, normalizedGender, connection);
 
             await connection.commit();
             res.status(201).json({
@@ -91,7 +247,11 @@ app.post('/api/signup', async (req, res) => {
                     nickname: nickname,
                     guild: '',
                     authority: authority,
-                    gender: parseInt(gender),
+                    gender: normalizedGender,
+                    ahead: 0,
+                    abody: 0,
+                    aeyes: null,
+                    aflag: null,
                     gold: gold,
                     cash: cash,
                     score: score,
@@ -224,7 +384,7 @@ app.post('/api/login', async (req, res) => {
 
     try {
         const [users] = await pool.execute(
-            `    SELECT u.UserId, u.Authority, u.Gender, g.Nickname, g.Guild, g.Gold, g.Cash, g.TotalScore, g.TotalGrade, g.TotalRank 
+            `    SELECT u.UserId, u.Authority, u.Gender, g.Nickname, g.Guild, g.Gold, g.Cash, g.TotalScore, g.TotalGrade, g.TotalRank
              FROM user u
              JOIN game g ON u.UserId = g.Id
              WHERE u.UserId = ? AND u.Password = ?`,
@@ -233,20 +393,10 @@ app.post('/api/login', async (req, res) => {
 
         if (users.length > 0) {
             const user = users[0];
+            await ensureDefaultChestBaseItems(user.UserId, user.Gender);
             res.status(200).json({
                 message: 'Login successful',
-                user: {
-                    id: user.UserId,
-                    nickname: user.Nickname,
-                    guild: user.Guild,
-                    authority: user.Authority,
-                    gender: user.Gender,
-                    gold: user.Gold,
-                    cash: user.Cash,
-                    score: user.TotalScore,
-                    grade: user.TotalGrade,
-                    rank: user.TotalRank
-                }
+                user: buildUserPayload(user)
             });
         } else {
             res.status(401).json({ error: 'Invalid username or password' });
@@ -258,6 +408,72 @@ app.post('/api/login', async (req, res) => {
 });
 
 // ─── WORLDS ──────────────────────────────────
+app.get('/api/avatar-shop/catalog', async (req, res) => {
+    const nowMs = Date.now();
+    try {
+        const [rows] = await pool.execute('SELECT * FROM avatars');
+        const normalized = (rows || [])
+            .map((row) => {
+                const sourceAvatarId = row?.source_avatar_id ?? row?.SourceAvatarId ?? row?.sourceAvatarId;
+                const sourceRefId = row?.source_ref_id ?? row?.SourceRefId ?? row?.sourceRefId ?? row?.ref_id ?? row?.RefId ?? null;
+                const avatarCode = row?.avatar_code ?? row?.AvatarCode ?? row?.item_code ?? row?.ItemCode ?? '';
+                const itemName = row?.name ?? row?.Name ?? avatarCode;
+                const slotValue = row?.slot ?? row?.Slot ?? row?.category ?? row?.Category;
+                const genderValue = row?.gender ?? row?.Gender;
+                const setKey = row?.set_key ?? row?.SetKey ?? null;
+                const removeTimeRaw = row?.remove_time ?? row?.RemoveTime ?? null;
+                const enabledRaw = row?.enabled ?? row?.Enabled;
+                const removeTime = toOptionalAvatarValue(removeTimeRaw);
+                const enabled = enabledRaw === undefined || enabledRaw === null
+                    ? 1
+                    : (Number(enabledRaw) === 1 ? 1 : 0);
+                return {
+                    id: toBaseAvatarValue(row?.id),
+                    source_avatar_id: toBaseAvatarValue(sourceAvatarId),
+                    source_ref_id: toOptionalAvatarValue(sourceRefId),
+                    avatar_code: String(avatarCode || ''),
+                    name: String(itemName || avatarCode || ''),
+                    slot: normalizeAvatarCatalogSlot(slotValue),
+                    gender: normalizeAvatarCatalogGender(genderValue),
+                    set_key: setKey == null ? null : String(setKey),
+                    remove_time: removeTime,
+                    gold_week: toBaseAvatarValue(row?.gold_week),
+                    gold_month: toBaseAvatarValue(row?.gold_month),
+                    gold_perm: toBaseAvatarValue(row?.gold_perm),
+                    cash_week: toBaseAvatarValue(row?.cash_week),
+                    cash_month: toBaseAvatarValue(row?.cash_month),
+                    cash_perm: toBaseAvatarValue(row?.cash_perm),
+                    stat_pop: toBaseAvatarValue(row?.stat_pop),
+                    stat_time: toBaseAvatarValue(row?.stat_time),
+                    stat_atk: toBaseAvatarValue(row?.stat_atk),
+                    stat_def: toBaseAvatarValue(row?.stat_def),
+                    stat_life: toBaseAvatarValue(row?.stat_life),
+                    stat_item: toBaseAvatarValue(row?.stat_item),
+                    stat_dig: toBaseAvatarValue(row?.stat_dig),
+                    stat_shld: toBaseAvatarValue(row?.stat_shld),
+                    is_unlocked: toBaseAvatarValue(row?.is_unlocked ?? 1),
+                    enabled
+                };
+            })
+            .filter((item) =>
+                item.enabled === 1
+                && (item.remove_time === null || item.remove_time === 0 || item.remove_time > nowMs)
+            )
+            .sort((a, b) => {
+                const codeCompare = String(a.avatar_code).localeCompare(String(b.avatar_code));
+                if (codeCompare !== 0) {
+                    return codeCompare;
+                }
+                return Number(a.id) - Number(b.id);
+            });
+
+        res.json({ items: normalized });
+    } catch (error) {
+        console.warn(`[AvatarShop] Catalog load fallback to empty list (${error?.code || 'UNKNOWN'}):`, error?.message || error);
+        res.json({ items: [] });
+    }
+});
+
 app.get('/api/worlds', (req, res) => {
     // Return only 1 world as requested, counting only users in the lobby
     res.json([
@@ -282,7 +498,7 @@ io.on('connection', (socket) => {
             // Fetch latest data from DB to ensure sync
             try {
                 const [rows] = await pool.execute(
-                    `SELECT u.UserId, u.Authority, u.Gender, g.Nickname, g.Guild, g.Gold, g.Cash, g.TotalScore, g.TotalGrade, g.TotalRank 
+                    `SELECT u.UserId, u.Authority, u.Gender, g.Nickname, g.Guild, g.Gold, g.Cash, g.TotalScore, g.TotalGrade, g.TotalRank
                      FROM user u
                      JOIN game g ON u.UserId = g.Id
                      WHERE g.Nickname = ?`,
@@ -291,6 +507,7 @@ io.on('connection', (socket) => {
 
                 if (rows.length > 0) {
                     const dbUser = rows[0];
+                    await ensureDefaultChestBaseItems(dbUser.UserId, dbUser.Gender);
                     userSockets.set(dbUser.Nickname.toLowerCase(), socket.id);
                     socketData.set(socket.id, {
                         nickname: dbUser.Nickname,
@@ -305,18 +522,7 @@ io.on('connection', (socket) => {
                     });
 
                     // Send updated user info back to client
-                    socket.emit('user_info_update', {
-                        id: dbUser.UserId,
-                        nickname: dbUser.Nickname,
-                        guild: dbUser.Guild,
-                        authority: dbUser.Authority,
-                        gender: dbUser.Gender,
-                        gold: dbUser.Gold,
-                        cash: dbUser.Cash,
-                        score: dbUser.TotalScore,
-                        grade: dbUser.TotalGrade,
-                        rank: dbUser.TotalRank
-                    });
+                    socket.emit('user_info_update', buildUserPayload(dbUser));
                 }
             } catch (err) {
                 console.error('[UserSync] Error fetching latest data:', err);

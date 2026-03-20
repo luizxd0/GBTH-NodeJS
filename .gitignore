@@ -8,3 +8,5 @@ brain/
 all_sizes.txt
 sizes.txt
 dump_sizes.ps1
+**/bin/
+**/obj/

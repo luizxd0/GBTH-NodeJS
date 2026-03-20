@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const buddyUi = window.GBTH?.buddy;
     const socket = io();
 
-    const userData = JSON.parse(sessionStorage.getItem('user'));
+    let userData = JSON.parse(sessionStorage.getItem('user'));
 
     const nicknameSpan = document.getElementById('lobby-nickname');
     const guildSpan = document.getElementById('lobby-guild');
@@ -151,6 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     socket.on('user_info_update', (data) => {
+        userData = data;
         sessionStorage.setItem('user', JSON.stringify(data));
         updateUserUI(data);
     });
