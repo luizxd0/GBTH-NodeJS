@@ -769,6 +769,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (button.disabled || button.style.display === 'none') {
                 return;
             }
+            if (btnStorePuton) {
+                btnStorePuton.disabled = true;
+            }
             categoryButtons.forEach((btn) => btn.classList.remove('active'));
             button.classList.add('active');
 
@@ -790,6 +793,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         btnStoreMainUp.addEventListener('click', async () => {
             if (btnStoreMainUp.disabled) {
                 return;
+            }
+            if (btnStorePuton) {
+                btnStorePuton.disabled = true;
             }
             const activeCategoryId = avatarShopList.dataset.activeCategoryId;
             if (!activeCategoryId) {
@@ -816,6 +822,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         btnStoreMainDown.addEventListener('click', async () => {
             if (btnStoreMainDown.disabled) {
                 return;
+            }
+            if (btnStorePuton) {
+                btnStorePuton.disabled = true;
             }
             const activeCategoryId = avatarShopList.dataset.activeCategoryId;
             if (!activeCategoryId) {
@@ -869,6 +878,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             syncAvatarShopListMode(avatarShopList, null, 0);
             if (btnStoreMainUp) btnStoreMainUp.disabled = true;
             if (btnStoreMainDown) btnStoreMainDown.disabled = true;
+            if (btnStorePuton) btnStorePuton.disabled = true;
         }
     }
 
@@ -1186,6 +1196,7 @@ async function updateShopGridForCategoryButton(
         cardButton.dataset.canTry = canTry ? '1' : '0';
         cardButton.classList.toggle('not-tryable', Boolean(item) && !canTry);
     });
+    setSelectedShopCard(container, null);
 
     container.dataset.activeCategoryId = String(buttonId || '');
     container.dataset.activeCategoryKey = String(categoryKey || '');
@@ -1229,9 +1240,6 @@ function initializeAvatarShopList(container) {
                 </div>
             </div>
         `;
-        if (index === 0) {
-            item.classList.add('selected');
-        }
         container.appendChild(item);
     }
 
