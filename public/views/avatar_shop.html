@@ -62,6 +62,9 @@
                 <button id="btn-store-sort-flag" class="avatar-shop-sort-btn" type="button" aria-label="Flag"></button>
             </div>
             <div id="avatar-shop-exitem-frame"></div>
+            <div id="avatar-shop-owned-list" aria-label="Owned avatar items"></div>
+            <div id="avatar-shop-owned-ex-list" aria-label="Owned EX items"></div>
+            <button id="btn-avatar-shop-sell" type="button" aria-label="Sell selected item"></button>
 
             <button id="btn-store-cashcharge" class="avatar-shop-btn"></button>
             <button id="btn-store-main-up" class="avatar-shop-btn"></button>
@@ -166,6 +169,15 @@
                         style="visibility: hidden; white-space: pre; position: absolute; font-family: var(--gbth-ui-font); font-size: 11px;"></span>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Global Error Popup -->
+    <div id="error-overlay" class="hidden">
+        <div id="error-popup">
+            <div id="error-title">System Error</div>
+            <div id="error-message">An unexpected error occurred. Please try again later.</div>
+            <button id="error-confirm-btn"></button>
         </div>
     </div>
 </body>

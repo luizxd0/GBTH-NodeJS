@@ -50,6 +50,14 @@ const MY_AVATAR_STAT_SUMMARY_ORDER = [
 ];
 const MY_AVATAR_TRACKED_SLOTS = ['head', 'body', 'eyes', 'flag', 'background', 'foreground', 'exitem'];
 const MY_AVATAR_STAT_ABS_CAP = 50;
+const OWNED_SORT_SLOT_BY_BUTTON_ID = {
+    'btn-store-sort-puton': 'all',
+    'btn-store-sort-hat': 'head',
+    'btn-store-sort-cloth': 'body',
+    'btn-store-sort-glasses': 'eyes',
+    'btn-store-sort-flag': 'flag'
+};
+const OWNED_REGULAR_SLOT_SORT_ORDER = ['head', 'body', 'eyes', 'flag'];
 
 function createEmptyCatalogStatTotals() {
     const totals = {};
@@ -98,9 +106,9 @@ function buildPreviewEquipStateFromUserData(userData) {
         body: normalizePreviewEquipSlotValue('body', userData?.abody),
         eyes: normalizePreviewEquipSlotValue('eyes', userData?.aeyes),
         flag: normalizePreviewEquipSlotValue('flag', userData?.aflag),
-        background: null,
-        foreground: null,
-        exitem: null
+        background: normalizePreviewEquipSlotValue('background', userData?.abackground),
+        foreground: normalizePreviewEquipSlotValue('foreground', userData?.aforeground),
+        exitem: normalizePreviewEquipSlotValue('exitem', userData?.aexitem)
     };
 }
 
@@ -489,6 +497,21 @@ function resolveSlotIconUrl(itemData, categoryKey, userData) {
     return getStoreIconUrl(resolveSlotIconFrame(itemData, categoryKey, userData));
 }
 
+function isExOwnedInventorySlot(slotValue) {
+    const slot = String(slotValue || '').toLowerCase();
+    return slot === 'background' || slot === 'foreground' || slot === 'exitem';
+}
+
+function resolveCategoryKeyFromSlot(slotValue) {
+    const slot = String(slotValue || '').toLowerCase();
+    if (slot === 'head') return 'cap';
+    if (slot === 'body') return 'cloth';
+    if (slot === 'eyes') return 'glasse';
+    if (slot === 'flag') return 'flag';
+    if (slot === 'background' || slot === 'foreground' || slot === 'exitem') return 'exitem';
+    return 'cap';
+}
+
 function shouldHideCatalogItem(item) {
     const slot = String(item?.slot || '').toLowerCase();
     const name = String(item?.name || '').trim().toLowerCase();
@@ -611,8 +634,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     const avatarShopBuyResaleLine = document.getElementById('avatar-shop-buy-resale-line');
     const avatarShopBuyDesc = document.getElementById('avatar-shop-buy-desc');
     const avatarShopBuyThumb = document.getElementById('avatar-shop-buy-thumb');
+    const avatarShopOwnedList = document.getElementById('avatar-shop-owned-list');
+    const avatarShopOwnedExList = document.getElementById('avatar-shop-owned-ex-list');
+    const btnAvatarShopSell = document.getElementById('btn-avatar-shop-sell');
+    const btnStoreSortPuton = document.getElementById('btn-store-sort-puton');
+    const btnStoreSortHat = document.getElementById('btn-store-sort-hat');
+    const btnStoreSortCloth = document.getElementById('btn-store-sort-cloth');
+    const btnStoreSortGlasses = document.getElementById('btn-store-sort-glasses');
+    const btnStoreSortFlag = document.getElementById('btn-store-sort-flag');
     const BUDDY_CHAT_HISTORY_KEY = 'gbth_buddy_chat_history_v1';
     const BUDDY_CHAT_HISTORY_LIMIT = 120;
+    let ownedInventoryRegularItems = [];
+    let ownedInventoryExItems = [];
+    let ownedListSortPrimarySlot = 'all';
+    let selectedOwnedRegularChestId = null;
+    let selectedOwnedExChestId = null;
+    let ownedDragState = null;
+    let ownedInventoryActionInProgress = false;
+    let buyActionInProgress = false;
 
     const buddyScroll = ui?.setupScrollControls({
         viewport: buddyListContent,
@@ -643,6 +682,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         ghost: buddyChatGhostSpan,
         baseLeft: 0
     });
+
+    const errorPopup = ui?.createErrorPopupController({
+        overlay: document.getElementById('error-overlay'),
+        title: document.getElementById('error-title'),
+        message: document.getElementById('error-message'),
+        confirmButton: document.getElementById('error-confirm-btn')
+    });
+
+    window.showError = (title, message) => errorPopup?.show(title, message);
 
     if (buddyPanel) ui?.makeDraggable(buddyPanel);
     if (addBuddyPopup) ui?.makeDraggable(addBuddyPopup);
@@ -694,6 +742,564 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderMyAvatarStatSummary(myAvatarStatsOverlay, totals);
     }
 
+    function applyUserDataSnapshot(data, options = {}) {
+        if (!data || typeof data !== 'object') {
+            return;
+        }
+
+        const { persistSession = true } = options;
+        userData = data;
+        if (persistSession) {
+            sessionStorage.setItem('user', JSON.stringify(data));
+        }
+        updateUserInfo(data);
+
+        const baseState = buildPreviewEquipStateFromUserData(data);
+        currentPreviewEquip = {
+            ...currentPreviewEquip,
+            head: baseState.head,
+            body: baseState.body,
+            eyes: baseState.eyes,
+            flag: baseState.flag,
+            background: baseState.background,
+            foreground: baseState.foreground,
+            exitem: baseState.exitem
+        };
+
+        if (window.avatarShopPreview) {
+            window.avatarShopPreview.setGender(data?.gender);
+            window.avatarShopPreview.setEquip('head', data?.ahead);
+            window.avatarShopPreview.setEquip('body', data?.abody);
+            window.avatarShopPreview.setEquip('eyes', data?.aeyes);
+            window.avatarShopPreview.setEquip('flag', data?.aflag);
+            window.avatarShopPreview.setEquip('background', data?.abackground);
+            window.avatarShopPreview.setEquip('foreground', data?.aforeground);
+            window.avatarShopPreview.setEquip('exitem', data?.aexitem);
+        }
+
+        refreshMyAvatarStatsSummary();
+
+        const activeShopList = document.getElementById('avatar-shop-list');
+        const activeBuyButton = document.getElementById('btn-store-buy');
+        syncBuyButtonState(activeShopList, activeBuyButton, data);
+        if (avatarShopBuyPopup && !avatarShopBuyPopup.classList.contains('hidden')) {
+            const selectedItem = getSelectedShopItem(activeShopList);
+            const purchaseState = resolveCatalogPurchaseState(selectedItem, data);
+            if (!purchaseState.canBuy) {
+                hideAvatarShopBuyPopup();
+            }
+        }
+    }
+
+    function showAvatarShopError(title, message) {
+        const safeTitle = String(title || 'System Error');
+        const safeMessage = String(message || 'An unexpected error occurred. Please try again later.');
+        if (typeof window.showError === 'function') {
+            window.showError(safeTitle, safeMessage);
+            return;
+        }
+        window.showBuddyAlert?.(safeMessage);
+    }
+
+    function getSelectedOwnedChestId() {
+        const regularId = Number(selectedOwnedRegularChestId);
+        if (Number.isFinite(regularId) && regularId > 0) {
+            return regularId;
+        }
+        const exId = Number(selectedOwnedExChestId);
+        if (Number.isFinite(exId) && exId > 0) {
+            return exId;
+        }
+        return null;
+    }
+
+    function updateSellButtonState() {
+        if (!btnAvatarShopSell) {
+            return;
+        }
+        const hasSelection = getSelectedOwnedChestId() !== null;
+        btnAvatarShopSell.disabled = ownedInventoryActionInProgress || !hasSelection;
+    }
+
+    function clearOwnedDropTargets() {
+        document.querySelectorAll('.avatar-shop-owned-item.is-drop-target, .avatar-shop-owned-ex-item.is-drop-target').forEach((element) => {
+            element.classList.remove('is-drop-target');
+        });
+    }
+
+    function findOwnedItemByChestId(chestId) {
+        const normalizedChestId = Number(chestId);
+        if (!Number.isFinite(normalizedChestId) || normalizedChestId <= 0) {
+            return null;
+        }
+        const regular = ownedInventoryRegularItems.find((item) => Number(item?.chest_id) === normalizedChestId);
+        if (regular) {
+            return { item: regular, listType: 'regular' };
+        }
+        const ex = ownedInventoryExItems.find((item) => Number(item?.chest_id) === normalizedChestId);
+        if (ex) {
+            return { item: ex, listType: 'ex' };
+        }
+        return null;
+    }
+
+    function getOwnedListByType(listType) {
+        return listType === 'ex' ? ownedInventoryExItems : ownedInventoryRegularItems;
+    }
+
+    function getOwnedRegularSlotPriority(primarySlot) {
+        const normalizedPrimary = String(primarySlot || 'all').toLowerCase();
+        if (normalizedPrimary === 'all') {
+            return OWNED_REGULAR_SLOT_SORT_ORDER.slice();
+        }
+        if (!OWNED_REGULAR_SLOT_SORT_ORDER.includes(normalizedPrimary)) {
+            return OWNED_REGULAR_SLOT_SORT_ORDER.slice();
+        }
+        return [
+            normalizedPrimary,
+            ...OWNED_REGULAR_SLOT_SORT_ORDER.filter((slot) => slot !== normalizedPrimary)
+        ];
+    }
+
+    function getSortedOwnedRegularItemsForDisplay() {
+        const priorityOrder = getOwnedRegularSlotPriority(ownedListSortPrimarySlot);
+        const priorityMap = new Map(priorityOrder.map((slot, index) => [slot, index]));
+        return ownedInventoryRegularItems.slice().sort((leftItem, rightItem) => {
+            const leftSlot = String(leftItem?.slot || '').toLowerCase();
+            const rightSlot = String(rightItem?.slot || '').toLowerCase();
+            const leftPriority = priorityMap.has(leftSlot) ? priorityMap.get(leftSlot) : Number.MAX_SAFE_INTEGER;
+            const rightPriority = priorityMap.has(rightSlot) ? priorityMap.get(rightSlot) : Number.MAX_SAFE_INTEGER;
+            if (leftPriority !== rightPriority) {
+                return leftPriority - rightPriority;
+            }
+
+            const leftOrder = Number(leftItem?.place_order);
+            const rightOrder = Number(rightItem?.place_order);
+            const leftHasOrder = Number.isFinite(leftOrder);
+            const rightHasOrder = Number.isFinite(rightOrder);
+            if (leftHasOrder && rightHasOrder && leftOrder !== rightOrder) {
+                return leftOrder - rightOrder;
+            }
+            if (leftHasOrder !== rightHasOrder) {
+                return leftHasOrder ? -1 : 1;
+            }
+
+            const leftChestId = Number(leftItem?.chest_id);
+            const rightChestId = Number(rightItem?.chest_id);
+            const leftHasChestId = Number.isFinite(leftChestId);
+            const rightHasChestId = Number.isFinite(rightChestId);
+            if (leftHasChestId && rightHasChestId && leftChestId !== rightChestId) {
+                return leftChestId - rightChestId;
+            }
+            if (leftHasChestId !== rightHasChestId) {
+                return leftHasChestId ? -1 : 1;
+            }
+            return 0;
+        });
+    }
+
+    function getOwnedDisplayListByType(listType) {
+        if (listType === 'ex') {
+            return ownedInventoryExItems;
+        }
+        return getSortedOwnedRegularItemsForDisplay();
+    }
+
+    function setOwnedListByType(listType, nextList) {
+        if (listType === 'ex') {
+            ownedInventoryExItems = nextList;
+            return;
+        }
+        ownedInventoryRegularItems = nextList;
+    }
+
+    function bindOwnedRowDragHandlers(row, listType, chestId) {
+        if (!row) {
+            return;
+        }
+        const itemsForList = getOwnedListByType(listType);
+        row.draggable = !ownedInventoryActionInProgress && itemsForList.length > 1;
+        if (!row.draggable) {
+            return;
+        }
+
+        row.addEventListener('dragstart', (event) => {
+            if (ownedInventoryActionInProgress) {
+                event.preventDefault();
+                return;
+            }
+            ownedDragState = { listType, chestId };
+            row.classList.add('is-dragging');
+            if (event.dataTransfer) {
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', `${listType}:${chestId}`);
+            }
+        });
+
+        row.addEventListener('dragover', (event) => {
+            if (!ownedDragState || ownedDragState.listType !== listType || Number(ownedDragState.chestId) === Number(chestId)) {
+                return;
+            }
+            event.preventDefault();
+            if (event.dataTransfer) {
+                event.dataTransfer.dropEffect = 'move';
+            }
+            clearOwnedDropTargets();
+            row.classList.add('is-drop-target');
+        });
+
+        row.addEventListener('dragleave', () => {
+            row.classList.remove('is-drop-target');
+        });
+
+        row.addEventListener('drop', async (event) => {
+            event.preventDefault();
+            row.classList.remove('is-drop-target');
+            if (!ownedDragState || ownedDragState.listType !== listType || Number(ownedDragState.chestId) === Number(chestId)) {
+                return;
+            }
+            const sourceChestId = Number(ownedDragState.chestId);
+            const targetChestId = Number(chestId);
+            ownedDragState = null;
+            clearOwnedDropTargets();
+            await requestReorderOwnedItems(listType, sourceChestId, targetChestId);
+        });
+
+        row.addEventListener('dragend', () => {
+            row.classList.remove('is-dragging');
+            ownedDragState = null;
+            clearOwnedDropTargets();
+        });
+    }
+
+    function setActiveOwnedSortButton(sortSlot) {
+        const targetSlot = String(sortSlot || 'all');
+        const entries = Object.entries(OWNED_SORT_SLOT_BY_BUTTON_ID);
+        entries.forEach(([buttonId, slot]) => {
+            const button = document.getElementById(buttonId);
+            if (!button) {
+                return;
+            }
+            button.classList.toggle('active', slot === targetSlot);
+        });
+    }
+
+    function renderOwnedRegularList() {
+        if (!avatarShopOwnedList) {
+            return;
+        }
+
+        avatarShopOwnedList.innerHTML = '';
+        getSortedOwnedRegularItemsForDisplay().forEach((item) => {
+            const chestId = Number(item?.chest_id);
+            if (!Number.isFinite(chestId) || chestId <= 0) {
+                return;
+            }
+
+            const row = document.createElement('button');
+            row.type = 'button';
+            row.className = 'avatar-shop-owned-item';
+            row.dataset.chestId = String(chestId);
+            if (chestId === Number(selectedOwnedRegularChestId)) {
+                row.classList.add('selected');
+            }
+            if (Number(item?.wearing) === 1) {
+                row.classList.add('is-equipped');
+            }
+
+            const equipArrow = document.createElement('img');
+            equipArrow.className = 'avatar-shop-owned-item-equip-arrow';
+            if (Number(item?.wearing) !== 1) {
+                equipArrow.classList.add('is-hidden');
+            }
+            equipArrow.alt = '';
+            equipArrow.src = getStoreIconUrl(7);
+            row.appendChild(equipArrow);
+
+            const slotIcon = document.createElement('img');
+            slotIcon.className = 'avatar-shop-owned-item-slot';
+            slotIcon.alt = '';
+            slotIcon.src = resolveSlotIconUrl(item, resolveCategoryKeyFromSlot(item?.slot), userData);
+            row.appendChild(slotIcon);
+
+            const nameEl = document.createElement('span');
+            nameEl.className = 'avatar-shop-owned-item-name';
+            nameEl.textContent = String(item?.name || '');
+            row.appendChild(nameEl);
+
+            const statRows = resolveCatalogStatRows(item, 2);
+            if (statRows.length > 0) {
+                const statsEl = document.createElement('span');
+                statsEl.className = 'avatar-shop-owned-item-stats';
+                statRows.forEach((statRow) => {
+                    const statEl = document.createElement('span');
+                    statEl.className = 'avatar-shop-owned-item-stat';
+
+                    const statIcon = document.createElement('img');
+                    statIcon.className = 'avatar-shop-owned-item-stat-icon';
+                    statIcon.alt = '';
+                    statIcon.src = statRow.iconUrl;
+                    statEl.appendChild(statIcon);
+
+                    const statValue = document.createElement('span');
+                    statValue.className = 'avatar-shop-owned-item-stat-value';
+                    statValue.textContent = statRow.value;
+                    statEl.appendChild(statValue);
+
+                    statsEl.appendChild(statEl);
+                });
+                row.appendChild(statsEl);
+            }
+
+            row.addEventListener('click', () => {
+                selectedOwnedRegularChestId = chestId;
+                selectedOwnedExChestId = null;
+                renderOwnedRegularList();
+                renderOwnedExList();
+                updateSellButtonState();
+            });
+
+            row.addEventListener('dblclick', () => {
+                requestToggleOwnedItemEquip(chestId);
+            });
+
+            bindOwnedRowDragHandlers(row, 'regular', chestId);
+
+            avatarShopOwnedList.appendChild(row);
+        });
+    }
+
+    function renderOwnedExList() {
+        if (!avatarShopOwnedExList) {
+            return;
+        }
+
+        avatarShopOwnedExList.innerHTML = '';
+        ownedInventoryExItems.forEach((item) => {
+            const chestId = Number(item?.chest_id);
+            if (!Number.isFinite(chestId) || chestId <= 0) {
+                return;
+            }
+
+            const row = document.createElement('button');
+            row.type = 'button';
+            row.className = 'avatar-shop-owned-ex-item';
+            row.dataset.chestId = String(chestId);
+            if (chestId === Number(selectedOwnedExChestId)) {
+                row.classList.add('selected');
+            }
+            if (Number(item?.wearing) === 1) {
+                row.classList.add('is-equipped');
+            }
+
+            const equipArrow = document.createElement('img');
+            equipArrow.className = 'avatar-shop-owned-ex-item-equip-arrow';
+            if (Number(item?.wearing) !== 1) {
+                equipArrow.classList.add('is-hidden');
+            }
+            equipArrow.alt = '';
+            equipArrow.src = getStoreIconUrl(7);
+            row.appendChild(equipArrow);
+
+            const slotIcon = document.createElement('img');
+            slotIcon.className = 'avatar-shop-owned-ex-item-slot';
+            slotIcon.alt = '';
+            slotIcon.src = resolveSlotIconUrl(item, resolveCategoryKeyFromSlot(item?.slot), userData);
+            row.appendChild(slotIcon);
+
+            const nameEl = document.createElement('span');
+            nameEl.className = 'avatar-shop-owned-ex-item-name';
+            nameEl.textContent = String(item?.name || '');
+            row.appendChild(nameEl);
+
+            row.addEventListener('click', () => {
+                selectedOwnedExChestId = chestId;
+                selectedOwnedRegularChestId = null;
+                renderOwnedRegularList();
+                renderOwnedExList();
+                updateSellButtonState();
+            });
+
+            row.addEventListener('dblclick', () => {
+                requestToggleOwnedItemEquip(chestId);
+            });
+
+            bindOwnedRowDragHandlers(row, 'ex', chestId);
+
+            avatarShopOwnedExList.appendChild(row);
+        });
+    }
+
+    function applyInventoryPayload(inventoryPayload, options = {}) {
+        const { preserveSelection = true } = options;
+        const nextRegular = Array.isArray(inventoryPayload?.regularItems) ? inventoryPayload.regularItems : [];
+        const nextEx = Array.isArray(inventoryPayload?.exItems) ? inventoryPayload.exItems : [];
+        const nextCounts = inventoryPayload?.counts || {};
+
+        const previousRegularSelection = selectedOwnedRegularChestId;
+        const previousExSelection = selectedOwnedExChestId;
+
+        ownedInventoryRegularItems = nextRegular;
+        ownedInventoryExItems = nextEx;
+
+        if (preserveSelection) {
+            const regularStillExists = ownedInventoryRegularItems.some((item) => Number(item?.chest_id) === Number(previousRegularSelection));
+            const exStillExists = ownedInventoryExItems.some((item) => Number(item?.chest_id) === Number(previousExSelection));
+            selectedOwnedRegularChestId = regularStillExists ? previousRegularSelection : null;
+            selectedOwnedExChestId = exStillExists ? previousExSelection : null;
+        } else {
+            selectedOwnedRegularChestId = null;
+            selectedOwnedExChestId = null;
+        }
+
+        renderOwnedRegularList();
+        renderOwnedExList();
+        updateSellButtonState();
+
+        const totalCount = Number(nextCounts?.total);
+        renderMyAvatarCountValue(myAvatarCountEl, Number.isFinite(totalCount) ? totalCount : (nextRegular.length + nextEx.length));
+    }
+
+    function applyAvatarShopServerPayload(payload, options = {}) {
+        if (!payload || typeof payload !== 'object') {
+            return;
+        }
+        if (payload.user) {
+            applyUserDataSnapshot(payload.user, { persistSession: true });
+        }
+        if (payload.inventory) {
+            applyInventoryPayload(payload.inventory, options);
+        }
+    }
+
+    async function refreshAvatarShopInventory(options = {}) {
+        if (!userData?.id) {
+            return;
+        }
+        try {
+            const payload = await loadAvatarShopInventory(userData.id);
+            applyAvatarShopServerPayload(payload, options);
+        } catch (error) {
+            console.warn('[AvatarShop] Failed to load owned inventory:', error);
+            applyInventoryPayload({ regularItems: [], exItems: [], counts: { total: 0 } }, { preserveSelection: false });
+        }
+    }
+
+    async function requestSetOwnedItemEquip(chestId, shouldEquip) {
+        const normalizedChestId = Number(chestId);
+        if (!Number.isFinite(normalizedChestId) || normalizedChestId <= 0 || !userData?.id || ownedInventoryActionInProgress) {
+            return;
+        }
+
+        ownedInventoryActionInProgress = true;
+        updateSellButtonState();
+        try {
+            const payload = shouldEquip
+                ? await equipAvatarShopChestItem(userData.id, normalizedChestId)
+                : await unequipAvatarShopChestItem(userData.id, normalizedChestId);
+            applyAvatarShopServerPayload(payload, { preserveSelection: true });
+            const existsInRegular = ownedInventoryRegularItems.some((item) => Number(item?.chest_id) === normalizedChestId);
+            const existsInEx = ownedInventoryExItems.some((item) => Number(item?.chest_id) === normalizedChestId);
+            selectedOwnedRegularChestId = existsInRegular ? normalizedChestId : null;
+            selectedOwnedExChestId = existsInEx ? normalizedChestId : null;
+            renderOwnedRegularList();
+            renderOwnedExList();
+        } catch (error) {
+            const actionLabel = shouldEquip ? 'Equip' : 'Unequip';
+            showAvatarShopError(`${actionLabel} Error`, error?.message || `Unable to ${actionLabel.toLowerCase()} item.`);
+        } finally {
+            ownedInventoryActionInProgress = false;
+            updateSellButtonState();
+            renderOwnedRegularList();
+            renderOwnedExList();
+        }
+    }
+
+    async function requestToggleOwnedItemEquip(chestId) {
+        const match = findOwnedItemByChestId(chestId);
+        if (!match) {
+            return;
+        }
+        const shouldEquip = Number(match.item?.wearing) !== 1;
+        await requestSetOwnedItemEquip(chestId, shouldEquip);
+    }
+
+    async function requestReorderOwnedItems(listType, sourceChestId, targetChestId) {
+        if (!userData?.id || ownedInventoryActionInProgress) {
+            return;
+        }
+        const normalizedSourceId = Number(sourceChestId);
+        const normalizedTargetId = Number(targetChestId);
+        if (!Number.isFinite(normalizedSourceId) || normalizedSourceId <= 0 || !Number.isFinite(normalizedTargetId) || normalizedTargetId <= 0) {
+            return;
+        }
+        if (normalizedSourceId === normalizedTargetId) {
+            return;
+        }
+
+        const currentList = getOwnedDisplayListByType(listType);
+        if (!Array.isArray(currentList) || currentList.length <= 1) {
+            return;
+        }
+
+        const sourceIndex = currentList.findIndex((item) => Number(item?.chest_id) === normalizedSourceId);
+        const targetIndex = currentList.findIndex((item) => Number(item?.chest_id) === normalizedTargetId);
+        if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
+            return;
+        }
+
+        const nextList = currentList.slice();
+        const [movedItem] = nextList.splice(sourceIndex, 1);
+        nextList.splice(targetIndex, 0, movedItem);
+        const orderedChestIds = nextList
+            .map((item) => Number(item?.chest_id))
+            .filter((value) => Number.isFinite(value) && value > 0);
+        if (orderedChestIds.length <= 1) {
+            return;
+        }
+
+        ownedInventoryActionInProgress = true;
+        updateSellButtonState();
+        setOwnedListByType(listType, nextList);
+        renderOwnedRegularList();
+        renderOwnedExList();
+        try {
+            const payload = await reorderAvatarShopOwnedItems(userData.id, listType, orderedChestIds);
+            applyAvatarShopServerPayload(payload, { preserveSelection: true });
+        } catch (error) {
+            showAvatarShopError('Sort Error', error?.message || 'Unable to reorder owned items.');
+            await refreshAvatarShopInventory({ preserveSelection: true });
+        } finally {
+            ownedInventoryActionInProgress = false;
+            updateSellButtonState();
+            renderOwnedRegularList();
+            renderOwnedExList();
+        }
+    }
+
+    async function requestSellSelectedOwnedItem() {
+        const chestId = getSelectedOwnedChestId();
+        if (!Number.isFinite(chestId) || chestId <= 0 || !userData?.id || ownedInventoryActionInProgress) {
+            return;
+        }
+
+        ownedInventoryActionInProgress = true;
+        updateSellButtonState();
+        try {
+            const payload = await sellAvatarShopChestItem(userData.id, chestId);
+            selectedOwnedRegularChestId = null;
+            selectedOwnedExChestId = null;
+            applyAvatarShopServerPayload(payload, { preserveSelection: false });
+        } catch (error) {
+            showAvatarShopError('Sell Error', error?.message || 'Unable to sell item.');
+        } finally {
+            ownedInventoryActionInProgress = false;
+            updateSellButtonState();
+            renderOwnedRegularList();
+            renderOwnedExList();
+        }
+    }
+
     updateUserInfo(userData);
 
     if (userData) {
@@ -709,38 +1315,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     socket.on('user_info_update', (data) => {
-        userData = data;
-        sessionStorage.setItem('user', JSON.stringify(data));
-        updateUserInfo(data);
-
-        const baseState = buildPreviewEquipStateFromUserData(data);
-        currentPreviewEquip = {
-            ...currentPreviewEquip,
-            head: baseState.head,
-            body: baseState.body,
-            eyes: baseState.eyes,
-            flag: baseState.flag
-        };
-
-        if (window.avatarShopPreview) {
-            window.avatarShopPreview.setGender(data?.gender);
-            window.avatarShopPreview.setEquip('head', data?.ahead);
-            window.avatarShopPreview.setEquip('body', data?.abody);
-            window.avatarShopPreview.setEquip('eyes', data?.aeyes);
-            window.avatarShopPreview.setEquip('flag', data?.aflag);
-        }
-        refreshMyAvatarStatsSummary();
-
-        const activeShopList = document.getElementById('avatar-shop-list');
-        const activeBuyButton = document.getElementById('btn-store-buy');
-        syncBuyButtonState(activeShopList, activeBuyButton, data);
-        if (avatarShopBuyPopup && !avatarShopBuyPopup.classList.contains('hidden')) {
-            const selectedItem = getSelectedShopItem(activeShopList);
-            const purchaseState = resolveCatalogPurchaseState(selectedItem, data);
-            if (!purchaseState.canBuy) {
-                hideAvatarShopBuyPopup();
-            }
-        }
+        applyUserDataSnapshot(data, { persistSession: true });
     });
 
     const btnStoreExit = document.getElementById('btn-store-exit');
@@ -757,6 +1332,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (btnStoreBuy) btnStoreBuy.disabled = true;
     if (btnStoreMainUp) btnStoreMainUp.disabled = true;
     if (btnStoreMainDown) btnStoreMainDown.disabled = true;
+    if (btnAvatarShopSell) btnAvatarShopSell.disabled = true;
+
+    const ownedSortButtons = [
+        btnStoreSortPuton,
+        btnStoreSortHat,
+        btnStoreSortCloth,
+        btnStoreSortGlasses,
+        btnStoreSortFlag
+    ].filter(Boolean);
+
+    ownedSortButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            const sortSlot = OWNED_SORT_SLOT_BY_BUTTON_ID[button.id] || 'all';
+            ownedListSortPrimarySlot = sortSlot;
+            setActiveOwnedSortButton(sortSlot);
+            renderOwnedRegularList();
+        });
+    });
+    setActiveOwnedSortButton(ownedListSortPrimarySlot);
+
+    if (btnAvatarShopSell) {
+        btnAvatarShopSell.addEventListener('click', () => {
+            requestSellSelectedOwnedItem();
+        });
+    }
 
     function hideAvatarShopBuyPopup() {
         if (!avatarShopBuyPopup) {
@@ -807,10 +1407,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         copyAvatarShopThumbVisual(selectedCard?.querySelector('.avatar-shop-item-thumb'), avatarShopBuyThumb);
 
         if (btnStoreWindowBuyCash) {
-            btnStoreWindowBuyCash.disabled = !purchaseState.canBuyWithCash;
+            btnStoreWindowBuyCash.disabled = buyActionInProgress || !purchaseState.canBuyWithCash;
         }
         if (btnStoreWindowBuyGold) {
-            btnStoreWindowBuyGold.disabled = !purchaseState.canBuyWithGold;
+            btnStoreWindowBuyGold.disabled = buyActionInProgress || !purchaseState.canBuyWithGold;
+        }
+        if (btnStoreWindowCancel) {
+            btnStoreWindowCancel.disabled = buyActionInProgress;
         }
 
         return true;
@@ -824,12 +1427,36 @@ document.addEventListener('DOMContentLoaded', async () => {
             hideAvatarShopBuyPopup();
             return;
         }
+
+        const parent = avatarShopBuyPopup.offsetParent || document.getElementById('avatar-shop-screen');
+        const parentWidth = Number(parent?.clientWidth || 800);
+        const parentHeight = Number(parent?.clientHeight || 600);
+        const popupWidth = Number(avatarShopBuyPopup.offsetWidth || 275);
+        const popupHeight = Number(avatarShopBuyPopup.offsetHeight || 263);
+        const styleSource = parent || avatarShopBuyPopup;
+        const computedStyle = window.getComputedStyle(styleSource);
+        const offsetX = Number.parseFloat(computedStyle.getPropertyValue('--avatar-shop-buy-popup-center-offset-x')) || 0;
+        const offsetY = Number.parseFloat(computedStyle.getPropertyValue('--avatar-shop-buy-popup-center-offset-y')) || 0;
+        const centeredLeft = Math.max(0, Math.floor((parentWidth - popupWidth) / 2) + Math.round(offsetX));
+        const centeredTop = Math.max(0, Math.floor((parentHeight - popupHeight) / 2) + Math.round(offsetY));
+        avatarShopBuyPopup.style.left = `${centeredLeft}px`;
+        avatarShopBuyPopup.style.top = `${centeredTop}px`;
+
         avatarShopBuyPopup.classList.remove('hidden');
     }
 
-    function handleAvatarShopBuyClick(currency) {
+    async function handleAvatarShopBuyClick(currency) {
+        if (buyActionInProgress || !userData?.id) {
+            return;
+        }
+
         const listContainer = document.getElementById('avatar-shop-list');
         const selectedItem = getSelectedShopItem(listContainer);
+        const avatarId = Number(selectedItem?.id);
+        if (!selectedItem || !Number.isFinite(avatarId) || avatarId <= 0) {
+            return;
+        }
+
         const purchaseState = resolveCatalogPurchaseState(selectedItem, userData);
         const canBuy = currency === 'cash'
             ? purchaseState.canBuyWithCash
@@ -839,9 +1466,35 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        hideAvatarShopBuyPopup();
-        // Purchase transaction endpoint is not implemented yet; keep this as UI parity only.
-        console.info('[AvatarShop] Purchase option selected:', currency, selectedItem?.avatar_code || selectedItem?.name || 'unknown');
+        buyActionInProgress = true;
+        if (btnStoreWindowBuyCash) btnStoreWindowBuyCash.disabled = true;
+        if (btnStoreWindowBuyGold) btnStoreWindowBuyGold.disabled = true;
+        if (btnStoreWindowCancel) btnStoreWindowCancel.disabled = true;
+
+        try {
+            const payload = await purchaseAvatarShopItem(userData.id, avatarId, currency);
+            hideAvatarShopBuyPopup();
+            applyAvatarShopServerPayload(payload, { preserveSelection: false });
+
+            const purchasedChestId = Number(payload?.purchasedChestId);
+            if (Number.isFinite(purchasedChestId) && purchasedChestId > 0) {
+                const existsInRegular = ownedInventoryRegularItems.some((item) => Number(item?.chest_id) === purchasedChestId);
+                const existsInEx = ownedInventoryExItems.some((item) => Number(item?.chest_id) === purchasedChestId);
+                selectedOwnedRegularChestId = existsInRegular ? purchasedChestId : null;
+                selectedOwnedExChestId = existsInEx ? purchasedChestId : null;
+                renderOwnedRegularList();
+                renderOwnedExList();
+                updateSellButtonState();
+            }
+        } catch (error) {
+            showAvatarShopError('Purchase Error', error?.message || 'Purchase failed.');
+        } finally {
+            buyActionInProgress = false;
+            if (btnStoreWindowCancel) btnStoreWindowCancel.disabled = false;
+            if (avatarShopBuyPopup && !avatarShopBuyPopup.classList.contains('hidden')) {
+                renderAvatarShopBuyPopup(listContainer);
+            }
+        }
     }
 
     if (btnStoreWindowCancel) {
@@ -1396,6 +2049,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         refreshMyAvatarStatsSummary();
     }
 
+    await refreshAvatarShopInventory({ preserveSelection: false });
+
     window.setTimeout(() => {
         buddyScroll?.update();
         buddyChatScroll?.update();
@@ -1422,6 +2077,102 @@ async function loadAvatarShopCatalogItems() {
         return [];
     }
     return payload.items;
+}
+
+async function loadAvatarShopInventory(userId) {
+    const response = await fetch(`/api/avatar-shop/inventory?userId=${encodeURIComponent(String(userId || ''))}`, {
+        cache: 'no-store'
+    });
+    if (!response.ok) {
+        throw new Error(`Unable to load avatar inventory (${response.status})`);
+    }
+    const payload = await response.json();
+    if (!payload || typeof payload !== 'object') {
+        throw new Error('Avatar inventory payload is invalid');
+    }
+    return payload;
+}
+
+async function purchaseAvatarShopItem(userId, avatarId, currency) {
+    const response = await fetch('/api/avatar-shop/purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            userId: String(userId || ''),
+            avatarId: Number(avatarId),
+            currency: String(currency || '').toLowerCase()
+        })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        throw new Error(String(payload?.error || `Purchase failed (${response.status})`));
+    }
+    return payload;
+}
+
+async function equipAvatarShopChestItem(userId, chestId) {
+    const response = await fetch('/api/avatar-shop/equip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            userId: String(userId || ''),
+            chestId: Number(chestId)
+        })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        throw new Error(String(payload?.error || `Equip failed (${response.status})`));
+    }
+    return payload;
+}
+
+async function unequipAvatarShopChestItem(userId, chestId) {
+    const response = await fetch('/api/avatar-shop/unequip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            userId: String(userId || ''),
+            chestId: Number(chestId)
+        })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        throw new Error(String(payload?.error || `Unequip failed (${response.status})`));
+    }
+    return payload;
+}
+
+async function reorderAvatarShopOwnedItems(userId, listType, orderedChestIds) {
+    const response = await fetch('/api/avatar-shop/reorder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            userId: String(userId || ''),
+            listType: String(listType || '').toLowerCase(),
+            orderedChestIds: Array.isArray(orderedChestIds) ? orderedChestIds.map((value) => Number(value)) : []
+        })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        throw new Error(String(payload?.error || `Reorder failed (${response.status})`));
+    }
+    return payload;
+}
+
+async function sellAvatarShopChestItem(userId, chestId) {
+    const response = await fetch('/api/avatar-shop/sell', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            userId: String(userId || ''),
+            chestId: Number(chestId)
+        })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        throw new Error(String(payload?.error || `Sell failed (${response.status})`));
+    }
+    return payload;
 }
 
 function resolveShopCategoryForItem(item) {

@@ -125,22 +125,274 @@ function getAvatarCatalogDedupeKey(item) {
 }
 
 function buildUserPayload(row) {
+    const ahead = toBaseAvatarValue(row?.ahead);
+    const abody = toBaseAvatarValue(row?.abody);
+    const aeyes = toOptionalAvatarValue(row?.aeyes);
+    const aflag = toOptionalAvatarValue(row?.aflag);
+    const abackground = toOptionalAvatarValue(row?.abackground);
+    const aforeground = toOptionalAvatarValue(row?.aforeground);
+    const aexitem = toOptionalAvatarValue(row?.aexitem);
     return {
         id: row.UserId,
         nickname: row.Nickname,
         guild: row.Guild,
         authority: row.Authority,
         gender: normalizeGender(row.Gender),
-        ahead: toBaseAvatarValue(row.ahead),
-        abody: toBaseAvatarValue(row.abody),
-        aeyes: toOptionalAvatarValue(row.aeyes),
-        aflag: toOptionalAvatarValue(row.aflag),
+        ahead,
+        abody,
+        aeyes,
+        aflag,
+        abackground,
+        aforeground,
+        aexitem,
         gold: row.Gold,
         cash: row.Cash,
         score: row.TotalScore,
         grade: row.TotalGrade,
         rank: row.TotalRank
     };
+}
+
+const CHEST_EQUIPABLE_SLOTS = new Set(['head', 'body', 'eyes', 'flag', 'background', 'foreground', 'exitem']);
+const CHEST_EX_SLOTS = new Set(['background', 'foreground', 'exitem']);
+const CHEST_REGULAR_SLOTS = new Set(['head', 'body', 'eyes', 'flag']);
+
+function normalizeChestSlot(slotValue) {
+    const normalized = normalizeAvatarCatalogSlot(slotValue);
+    return CHEST_EQUIPABLE_SLOTS.has(normalized) ? normalized : null;
+}
+
+function isChestExSlot(slotValue) {
+    const slot = normalizeChestSlot(slotValue);
+    return slot ? CHEST_EX_SLOTS.has(slot) : false;
+}
+
+function pickAvatarPricePlan(item, keyPrefix) {
+    const week = toBaseAvatarValue(item?.[`${keyPrefix}_week`]);
+    const month = toBaseAvatarValue(item?.[`${keyPrefix}_month`]);
+    const perm = toBaseAvatarValue(item?.[`${keyPrefix}_perm`]);
+    if (perm > 0) {
+        return { amount: perm, expireType: 'P', durationDays: null };
+    }
+    if (month > 0) {
+        return { amount: month, expireType: 'M', durationDays: 30 };
+    }
+    if (week > 0) {
+        return { amount: week, expireType: 'W', durationDays: 7 };
+    }
+    return { amount: 0, expireType: 'I', durationDays: null };
+}
+
+function resolveExpireAtByPricePlan(pricePlan) {
+    const days = Number(pricePlan?.durationDays);
+    if (!Number.isFinite(days) || days <= 0) {
+        return null;
+    }
+    return new Date(Date.now() + (days * 24 * 60 * 60 * 1000));
+}
+
+function computeAvatarSellGoldAmount(item) {
+    const goldPrice = pickAvatarCatalogPriceAmount(item, 'gold');
+    if (goldPrice <= 0) {
+        return 0;
+    }
+    return Math.max(0, Math.floor(goldPrice * 0.06));
+}
+
+function createEmptyUserEquipState() {
+    return {
+        ahead: 0,
+        abody: 0,
+        aeyes: null,
+        aflag: null,
+        abackground: null,
+        aforeground: null,
+        aexitem: null
+    };
+}
+
+function assignEquipSlotValue(target, slot, itemId) {
+    const parsed = toOptionalAvatarValue(itemId);
+    if (!slot) {
+        return;
+    }
+    if (slot === 'head') {
+        target.ahead = toBaseAvatarValue(parsed);
+    } else if (slot === 'body') {
+        target.abody = toBaseAvatarValue(parsed);
+    } else if (slot === 'eyes') {
+        target.aeyes = parsed;
+    } else if (slot === 'flag') {
+        target.aflag = parsed;
+    } else if (slot === 'background') {
+        target.abackground = parsed;
+    } else if (slot === 'foreground') {
+        target.aforeground = parsed;
+    } else if (slot === 'exitem') {
+        target.aexitem = parsed;
+    }
+}
+
+async function loadUserEquipState(ownerId, executor = pool) {
+    const [rows] = await executor.execute(
+        `SELECT slot, item_id
+         FROM chest
+         WHERE owner_id = ? AND wearing = 1`,
+        [ownerId]
+    );
+
+    const equipState = createEmptyUserEquipState();
+    (rows || []).forEach((row) => {
+        const slot = normalizeChestSlot(row?.slot);
+        if (!slot) {
+            return;
+        }
+        assignEquipSlotValue(equipState, slot, row?.item_id);
+    });
+    return equipState;
+}
+
+async function loadAvatarShopInventoryRows(ownerId, executor = pool) {
+    const [rows] = await executor.execute(
+        `SELECT
+            c.id AS chest_id,
+            c.owner_id AS chest_owner_id,
+            c.avatar_id AS chest_avatar_id,
+            c.item_id AS chest_item_id,
+            c.item_code AS chest_item_code,
+            c.slot AS chest_slot,
+            c.wearing AS chest_wearing,
+            c.acquisition_type AS chest_acquisition_type,
+            c.expire_at AS chest_expire_at,
+            c.volume AS chest_volume,
+            c.place_order AS chest_place_order,
+            c.recovered AS chest_recovered,
+            c.expire_type AS chest_expire_type,
+            a.id AS avatar_db_id,
+            a.source_avatar_id AS source_avatar_id,
+            a.source_ref_id AS source_ref_id,
+            a.avatar_code AS avatar_code,
+            a.name AS name,
+            a.description AS description,
+            a.slot AS avatar_slot,
+            a.gender AS gender,
+            a.note AS note,
+            a.gold_week AS gold_week,
+            a.gold_month AS gold_month,
+            a.gold_perm AS gold_perm,
+            a.cash_week AS cash_week,
+            a.cash_month AS cash_month,
+            a.cash_perm AS cash_perm,
+            a.stat_pop AS stat_pop,
+            a.stat_time AS stat_time,
+            a.stat_atk AS stat_atk,
+            a.stat_def AS stat_def,
+            a.stat_life AS stat_life,
+            a.stat_item AS stat_item,
+            a.stat_dig AS stat_dig,
+            a.stat_shld AS stat_shld
+         FROM chest c
+         LEFT JOIN avatars a ON a.id = c.avatar_id
+         WHERE c.owner_id = ?
+         ORDER BY
+            c.place_order ASC,
+            c.id ASC`,
+        [ownerId]
+    );
+    return rows || [];
+}
+
+function normalizeAvatarShopInventoryItem(row) {
+    const slot = normalizeChestSlot(row?.chest_slot) || normalizeChestSlot(row?.avatar_slot);
+    const sourceRefId = toOptionalAvatarValue(row?.source_ref_id);
+    const itemId = toOptionalAvatarValue(row?.chest_item_id);
+    const resolvedRefId = sourceRefId == null ? itemId : sourceRefId;
+    return {
+        chest_id: toBaseAvatarValue(row?.chest_id),
+        owner_id: String(row?.chest_owner_id || ''),
+        avatar_id: toOptionalAvatarValue(row?.avatar_db_id ?? row?.chest_avatar_id),
+        source_avatar_id: toBaseAvatarValue(row?.source_avatar_id),
+        source_ref_id: resolvedRefId,
+        item_id: itemId,
+        avatar_code: String(row?.avatar_code || row?.chest_item_code || ''),
+        item_code: String(row?.chest_item_code || row?.avatar_code || ''),
+        name: String(row?.name || row?.avatar_code || row?.chest_item_code || ''),
+        description: String(row?.description || ''),
+        slot: slot || 'head',
+        gender: normalizeAvatarCatalogGender(row?.gender),
+        note: toBaseAvatarValue(row?.note),
+        gold_week: toBaseAvatarValue(row?.gold_week),
+        gold_month: toBaseAvatarValue(row?.gold_month),
+        gold_perm: toBaseAvatarValue(row?.gold_perm),
+        cash_week: toBaseAvatarValue(row?.cash_week),
+        cash_month: toBaseAvatarValue(row?.cash_month),
+        cash_perm: toBaseAvatarValue(row?.cash_perm),
+        stat_pop: toSignedAvatarStatValue(row?.stat_pop),
+        stat_time: toSignedAvatarStatValue(row?.stat_time),
+        stat_atk: toSignedAvatarStatValue(row?.stat_atk),
+        stat_def: toSignedAvatarStatValue(row?.stat_def),
+        stat_life: toSignedAvatarStatValue(row?.stat_life),
+        stat_item: toSignedAvatarStatValue(row?.stat_item),
+        stat_dig: toSignedAvatarStatValue(row?.stat_dig),
+        stat_shld: toSignedAvatarStatValue(row?.stat_shld),
+        wearing: Number(row?.chest_wearing) === 1 ? 1 : 0,
+        acquisition_type: String(row?.chest_acquisition_type || 'G'),
+        expire_type: String(row?.chest_expire_type || 'I'),
+        expire_at: row?.chest_expire_at ? new Date(row.chest_expire_at).getTime() : null,
+        volume: toBaseAvatarValue(row?.chest_volume || 1),
+        place_order: Number.isFinite(Number(row?.chest_place_order)) ? Math.trunc(Number(row?.chest_place_order)) : 0
+    };
+}
+
+function buildAvatarShopInventoryPayload(rows) {
+    const items = (rows || []).map(normalizeAvatarShopInventoryItem);
+    const regularItems = items.filter((item) => !isChestExSlot(item.slot));
+    const exItems = items.filter((item) => isChestExSlot(item.slot));
+
+    const equipped = createEmptyUserEquipState();
+    items.forEach((item) => {
+        if (item.wearing !== 1) {
+            return;
+        }
+        const equippedRefId = item.source_ref_id == null ? item.item_id : item.source_ref_id;
+        assignEquipSlotValue(equipped, normalizeChestSlot(item.slot), equippedRefId);
+    });
+
+    return {
+        items,
+        regularItems,
+        exItems,
+        counts: {
+            total: items.length,
+            regular: regularItems.length,
+            ex: exItems.length
+        },
+        equipped
+    };
+}
+
+async function loadUserRowById(userId, executor = pool) {
+    const [rows] = await executor.execute(
+        `SELECT u.UserId, u.Authority, u.Gender, g.Nickname, g.Guild, g.Gold, g.Cash, g.TotalScore, g.TotalGrade, g.TotalRank
+         FROM user u
+         JOIN game g ON u.UserId = g.Id
+         WHERE u.UserId = ?
+         LIMIT 1`,
+        [userId]
+    );
+    return rows?.[0] || null;
+}
+
+async function buildUserPayloadById(userId, executor = pool) {
+    const userRow = await loadUserRowById(userId, executor);
+    if (!userRow) {
+        return null;
+    }
+    const equipState = await loadUserEquipState(userId, executor);
+    return buildUserPayload({
+        ...userRow,
+        ...equipState
+    });
 }
 
 
@@ -217,6 +469,9 @@ app.post('/api/signup', async (req, res) => {
                     abody: 0,
                     aeyes: null,
                     aflag: null,
+                    abackground: null,
+                    aforeground: null,
+                    aexitem: null,
                     gold: gold,
                     cash: cash,
                     score: score,
@@ -356,9 +611,13 @@ app.post('/api/login', async (req, res) => {
 
         if (users.length > 0) {
             const user = users[0];
+            const equipState = await loadUserEquipState(user.UserId);
             res.status(200).json({
                 message: 'Login successful',
-                user: buildUserPayload(user)
+                user: buildUserPayload({
+                    ...user,
+                    ...equipState
+                })
             });
         } else {
             res.status(401).json({ error: 'Invalid username or password' });
@@ -454,6 +713,443 @@ app.get('/api/avatar-shop/catalog', async (req, res) => {
     }
 });
 
+app.get('/api/avatar-shop/inventory', async (req, res) => {
+    const userId = String(req.query?.userId || '').trim();
+    if (!userId) {
+        return res.status(400).json({ error: 'Missing userId' });
+    }
+
+    try {
+        const userPayload = await buildUserPayloadById(userId);
+        if (!userPayload) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const inventoryRows = await loadAvatarShopInventoryRows(userId);
+        res.json({
+            user: userPayload,
+            inventory: buildAvatarShopInventoryPayload(inventoryRows)
+        });
+    } catch (error) {
+        console.error('[AvatarShop] Failed to load inventory:', error);
+        res.status(500).json({ error: 'Unable to load inventory' });
+    }
+});
+
+app.post('/api/avatar-shop/purchase', async (req, res) => {
+    const userId = String(req.body?.userId || '').trim();
+    const avatarId = Number(req.body?.avatarId);
+    const currency = String(req.body?.currency || '').trim().toLowerCase();
+
+    if (!userId || !Number.isFinite(avatarId) || avatarId <= 0 || (currency !== 'cash' && currency !== 'gold')) {
+        return res.status(400).json({ error: 'Invalid purchase payload' });
+    }
+
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        const [gameRows] = await connection.execute(
+            'SELECT Id, Gold, Cash FROM game WHERE Id = ? LIMIT 1 FOR UPDATE',
+            [userId]
+        );
+        const gameRow = gameRows?.[0] || null;
+        if (!gameRow) {
+            await connection.rollback();
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const [avatarRows] = await connection.execute(
+            'SELECT * FROM avatars WHERE id = ? LIMIT 1',
+            [Math.trunc(avatarId)]
+        );
+        const avatarRow = avatarRows?.[0] || null;
+        if (!avatarRow) {
+            await connection.rollback();
+            return res.status(404).json({ error: 'Avatar item not found' });
+        }
+
+        const nowMs = Date.now();
+        const enabled = avatarRow.enabled === undefined || avatarRow.enabled === null
+            ? 1
+            : (Number(avatarRow.enabled) === 1 ? 1 : 0);
+        const removeTime = toOptionalAvatarValue(avatarRow.remove_time);
+        if (enabled !== 1 || (removeTime !== null && removeTime !== 0 && removeTime <= nowMs)) {
+            await connection.rollback();
+            return res.status(400).json({ error: 'Avatar item is no longer available' });
+        }
+
+        const slot = normalizeChestSlot(avatarRow.slot);
+        if (!slot) {
+            await connection.rollback();
+            return res.status(400).json({ error: 'Avatar slot is invalid' });
+        }
+
+        const pricePlan = pickAvatarPricePlan(avatarRow, currency);
+        const amount = toBaseAvatarValue(pricePlan?.amount);
+        if (amount <= 0) {
+            await connection.rollback();
+            return res.status(400).json({ error: `This item cannot be purchased with ${currency}` });
+        }
+
+        const walletValue = currency === 'cash'
+            ? toBaseAvatarValue(gameRow.Cash)
+            : toBaseAvatarValue(gameRow.Gold);
+        if (walletValue < amount) {
+            await connection.rollback();
+            return res.status(400).json({ error: `Not enough ${currency}` });
+        }
+
+        if (currency === 'cash') {
+            await connection.execute(
+                'UPDATE game SET Cash = Cash - ? WHERE Id = ?',
+                [amount, userId]
+            );
+        } else {
+            await connection.execute(
+                'UPDATE game SET Gold = Gold - ? WHERE Id = ?',
+                [amount, userId]
+            );
+        }
+
+        await connection.execute(
+            'UPDATE chest SET wearing = 0 WHERE owner_id = ? AND slot = ? AND wearing = 1',
+            [userId, slot]
+        );
+
+        const isExSlot = isChestExSlot(slot);
+        const orderSlotList = isExSlot
+            ? ['background', 'foreground', 'exitem']
+            : ['head', 'body', 'eyes', 'flag'];
+        const orderPlaceholders = orderSlotList.map(() => '?').join(', ');
+        const [orderRows] = await connection.execute(
+            `SELECT COALESCE(MAX(place_order), 0) AS max_order
+             FROM chest
+             WHERE owner_id = ?
+               AND slot IN (${orderPlaceholders})`,
+            [userId, ...orderSlotList]
+        );
+        const nextPlaceOrder = Math.max(0, Math.trunc(Number(orderRows?.[0]?.max_order || 0))) + 1;
+
+        const sourceRefId = toOptionalAvatarValue(avatarRow.source_ref_id);
+        const fallbackItemId = toBaseAvatarValue(avatarRow.source_avatar_id || avatarRow.id);
+        const chestItemId = sourceRefId == null ? fallbackItemId : sourceRefId;
+
+        const acquisitionType = currency === 'cash' ? 'C' : 'G';
+        const expireAt = resolveExpireAtByPricePlan(pricePlan);
+        const expireType = String(pricePlan?.expireType || 'I');
+
+        const [insertResult] = await connection.execute(
+            `INSERT INTO chest (
+                owner_id, avatar_id, item_id, item_code, slot, wearing,
+                acquisition_type, expire_at, volume, place_order, recovered, expire_type
+            ) VALUES (?, ?, ?, ?, ?, 1, ?, ?, 1, ?, 0, ?)`,
+            [
+                userId,
+                toOptionalAvatarValue(avatarRow.id),
+                toBaseAvatarValue(chestItemId),
+                String(avatarRow.avatar_code || ''),
+                slot,
+                acquisitionType,
+                expireAt,
+                nextPlaceOrder,
+                expireType
+            ]
+        );
+
+        await connection.commit();
+
+        const userPayload = await buildUserPayloadById(userId, connection);
+        const inventoryRows = await loadAvatarShopInventoryRows(userId, connection);
+        res.json({
+            user: userPayload,
+            inventory: buildAvatarShopInventoryPayload(inventoryRows),
+            purchasedChestId: toBaseAvatarValue(insertResult?.insertId)
+        });
+    } catch (error) {
+        if (connection) {
+            try { await connection.rollback(); } catch (rollbackError) { /* ignore */ }
+        }
+        console.error('[AvatarShop] Purchase failed:', error);
+        res.status(500).json({ error: 'Purchase failed' });
+    } finally {
+        if (connection) connection.release();
+    }
+});
+
+app.post('/api/avatar-shop/equip', async (req, res) => {
+    const userId = String(req.body?.userId || '').trim();
+    const chestId = Number(req.body?.chestId);
+
+    if (!userId || !Number.isFinite(chestId) || chestId <= 0) {
+        return res.status(400).json({ error: 'Invalid equip payload' });
+    }
+
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        const [itemRows] = await connection.execute(
+            `SELECT id, owner_id, slot
+             FROM chest
+             WHERE id = ? AND owner_id = ?
+             LIMIT 1
+             FOR UPDATE`,
+            [Math.trunc(chestId), userId]
+        );
+        const itemRow = itemRows?.[0] || null;
+        if (!itemRow) {
+            await connection.rollback();
+            return res.status(404).json({ error: 'Owned item not found' });
+        }
+
+        const slot = normalizeChestSlot(itemRow.slot);
+        if (!slot) {
+            await connection.rollback();
+            return res.status(400).json({ error: 'Owned item slot is invalid' });
+        }
+
+        await connection.execute(
+            'UPDATE chest SET wearing = 0 WHERE owner_id = ? AND slot = ? AND wearing = 1',
+            [userId, slot]
+        );
+        await connection.execute(
+            'UPDATE chest SET wearing = 1 WHERE id = ? AND owner_id = ?',
+            [Math.trunc(chestId), userId]
+        );
+
+        await connection.commit();
+
+        const userPayload = await buildUserPayloadById(userId, connection);
+        const inventoryRows = await loadAvatarShopInventoryRows(userId, connection);
+        res.json({
+            user: userPayload,
+            inventory: buildAvatarShopInventoryPayload(inventoryRows)
+        });
+    } catch (error) {
+        if (connection) {
+            try { await connection.rollback(); } catch (rollbackError) { /* ignore */ }
+        }
+        console.error('[AvatarShop] Equip failed:', error);
+        res.status(500).json({ error: 'Equip failed' });
+    } finally {
+        if (connection) connection.release();
+    }
+});
+
+app.post('/api/avatar-shop/unequip', async (req, res) => {
+    const userId = String(req.body?.userId || '').trim();
+    const chestId = Number(req.body?.chestId);
+
+    if (!userId || !Number.isFinite(chestId) || chestId <= 0) {
+        return res.status(400).json({ error: 'Invalid unequip payload' });
+    }
+
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        const [itemRows] = await connection.execute(
+            `SELECT id, owner_id
+             FROM chest
+             WHERE id = ? AND owner_id = ?
+             LIMIT 1
+             FOR UPDATE`,
+            [Math.trunc(chestId), userId]
+        );
+        const itemRow = itemRows?.[0] || null;
+        if (!itemRow) {
+            await connection.rollback();
+            return res.status(404).json({ error: 'Owned item not found' });
+        }
+
+        await connection.execute(
+            'UPDATE chest SET wearing = 0 WHERE id = ? AND owner_id = ?',
+            [Math.trunc(chestId), userId]
+        );
+
+        await connection.commit();
+
+        const userPayload = await buildUserPayloadById(userId, connection);
+        const inventoryRows = await loadAvatarShopInventoryRows(userId, connection);
+        res.json({
+            user: userPayload,
+            inventory: buildAvatarShopInventoryPayload(inventoryRows)
+        });
+    } catch (error) {
+        if (connection) {
+            try { await connection.rollback(); } catch (rollbackError) { /* ignore */ }
+        }
+        console.error('[AvatarShop] Unequip failed:', error);
+        res.status(500).json({ error: 'Unequip failed' });
+    } finally {
+        if (connection) connection.release();
+    }
+});
+
+app.post('/api/avatar-shop/reorder', async (req, res) => {
+    const userId = String(req.body?.userId || '').trim();
+    const listType = String(req.body?.listType || '').trim().toLowerCase();
+    const orderedChestIds = Array.isArray(req.body?.orderedChestIds)
+        ? req.body.orderedChestIds.map((value) => Math.trunc(Number(value))).filter((value) => Number.isFinite(value) && value > 0)
+        : [];
+
+    if (!userId || (listType !== 'regular' && listType !== 'ex') || orderedChestIds.length <= 1) {
+        return res.status(400).json({ error: 'Invalid reorder payload' });
+    }
+
+    const uniqueIds = new Set(orderedChestIds);
+    if (uniqueIds.size !== orderedChestIds.length) {
+        return res.status(400).json({ error: 'Duplicate chest ids are not allowed in reorder payload' });
+    }
+
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        const placeholders = orderedChestIds.map(() => '?').join(', ');
+        const [rows] = await connection.execute(
+            `SELECT id, slot
+             FROM chest
+             WHERE owner_id = ?
+               AND id IN (${placeholders})
+             FOR UPDATE`,
+            [userId, ...orderedChestIds]
+        );
+
+        if (!rows || rows.length !== orderedChestIds.length) {
+            await connection.rollback();
+            return res.status(400).json({ error: 'Some items in reorder payload are invalid' });
+        }
+
+        const isExList = listType === 'ex';
+        const hasMismatchedSlot = rows.some((row) => {
+            const slot = normalizeChestSlot(row?.slot);
+            if (!slot) {
+                return true;
+            }
+            if (isExList) {
+                return !CHEST_EX_SLOTS.has(slot);
+            }
+            return !CHEST_REGULAR_SLOTS.has(slot);
+        });
+
+        if (hasMismatchedSlot) {
+            await connection.rollback();
+            return res.status(400).json({ error: 'Reorder payload contains items from a different list category' });
+        }
+
+        for (let index = 0; index < orderedChestIds.length; index += 1) {
+            await connection.execute(
+                'UPDATE chest SET place_order = ? WHERE owner_id = ? AND id = ?',
+                [index + 1, userId, orderedChestIds[index]]
+            );
+        }
+
+        await connection.commit();
+
+        const userPayload = await buildUserPayloadById(userId, connection);
+        const inventoryRows = await loadAvatarShopInventoryRows(userId, connection);
+        res.json({
+            user: userPayload,
+            inventory: buildAvatarShopInventoryPayload(inventoryRows)
+        });
+    } catch (error) {
+        if (connection) {
+            try { await connection.rollback(); } catch (rollbackError) { /* ignore */ }
+        }
+        console.error('[AvatarShop] Reorder failed:', error);
+        res.status(500).json({ error: 'Reorder failed' });
+    } finally {
+        if (connection) connection.release();
+    }
+});
+
+app.post('/api/avatar-shop/sell', async (req, res) => {
+    const userId = String(req.body?.userId || '').trim();
+    const chestId = Number(req.body?.chestId);
+
+    if (!userId || !Number.isFinite(chestId) || chestId <= 0) {
+        return res.status(400).json({ error: 'Invalid sell payload' });
+    }
+
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        const [gameRows] = await connection.execute(
+            'SELECT Id FROM game WHERE Id = ? LIMIT 1 FOR UPDATE',
+            [userId]
+        );
+        if (!gameRows?.length) {
+            await connection.rollback();
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const [itemRows] = await connection.execute(
+            `SELECT
+                c.id AS chest_id,
+                c.owner_id AS owner_id,
+                c.avatar_id AS avatar_id,
+                c.item_id AS item_id,
+                c.slot AS slot,
+                c.wearing AS wearing,
+                a.gold_week AS gold_week,
+                a.gold_month AS gold_month,
+                a.gold_perm AS gold_perm
+             FROM chest c
+             LEFT JOIN avatars a ON a.id = c.avatar_id
+             WHERE c.id = ? AND c.owner_id = ?
+             LIMIT 1
+             FOR UPDATE`,
+            [Math.trunc(chestId), userId]
+        );
+
+        const itemRow = itemRows?.[0] || null;
+        if (!itemRow) {
+            await connection.rollback();
+            return res.status(404).json({ error: 'Owned item not found' });
+        }
+
+        const sellGoldAmount = computeAvatarSellGoldAmount(itemRow);
+
+        await connection.execute(
+            'DELETE FROM chest WHERE id = ? AND owner_id = ?',
+            [Math.trunc(chestId), userId]
+        );
+
+        if (sellGoldAmount > 0) {
+            await connection.execute(
+                'UPDATE game SET Gold = Gold + ? WHERE Id = ?',
+                [sellGoldAmount, userId]
+            );
+        }
+
+        await connection.commit();
+
+        const userPayload = await buildUserPayloadById(userId, connection);
+        const inventoryRows = await loadAvatarShopInventoryRows(userId, connection);
+        res.json({
+            user: userPayload,
+            inventory: buildAvatarShopInventoryPayload(inventoryRows),
+            sellGold: sellGoldAmount
+        });
+    } catch (error) {
+        if (connection) {
+            try { await connection.rollback(); } catch (rollbackError) { /* ignore */ }
+        }
+        console.error('[AvatarShop] Sell failed:', error);
+        res.status(500).json({ error: 'Sell failed' });
+    } finally {
+        if (connection) connection.release();
+    }
+});
+
 app.get('/api/worlds', (req, res) => {
     // Return only 1 world as requested, counting only users in the lobby
     res.json([
@@ -525,7 +1221,11 @@ io.on('connection', (socket) => {
                     });
 
                     // Send updated user info back to client
-                    socket.emit('user_info_update', buildUserPayload(dbUser));
+                    const equipState = await loadUserEquipState(dbUser.UserId);
+                    socket.emit('user_info_update', buildUserPayload({
+                        ...dbUser,
+                        ...equipState
+                    }));
 
                     if (shouldLogLogin) {
                         console.log(`[Login] [${getUKTimestamp()}] ${data.nickname} logged in.`);

@@ -1437,6 +1437,48 @@ body {
     background-image: url('/assets/screens/avatar_shop/store_back/store_back_frame_0.png');
     background-size: 800px 600px;
     position: relative;
+    --avatar-shop-buy-popup-center-offset-x: 0px;
+    --avatar-shop-buy-popup-center-offset-y: 0px;
+    --avatar-shop-owned-list-top: 113px;
+    --avatar-shop-owned-list-left: 558px;
+    --avatar-shop-owned-list-right: auto;
+    --avatar-shop-owned-list-width: 223px;
+    --avatar-shop-owned-list-height: 232px;
+    --avatar-shop-owned-list-padding-top: 0px;
+    --avatar-shop-owned-ex-list-top: 425px;
+    --avatar-shop-owned-ex-list-left: 558px;
+    --avatar-shop-owned-ex-list-right: auto;
+    --avatar-shop-owned-ex-list-width: 223px;
+    --avatar-shop-owned-ex-list-height: 108px;
+    --avatar-shop-owned-ex-list-padding-top: 0px;
+    --avatar-shop-owned-row-width: 100%;
+    --avatar-shop-owned-row-height: 18px;
+    --avatar-shop-owned-row-top: 0px;
+    --avatar-shop-owned-row-right: 0px;
+    --avatar-shop-owned-ex-row-width: 100%;
+    --avatar-shop-owned-ex-row-height: 18px;
+    --avatar-shop-owned-ex-row-top: 0px;
+    --avatar-shop-owned-ex-row-right: 0px;
+    --avatar-shop-owned-row-gap: 3px;
+    --avatar-shop-owned-row-padding-x: 4px;
+    --avatar-shop-owned-row-font-size: 11px;
+    --avatar-shop-owned-selected-bg-width: 194px;
+    --avatar-shop-owned-selected-bg-height: 18px;
+    --avatar-shop-owned-selected-bg-offset-x: 0px;
+    --avatar-shop-owned-selected-bg-offset-y: 0px;
+    --avatar-shop-owned-slot-size: 12px;
+    --avatar-shop-owned-slot-offset-x: 0px;
+    --avatar-shop-owned-slot-offset-y: 0px;
+    --avatar-shop-owned-arrow-width: 5px;
+    --avatar-shop-owned-arrow-height: 9px;
+    --avatar-shop-owned-arrow-offset-x: 0px;
+    --avatar-shop-owned-arrow-offset-y: 0px;
+    --avatar-shop-owned-stat-icon-size: 11px;
+    --avatar-shop-owned-stat-font-size: 10px;
+    --avatar-shop-sell-btn-top: 517px;
+    --avatar-shop-sell-btn-left: 558px;
+    --avatar-shop-sell-btn-width: 72px;
+    --avatar-shop-sell-btn-height: 24px;
 }
 
 #avatar-shop-header-info {
@@ -1631,6 +1673,202 @@ body {
     background-repeat: no-repeat;
     pointer-events: none;
     z-index: 11;
+}
+
+#avatar-shop-owned-list,
+#avatar-shop-owned-ex-list {
+    position: absolute;
+    overflow-y: auto;
+    overflow-x: hidden;
+    pointer-events: auto;
+    z-index: 15;
+    padding-top: 0;
+    padding-right: 2px;
+    scrollbar-width: none;
+    box-sizing: border-box;
+}
+
+#avatar-shop-owned-list::-webkit-scrollbar,
+#avatar-shop-owned-ex-list::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+#avatar-shop-owned-list {
+    top: var(--avatar-shop-owned-list-top);
+    left: var(--avatar-shop-owned-list-left);
+    right: var(--avatar-shop-owned-list-right);
+    width: var(--avatar-shop-owned-list-width);
+    height: var(--avatar-shop-owned-list-height);
+    padding-top: max(
+        var(--avatar-shop-owned-list-padding-top),
+        calc(var(--avatar-shop-owned-row-top) * -1),
+        calc(var(--avatar-shop-owned-slot-offset-y) * -1),
+        calc(var(--avatar-shop-owned-arrow-offset-y) * -1)
+    );
+}
+
+#avatar-shop-owned-ex-list {
+    top: var(--avatar-shop-owned-ex-list-top);
+    left: var(--avatar-shop-owned-ex-list-left);
+    right: var(--avatar-shop-owned-ex-list-right);
+    width: var(--avatar-shop-owned-ex-list-width);
+    height: var(--avatar-shop-owned-ex-list-height);
+    padding-top: max(
+        var(--avatar-shop-owned-ex-list-padding-top),
+        calc(var(--avatar-shop-owned-ex-row-top) * -1),
+        calc(var(--avatar-shop-owned-slot-offset-y) * -1),
+        calc(var(--avatar-shop-owned-arrow-offset-y) * -1)
+    );
+}
+
+.avatar-shop-owned-item,
+.avatar-shop-owned-ex-item {
+    position: relative;
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    gap: var(--avatar-shop-owned-row-gap);
+    padding: 0 var(--avatar-shop-owned-row-padding-x);
+    color: #effdff;
+    font-family: var(--gbth-ui-font);
+    font-size: var(--avatar-shop-owned-row-font-size);
+    line-height: 1;
+    text-align: left;
+    white-space: nowrap;
+    overflow: visible;
+    cursor: inherit;
+}
+
+.avatar-shop-owned-item {
+    width: var(--avatar-shop-owned-row-width);
+    height: var(--avatar-shop-owned-row-height);
+    top: var(--avatar-shop-owned-row-top);
+    right: var(--avatar-shop-owned-row-right);
+}
+
+.avatar-shop-owned-ex-item {
+    width: var(--avatar-shop-owned-ex-row-width);
+    height: var(--avatar-shop-owned-ex-row-height);
+    top: var(--avatar-shop-owned-ex-row-top);
+    right: var(--avatar-shop-owned-ex-row-right);
+}
+
+.avatar-shop-owned-item[draggable='true'],
+.avatar-shop-owned-ex-item[draggable='true'] {
+    cursor: grab;
+}
+
+.avatar-shop-owned-item.is-dragging,
+.avatar-shop-owned-ex-item.is-dragging {
+    opacity: 0.65;
+}
+
+.avatar-shop-owned-item.is-drop-target,
+.avatar-shop-owned-ex-item.is-drop-target {
+    outline: 1px solid #ffd363;
+    outline-offset: -1px;
+}
+
+.avatar-shop-owned-item:hover,
+.avatar-shop-owned-ex-item:hover {
+    background: rgba(68, 176, 222, 0.28);
+}
+
+.avatar-shop-owned-item.selected,
+.avatar-shop-owned-ex-item.selected {
+    background-image: url('/assets/screens/avatar_shop/store_myavatar/store_myavatar_frame_1.png');
+    background-repeat: no-repeat;
+    background-size: var(--avatar-shop-owned-selected-bg-width) var(--avatar-shop-owned-selected-bg-height);
+    background-position: var(--avatar-shop-owned-selected-bg-offset-x) var(--avatar-shop-owned-selected-bg-offset-y);
+}
+
+.avatar-shop-owned-item.is-equipped,
+.avatar-shop-owned-ex-item.is-equipped {
+    background-color: transparent;
+}
+
+.avatar-shop-owned-item-slot,
+.avatar-shop-owned-ex-item-slot {
+    width: auto;
+    height: auto;
+    position: relative;
+    z-index: 2;
+    flex: 0 0 auto;
+    image-rendering: pixelated;
+    transform: translate(var(--avatar-shop-owned-slot-offset-x), var(--avatar-shop-owned-slot-offset-y));
+}
+
+.avatar-shop-owned-item-equip-arrow,
+.avatar-shop-owned-ex-item-equip-arrow {
+    width: auto;
+    height: auto;
+    position: relative;
+    z-index: 2;
+    flex: 0 0 auto;
+    image-rendering: pixelated;
+    transform: translate(var(--avatar-shop-owned-arrow-offset-x), var(--avatar-shop-owned-arrow-offset-y));
+}
+
+.avatar-shop-owned-item-equip-arrow.is-hidden,
+.avatar-shop-owned-ex-item-equip-arrow.is-hidden {
+    visibility: hidden;
+}
+
+.avatar-shop-owned-item-name,
+.avatar-shop-owned-ex-item-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.avatar-shop-owned-item.is-equipped .avatar-shop-owned-item-name,
+.avatar-shop-owned-ex-item.is-equipped .avatar-shop-owned-ex-item-name {
+    color: #ffe85d;
+}
+
+.avatar-shop-owned-item-stats {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex: 0 0 auto;
+}
+
+.avatar-shop-owned-item-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+}
+
+.avatar-shop-owned-item-stat-icon {
+    width: var(--avatar-shop-owned-stat-icon-size);
+    height: var(--avatar-shop-owned-stat-icon-size);
+    image-rendering: pixelated;
+}
+
+.avatar-shop-owned-item-stat-value {
+    min-width: 10px;
+    color: #fff;
+    font-size: var(--avatar-shop-owned-stat-font-size);
+    text-shadow: 1px 1px 0 #00253f;
+}
+
+#btn-avatar-shop-sell {
+    position: absolute;
+    top: var(--avatar-shop-sell-btn-top);
+    left: var(--avatar-shop-sell-btn-left);
+    width: var(--avatar-shop-sell-btn-width);
+    height: var(--avatar-shop-sell-btn-height);
+    border: none;
+    background: transparent;
+    cursor: inherit;
+    z-index: 16;
+}
+
+#btn-avatar-shop-sell:disabled {
+    pointer-events: none;
 }
 
 #avatar-shop-sort-strip {
@@ -2659,7 +2897,7 @@ body {
 #error-title {
     position: absolute;
     top: 9px;
-    left: -79px;
+    left: -66px;
     width: 200px;
     height: 20px;
     color: #fff;
