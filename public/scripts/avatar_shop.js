@@ -1027,7 +1027,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             nameEl.textContent = String(item?.name || '');
             row.appendChild(nameEl);
 
-            const statRows = resolveCatalogStatRows(item, 2);
+            const statRows = resolveCatalogStatRows(item, 3);
             if (statRows.length > 0) {
                 const statsEl = document.createElement('span');
                 statsEl.className = 'avatar-shop-owned-item-stats';
