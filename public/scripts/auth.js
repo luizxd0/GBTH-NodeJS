@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Navigate after 1.5s delay
                 setTimeout(() => {
                     window.playTransition('closing', () => {
-                        window.location.href = 'world_list.html';
+                        window.location.href = '/views/world_list.html';
                     });
                 }, 1500);
             } else {
@@ -108,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Navigate after 1.5s delay
                 setTimeout(() => {
                     window.playTransition('closing', () => {
-                        window.location.href = 'world_list.html';
+                        window.location.href = '/views/world_list.html';
                     });
                 }, 1500);
             } else {

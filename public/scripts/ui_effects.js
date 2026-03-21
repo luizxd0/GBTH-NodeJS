@@ -4,6 +4,17 @@
  */
 
 window.playTransition = function(type, callback) {
+    if (window.enforceCursorLock) {
+        window.enforceCursorLock();
+    }
+    if (type === 'closing') {
+        try {
+            sessionStorage.setItem('gbth_cursor_lock_transition_v1', '1');
+        } catch (_) {
+            // Ignore storage write errors.
+        }
+    }
+
     const transition = document.getElementById('screen-transition');
     if (!transition) {
         if (callback) callback();
@@ -129,13 +140,31 @@ window.playTransition = function(type, callback) {
     let hasCursorPosition = false;
     let cursorX = 0;
     let cursorY = 0;
+    const CURSOR_LOCK_STYLE_ID = 'gbth-cursor-lock-runtime';
+    const CURSOR_FALLBACK_CSS_VALUE = "url('/assets/shared/cursor/cursor_frame_0.png') 0 0, none";
 
     function hideNativeCursorImmediately() {
+        let lockStyle = document.getElementById(CURSOR_LOCK_STYLE_ID);
+        if (!lockStyle) {
+            lockStyle = document.createElement('style');
+            lockStyle.id = CURSOR_LOCK_STYLE_ID;
+            lockStyle.textContent = `
+                html,
+                body,
+                *,
+                *::before,
+                *::after {
+                    cursor: ${CURSOR_FALLBACK_CSS_VALUE} !important;
+                }
+            `;
+            (document.head || document.documentElement).appendChild(lockStyle);
+        }
+
         if (document.documentElement) {
-            document.documentElement.style.cursor = 'none';
+            document.documentElement.style.setProperty('cursor', CURSOR_FALLBACK_CSS_VALUE, 'important');
         }
         if (document.body) {
-            document.body.style.cursor = 'none';
+            document.body.style.setProperty('cursor', CURSOR_FALLBACK_CSS_VALUE, 'important');
         }
     }
 
@@ -211,6 +240,7 @@ window.playTransition = function(type, callback) {
         }
     }
 
+    window.enforceCursorLock = hideNativeCursorImmediately;
     hideNativeCursorImmediately();
     loadCursorPosition();
     createCursorDiv();
@@ -250,8 +280,19 @@ window.playTransition = function(type, callback) {
         }, 100); // Reset after 100ms of no movement
     });
 
-    window.addEventListener('beforeunload', persistCursorPosition);
-    window.addEventListener('pagehide', persistCursorPosition);
+    window.addEventListener('beforeunload', () => {
+        hideNativeCursorImmediately();
+        persistCursorPosition();
+    });
+    window.addEventListener('pagehide', () => {
+        hideNativeCursorImmediately();
+        persistCursorPosition();
+    });
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            hideNativeCursorImmediately();
+        }
+    });
 
     // Hide custom cursor when mouse leaves the window
     document.addEventListener('mouseleave', () => {

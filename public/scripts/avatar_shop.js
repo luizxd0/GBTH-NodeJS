@@ -38,6 +38,202 @@ const SHOP_BUTTON_CATEGORY = {
     'btn-store-setitem': 'setitem',
     'btn-store-exitem': 'exitem'
 };
+const MY_AVATAR_STAT_SUMMARY_ORDER = [
+    'stat_time',
+    'stat_pop',
+    'stat_atk',
+    'stat_def',
+    'stat_life',
+    'stat_item',
+    'stat_dig',
+    'stat_shld'
+];
+const MY_AVATAR_TRACKED_SLOTS = ['head', 'body', 'eyes', 'flag', 'background', 'foreground', 'exitem'];
+const MY_AVATAR_STAT_ABS_CAP = 50;
+
+function createEmptyCatalogStatTotals() {
+    const totals = {};
+    CATALOG_STAT_DISPLAY_ORDER.forEach((statKey) => {
+        totals[statKey] = 0;
+    });
+    return totals;
+}
+
+function normalizeMyAvatarStatDisplayValue(statKey, rawValue) {
+    const numeric = Number(rawValue);
+    if (!Number.isFinite(numeric)) {
+        return 0;
+    }
+    // Client parity: turn-delay sign is inverted vs stored DB sign.
+    if (statKey === 'stat_time') {
+        return -Math.trunc(numeric);
+    }
+    return Math.trunc(numeric);
+}
+
+function capMyAvatarStatDisplayValue(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+        return 0;
+    }
+    return Math.max(-MY_AVATAR_STAT_ABS_CAP, Math.min(MY_AVATAR_STAT_ABS_CAP, Math.trunc(numeric)));
+}
+
+function normalizePreviewEquipSlotValue(slot, value) {
+    const parsed = Number(value);
+    const isBaseSlot = slot === 'head' || slot === 'body';
+    if (!Number.isFinite(parsed)) {
+        return isBaseSlot ? 0 : null;
+    }
+    const normalized = Math.trunc(parsed);
+    if (normalized < 0) {
+        return isBaseSlot ? 0 : null;
+    }
+    return normalized;
+}
+
+function buildPreviewEquipStateFromUserData(userData) {
+    return {
+        head: normalizePreviewEquipSlotValue('head', userData?.ahead),
+        body: normalizePreviewEquipSlotValue('body', userData?.abody),
+        eyes: normalizePreviewEquipSlotValue('eyes', userData?.aeyes),
+        flag: normalizePreviewEquipSlotValue('flag', userData?.aflag),
+        background: null,
+        foreground: null,
+        exitem: null
+    };
+}
+
+function buildCatalogStatItemIndex(catalogByCategory) {
+    const index = new Map();
+    const categories = Object.values(catalogByCategory || {});
+    categories.forEach((items) => {
+        (items || []).forEach((item) => {
+            const slot = String(item?.slot || '').trim().toLowerCase();
+            const refId = Number(item?.source_ref_id);
+            if (!slot || !Number.isFinite(refId)) {
+                return;
+            }
+            const key = `${slot}:${Math.trunc(refId)}`;
+            const bucket = index.get(key) || [];
+            bucket.push(item);
+            index.set(key, bucket);
+        });
+    });
+    return index;
+}
+
+function resolveCatalogItemForStatSummary(itemIndex, slot, refId, userData) {
+    const key = `${slot}:${Math.trunc(refId)}`;
+    const candidates = itemIndex.get(key) || [];
+    if (!candidates.length) {
+        return null;
+    }
+
+    const userGender = getUserGenderCode(userData);
+    const exactMatch = candidates.find((item) => normalizeCatalogGenderValue(item?.gender) === userGender);
+    if (exactMatch) {
+        return exactMatch;
+    }
+
+    const unisex = candidates.find((item) => normalizeCatalogGenderValue(item?.gender) === 'u');
+    if (unisex) {
+        return unisex;
+    }
+
+    return candidates[0];
+}
+
+function computeMyAvatarStatTotals(previewEquipState, itemIndex, userData) {
+    const totals = createEmptyCatalogStatTotals();
+    if (!previewEquipState || !itemIndex) {
+        return totals;
+    }
+
+    MY_AVATAR_TRACKED_SLOTS.forEach((slot) => {
+        const itemId = Number(previewEquipState?.[slot]);
+        if (!Number.isFinite(itemId)) {
+            return;
+        }
+
+        const item = resolveCatalogItemForStatSummary(itemIndex, slot, itemId, userData);
+        if (!item) {
+            return;
+        }
+
+        CATALOG_STAT_DISPLAY_ORDER.forEach((statKey) => {
+            const numeric = Number(item?.[statKey]);
+            if (Number.isFinite(numeric)) {
+                totals[statKey] += Math.trunc(numeric);
+            }
+        });
+    });
+
+    return totals;
+}
+
+function ensureMyAvatarStatsOverlay(frameElement) {
+    if (!frameElement) {
+        return null;
+    }
+
+    let overlay = frameElement.querySelector('#avatar-shop-myavatar-stats');
+    if (overlay) {
+        return overlay;
+    }
+
+    overlay = document.createElement('div');
+    overlay.id = 'avatar-shop-myavatar-stats';
+    MY_AVATAR_STAT_SUMMARY_ORDER.forEach((statKey) => {
+        const statCell = document.createElement('div');
+        statCell.className = 'avatar-shop-myavatar-stat-cell';
+        statCell.dataset.statKey = statKey;
+
+        const icon = document.createElement('img');
+        icon.className = 'avatar-shop-myavatar-stat-icon';
+        icon.alt = '';
+
+        const value = document.createElement('span');
+        value.className = 'avatar-shop-myavatar-stat-value';
+        value.textContent = '00';
+
+        statCell.appendChild(icon);
+        statCell.appendChild(value);
+        overlay.appendChild(statCell);
+    });
+
+    frameElement.appendChild(overlay);
+    return overlay;
+}
+
+function renderMyAvatarStatSummary(overlay, totals) {
+    if (!overlay) {
+        return;
+    }
+
+    const safeTotals = totals || createEmptyCatalogStatTotals();
+    const cells = Array.from(overlay.querySelectorAll('.avatar-shop-myavatar-stat-cell'));
+    cells.forEach((cell) => {
+        const statKey = String(cell.dataset.statKey || '');
+        const icon = cell.querySelector('.avatar-shop-myavatar-stat-icon');
+        const value = cell.querySelector('.avatar-shop-myavatar-stat-value');
+        if (!statKey || !icon || !value) {
+            return;
+        }
+
+        const displayValue = capMyAvatarStatDisplayValue(
+            normalizeMyAvatarStatDisplayValue(statKey, safeTotals[statKey])
+        );
+        const frames = CATALOG_STAT_ICON_FRAMES_BY_KEY[statKey];
+        const frameIndex = frames
+            ? (displayValue < 0 ? frames.negative : frames.positive)
+            : 11;
+
+        icon.src = getStoreIconUrl(frameIndex);
+        value.textContent = String(Math.abs(Math.trunc(displayValue))).padStart(2, '0');
+    });
+}
+
 function createEmptyShopCatalog() {
     return {
         cloth: [],
@@ -325,6 +521,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const buddyUi = window.GBTH?.buddy;
     const socket = io();
     let userData = JSON.parse(sessionStorage.getItem('user'));
+    let currentPreviewEquip = buildPreviewEquipStateFromUserData(userData);
+    let myAvatarStatIndex = new Map();
+    let myAvatarStatsOverlay = null;
 
     const nicknameSpan = document.getElementById('lobby-nickname');
     const guildSpan = document.getElementById('lobby-guild');
@@ -426,6 +625,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (cashSpan) cashSpan.textContent = `CASH : ${(data.cash || 0).toLocaleString()}`;
     }
 
+    function refreshMyAvatarStatsSummary() {
+        if (!myAvatarStatsOverlay) {
+            return;
+        }
+        const totals = computeMyAvatarStatTotals(currentPreviewEquip, myAvatarStatIndex, userData);
+        renderMyAvatarStatSummary(myAvatarStatsOverlay, totals);
+    }
+
     updateUserInfo(userData);
 
     if (userData) {
@@ -444,6 +651,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         userData = data;
         sessionStorage.setItem('user', JSON.stringify(data));
         updateUserInfo(data);
+
+        const baseState = buildPreviewEquipStateFromUserData(data);
+        currentPreviewEquip = {
+            ...currentPreviewEquip,
+            head: baseState.head,
+            body: baseState.body,
+            eyes: baseState.eyes,
+            flag: baseState.flag
+        };
+
         if (window.avatarShopPreview) {
             window.avatarShopPreview.setGender(data?.gender);
             window.avatarShopPreview.setEquip('head', data?.ahead);
@@ -451,6 +668,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.avatarShopPreview.setEquip('eyes', data?.aeyes);
             window.avatarShopPreview.setEquip('flag', data?.aflag);
         }
+        refreshMyAvatarStatsSummary();
     });
 
     const btnStoreExit = document.getElementById('btn-store-exit');
@@ -468,7 +686,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (btnStoreExit) {
         btnStoreExit.addEventListener('click', () => {
             window.playTransition('closing', () => {
-                window.location.href = 'lobby.html';
+                window.location.href = '/views/lobby.html';
             });
         });
     }
@@ -796,6 +1014,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (error) {
         console.warn('[AvatarShop] Failed to load catalog from DB, keeping default button visibility:', error);
     }
+    myAvatarStatIndex = buildCatalogStatItemIndex(shopCatalog);
 
     const categoryButtons = Array.from(document.querySelectorAll('.avatar-shop-toggle'));
     const avatarShopList = document.getElementById('avatar-shop-list');
@@ -803,7 +1022,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!avatarShopList) {
             return;
         }
-        applySelectedShopItemToPreview(avatarShopList);
+        applySelectedShopItemToPreview(avatarShopList, ({ slot, itemId }) => {
+            currentPreviewEquip[slot] = itemId;
+            refreshMyAvatarStatsSummary();
+        });
     };
 
     if (avatarShopList) {
@@ -953,11 +1175,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const avatarFrame = document.getElementById('avatar-shop-myavatar-frame');
     if (avatarFrame) {
+        myAvatarStatsOverlay = ensureMyAvatarStatsOverlay(avatarFrame);
         try {
             window.avatarShopPreview = await createAvatarPreviewAnimator(avatarFrame, userData);
         } catch (error) {
             console.error('[AvatarShop] Failed to initialize avatar preview:', error);
         }
+        refreshMyAvatarStatsSummary();
     }
 
     window.setTimeout(() => {
@@ -1170,7 +1394,7 @@ function resolvePreviewItemId(item) {
     return Number.isFinite(parsed) ? parsed : null;
 }
 
-function applySelectedShopItemToPreview(container) {
+function applySelectedShopItemToPreview(container, onApplied = null) {
     if (!container || !window.avatarShopPreview) {
         return false;
     }
@@ -1194,6 +1418,9 @@ function applySelectedShopItemToPreview(container) {
     }
 
     window.avatarShopPreview.setEquip(slot, itemId);
+    if (typeof onApplied === 'function') {
+        onApplied({ slot, itemId, item: selectedItem });
+    }
     return true;
 }
 

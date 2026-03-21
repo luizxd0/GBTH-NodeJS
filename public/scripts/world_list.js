@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showJoiningAnimation(() => {
             socket.emit('joinWorld');
             window.playTransition('closing', () => {
-                window.location.href = 'lobby.html';
+                window.location.href = '/views/lobby.html';
             });
         });
     }
@@ -270,7 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnExit) {
         btnExit.addEventListener('click', () => {
             sessionStorage.clear();
-            window.location.href = 'index.html';
+            window.location.href = '/views/index.html';
         });
     }
 

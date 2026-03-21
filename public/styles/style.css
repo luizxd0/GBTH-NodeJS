@@ -12,7 +12,7 @@
 }
 
 html {
-    cursor: none;
+    cursor: url('/assets/shared/cursor/cursor_frame_0.png') 0 0, none;
     font-family: var(--gbth-ui-font);
 }
 
@@ -43,7 +43,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    cursor: none;
+    cursor: url('/assets/shared/cursor/cursor_frame_0.png') 0 0, none;
 }
 
 /* Screen Transitions */
@@ -346,7 +346,7 @@ body {
 
 /* 81x33 */
 #btn-all {
-    top: 0;
+    top: 5px;
     left: 0;
     width: 81px;
     height: 33px;
@@ -367,7 +367,7 @@ body {
 
 /* 80x33 */
 #btn-friend {
-    top: 0;
+    top: 5px;
     left: 93px;
     width: 80px;
     height: 33px;
@@ -388,7 +388,7 @@ body {
 
 /* 107x45 */
 #btn-exit {
-    top: 0;
+    top: 10px;
     left: 0;
     width: 107px;
     height: 45px;
@@ -409,7 +409,7 @@ body {
 
 /* 107x45 */
 #btn-buddy {
-    top: 0;
+    top: 10px;
     left: 125px;
     width: 107px;
     height: 45px;
@@ -430,7 +430,7 @@ body {
 
 /* 107x45 */
 #btn-server {
-    top: 0;
+    top: 10px;
     left: 407px;
     width: 107px;
     height: 45px;
@@ -1487,7 +1487,7 @@ body {
 
 #avatar-shop-myavatar-frame {
     position: absolute;
-    top: 2px;
+    top: 3px;
     left: 550px;
     width: 244px;
     height: 546px;
@@ -1512,6 +1512,45 @@ body {
     overflow: visible;
     pointer-events: none;
     z-index: 12;
+}
+
+#avatar-shop-myavatar-stats {
+    position: absolute;
+    top: 34px;
+    left: 120px;
+    width: 108px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: 17px;
+    column-gap: 4px;
+    row-gap: 1px;
+    pointer-events: none;
+    z-index: 13;
+}
+
+.avatar-shop-myavatar-stat-cell {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.avatar-shop-myavatar-stat-icon {
+    width: 12px;
+    height: 12px;
+    margin-right: 3px;
+    image-rendering: pixelated;
+    flex: 0 0 auto;
+}
+
+.avatar-shop-myavatar-stat-value {
+    font-family: var(--gbth-ui-font);
+    font-size: 13px;
+    font-weight: bold;
+    color: #fff;
+    line-height: 1;
+    text-shadow: 1px 1px 0 #00253f;
+    white-space: nowrap;
 }
 
 .avatar-preview-layer {

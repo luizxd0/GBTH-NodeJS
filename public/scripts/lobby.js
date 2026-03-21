@@ -185,7 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
         button.addEventListener('click', () => {
             if (id === 'btn-lobby-exit') {
                 socket.emit('leave_lobby');
-                window.location.href = 'world_list.html';
+                window.location.href = '/views/world_list.html';
             }
             if (id === 'btn-lobby-buddy') {
                 toggleBuddyPanel();
@@ -203,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
                 window.playTransition('closing', () => {
-                    window.location.href = 'avatar_shop.html';
+                    window.location.href = '/views/avatar_shop.html';
                 });
             }
         });

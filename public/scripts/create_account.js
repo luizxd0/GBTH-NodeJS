@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (response.ok) {
                     showMessage('Account created successfully!', 'success');
                     setTimeout(() => {
-                        window.location.href = 'index.html'; // Redirect to login or world list
+                        window.location.href = '/views/index.html'; // Redirect to login or world list
                     }, 2000);
                 } else {
                     showMessage(result.error || 'Failed to create account', 'error');
