@@ -1451,6 +1451,16 @@ body {
     --avatar-shop-owned-ex-list-width: 184px;
     --avatar-shop-owned-ex-list-height: 108px;
     --avatar-shop-owned-ex-list-padding-top: 0px;
+    --avatar-shop-owned-scroll-width: 18px;
+    --avatar-shop-owned-scroll-height: 18px;
+    --avatar-shop-owned-scroll-left-offset: 10px;
+    --avatar-shop-owned-scroll-up-top-offset: 7px;
+    --avatar-shop-owned-scroll-down-bottom-offset: -2px;
+    --avatar-shop-owned-ex-scroll-width: 18px;
+    --avatar-shop-owned-ex-scroll-height: 18px;
+    --avatar-shop-owned-ex-scroll-left-offset: 10px;
+    --avatar-shop-owned-ex-scroll-up-top-offset: 5px;
+    --avatar-shop-owned-ex-scroll-down-bottom-offset: -5px;
     --avatar-shop-owned-row-width: 100%;
     --avatar-shop-owned-row-height: 17px;
     --avatar-shop-owned-row-top: 0px;
@@ -2422,6 +2432,111 @@ body {
 
 #btn-store-main-down:disabled {
     background-image: url('/assets/screens/avatar_shop/b_store_down/b_store_down_frame_3.png');
+}
+
+.avatar-shop-owned-scroll-btn {
+    position: absolute;
+    width: var(--avatar-shop-owned-scroll-width);
+    height: var(--avatar-shop-owned-scroll-height);
+    border: none;
+    outline: none;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-position: center;
+    cursor: inherit;
+    z-index: 16;
+}
+
+#btn-store-owned-up {
+    top: calc(var(--avatar-shop-owned-list-top) + var(--avatar-shop-owned-scroll-up-top-offset));
+    left: calc(var(--avatar-shop-owned-list-left) + var(--avatar-shop-owned-list-width) + var(--avatar-shop-owned-scroll-left-offset));
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_0.png');
+}
+
+#btn-store-owned-up:hover:not(.disabled) {
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_1.png');
+}
+
+#btn-store-owned-up:active:not(.disabled) {
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_2.png');
+}
+
+#btn-store-owned-up.disabled {
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_3.png');
+    pointer-events: none;
+}
+
+#btn-store-owned-down {
+    top: calc(
+        var(--avatar-shop-owned-list-top)
+        + var(--avatar-shop-owned-list-height)
+        - var(--avatar-shop-owned-scroll-height)
+        - var(--avatar-shop-owned-scroll-down-bottom-offset)
+    );
+    left: calc(var(--avatar-shop-owned-list-left) + var(--avatar-shop-owned-list-width) + var(--avatar-shop-owned-scroll-left-offset));
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_0.png');
+}
+
+#btn-store-owned-down:hover:not(.disabled) {
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_1.png');
+}
+
+#btn-store-owned-down:active:not(.disabled) {
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_2.png');
+}
+
+#btn-store-owned-down.disabled {
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_3.png');
+    pointer-events: none;
+}
+
+#btn-store-owned-ex-up {
+    top: calc(var(--avatar-shop-owned-ex-list-top) + var(--avatar-shop-owned-ex-scroll-up-top-offset));
+    left: calc(var(--avatar-shop-owned-ex-list-left) + var(--avatar-shop-owned-ex-list-width) + var(--avatar-shop-owned-ex-scroll-left-offset));
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_0.png');
+}
+
+#btn-store-owned-ex-up:hover:not(.disabled) {
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_1.png');
+}
+
+#btn-store-owned-ex-up:active:not(.disabled) {
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_2.png');
+}
+
+#btn-store-owned-ex-up.disabled {
+    background-image: url('/assets/screens/world_list/b_scroll_up/b_scroll_up_frame_3.png');
+    pointer-events: none;
+}
+
+#btn-store-owned-ex-down {
+    top: calc(
+        var(--avatar-shop-owned-ex-list-top)
+        + var(--avatar-shop-owned-ex-list-height)
+        - var(--avatar-shop-owned-ex-scroll-height)
+        - var(--avatar-shop-owned-ex-scroll-down-bottom-offset)
+    );
+    left: calc(var(--avatar-shop-owned-ex-list-left) + var(--avatar-shop-owned-ex-list-width) + var(--avatar-shop-owned-ex-scroll-left-offset));
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_0.png');
+}
+
+#btn-store-owned-ex-up,
+#btn-store-owned-ex-down {
+    width: var(--avatar-shop-owned-ex-scroll-width);
+    height: var(--avatar-shop-owned-ex-scroll-height);
+}
+
+#btn-store-owned-ex-down:hover:not(.disabled) {
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_1.png');
+}
+
+#btn-store-owned-ex-down:active:not(.disabled) {
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_2.png');
+}
+
+#btn-store-owned-ex-down.disabled {
+    background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_3.png');
+    pointer-events: none;
 }
 
 #btn-store-cloth,

@@ -697,6 +697,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const avatarShopBuyThumb = document.getElementById('avatar-shop-buy-thumb');
     const avatarShopOwnedList = document.getElementById('avatar-shop-owned-list');
     const avatarShopOwnedExList = document.getElementById('avatar-shop-owned-ex-list');
+    const btnStoreOwnedUp = document.getElementById('btn-store-owned-up');
+    const btnStoreOwnedDown = document.getElementById('btn-store-owned-down');
+    const btnStoreOwnedExUp = document.getElementById('btn-store-owned-ex-up');
+    const btnStoreOwnedExDown = document.getElementById('btn-store-owned-ex-down');
     const btnAvatarShopSell = document.getElementById('btn-avatar-shop-sell');
     const btnStoreSortPuton = document.getElementById('btn-store-sort-puton');
     const btnStoreSortHat = document.getElementById('btn-store-sort-hat');
@@ -726,6 +730,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         upButton: document.querySelector('.buddy-chat-scroll-up'),
         downButton: document.querySelector('.buddy-chat-scroll-down'),
         scrollAmount: 30
+    });
+
+    const ownedRegularScroll = ui?.setupScrollControls({
+        viewport: avatarShopOwnedList,
+        upButton: btnStoreOwnedUp,
+        downButton: btnStoreOwnedDown,
+        scrollAmount: 34
+    });
+
+    const ownedExScroll = ui?.setupScrollControls({
+        viewport: avatarShopOwnedExList,
+        upButton: btnStoreOwnedExUp,
+        downButton: btnStoreOwnedExDown,
+        scrollAmount: 34
     });
 
     const addBuddyCursorController = ui?.setupInputCursor({
@@ -1128,6 +1146,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             avatarShopOwnedList.appendChild(row);
         });
+        ownedRegularScroll?.update();
     }
 
     function renderOwnedExList() {
@@ -1190,6 +1209,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             avatarShopOwnedExList.appendChild(row);
         });
+        ownedExScroll?.update();
     }
 
     function applyInventoryPayload(inventoryPayload, options = {}) {
