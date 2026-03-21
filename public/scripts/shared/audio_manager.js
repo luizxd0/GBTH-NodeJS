@@ -50,8 +50,8 @@
         style.innerHTML = `
             #gbth-options-btn {
                 position: fixed;
-                top: 133px;
-                right: 369px;
+                top: -9999px;
+                left: -9999px;
                 background-color: #0b1f3d;
                 border: 2px solid #1a3a6a;
                 color: #fff;
@@ -69,8 +69,8 @@
             #gbth-options-modal {
                 display: none;
                 position: fixed;
-                top: 165px;
-                right: 369px;
+                top: -9999px;
+                left: -9999px;
                 width: 250px;
                 background-color: #000;
                 border: 3px solid #1a3a6a;
@@ -129,7 +129,7 @@
 
         const btn = document.createElement('button');
         btn.id = 'gbth-options-btn';
-        btn.innerText = '⚙ Options';
+        btn.innerText = '\u2699 Options';
         document.body.appendChild(btn);
 
         const modal = document.createElement('div');
@@ -154,6 +154,41 @@
             </div>
         `;
         document.body.appendChild(modal);
+
+        const OPTIONS_BTN_TOP_OFFSET = -42;
+        const OPTIONS_BTN_RIGHT_OFFSET = 4;
+        const OPTIONS_MODAL_GAP = 6;
+        const DEFAULT_MODAL_TOTAL_WIDTH = 276;
+
+        const positionOptionsUi = () => {
+            const gameContainer = document.getElementById('game-container');
+            if (!gameContainer) {
+                btn.style.left = '12px';
+                btn.style.top = '12px';
+                modal.style.left = '12px';
+                modal.style.top = '44px';
+                return;
+            }
+
+            const rect = gameContainer.getBoundingClientRect();
+            const btnWidth = Math.max(1, Math.round(btn.getBoundingClientRect().width || btn.offsetWidth || 100));
+            const btnHeight = Math.max(1, Math.round(btn.getBoundingClientRect().height || btn.offsetHeight || 30));
+            const modalWidth = Math.max(1, Math.round(modal.offsetWidth || DEFAULT_MODAL_TOTAL_WIDTH));
+
+            const btnLeft = Math.round(rect.right - btnWidth + OPTIONS_BTN_RIGHT_OFFSET);
+            const btnTop = Math.round(rect.top + OPTIONS_BTN_TOP_OFFSET);
+            const modalLeft = Math.round(rect.right - modalWidth + OPTIONS_BTN_RIGHT_OFFSET);
+            const modalTop = btnTop + btnHeight + OPTIONS_MODAL_GAP;
+
+            btn.style.left = `${btnLeft}px`;
+            btn.style.top = `${btnTop}px`;
+            modal.style.left = `${modalLeft}px`;
+            modal.style.top = `${modalTop}px`;
+        };
+
+        positionOptionsUi();
+        window.addEventListener('resize', positionOptionsUi);
+        window.addEventListener('scroll', positionOptionsUi, true);
 
         // Click outside closes modal
         document.addEventListener('click', (e) => {
@@ -211,3 +246,4 @@
         });
     });
 })();
+

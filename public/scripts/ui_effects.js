@@ -80,6 +80,12 @@ window.playTransition = function(type, callback) {
     let lastHoveredElement = null;
     const shouldSuppressHoverSound = (target) => {
         if (!target) return false;
+        return target.classList?.contains('avatar-shop-item') === true
+            || target.classList?.contains('buddy-item') === true;
+    };
+
+    const shouldSuppressClickSound = (target) => {
+        if (!target) return false;
         return target.classList?.contains('avatar-shop-item') === true;
     };
 
@@ -108,7 +114,7 @@ window.playTransition = function(type, callback) {
 
     document.addEventListener('click', (e) => {
         const target = e.target.closest('button, a, .btn, .nav-btn, .nav-btn-mini, .bottom-btn, .buddy-mini-btn, .server-item, .buddy-item, .buddy-scroll-button, .chat-scroll-button, .channel-scroll-button');
-        if (target && !target.disabled && !target.classList.contains('disabled') && !shouldSuppressHoverSound(target)) {
+        if (target && !target.disabled && !target.classList.contains('disabled') && !shouldSuppressClickSound(target)) {
             const soundClone = clickSound.cloneNode();
             soundClone.volume = clickSound.volume;
             soundClone.play().catch(() => {});
@@ -120,11 +126,83 @@ window.playTransition = function(type, callback) {
     let lastMoveTime = 0;
     let moveTimeout;
     let cursorDiv = null;
+    let hasCursorPosition = false;
+    let cursorX = 0;
+    let cursorY = 0;
+
+    function hideNativeCursorImmediately() {
+        if (document.documentElement) {
+            document.documentElement.style.cursor = 'none';
+        }
+        if (document.body) {
+            document.body.style.cursor = 'none';
+        }
+    }
+
+    function loadCursorPosition() {
+        try {
+            const raw = sessionStorage.getItem('gbth_cursor_position_v1');
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (!parsed || !Number.isFinite(parsed.x) || !Number.isFinite(parsed.y)) return;
+            cursorX = Math.max(0, parsed.x);
+            cursorY = Math.max(0, parsed.y);
+            hasCursorPosition = true;
+        } catch (_) {
+            // Ignore storage parse errors.
+        }
+    }
+
+    function persistCursorPosition() {
+        if (!hasCursorPosition) return;
+        try {
+            sessionStorage.setItem('gbth_cursor_position_v1', JSON.stringify({
+                x: cursorX,
+                y: cursorY
+            }));
+        } catch (_) {
+            // Ignore storage write errors.
+        }
+    }
 
     function createCursorDiv() {
-        cursorDiv = document.createElement('div');
+        if (cursorDiv && cursorDiv.isConnected) {
+            return cursorDiv;
+        }
+
+        const existingCursor = document.getElementById('custom-cursor');
+        cursorDiv = existingCursor || document.createElement('div');
         cursorDiv.id = 'custom-cursor';
-        document.body.appendChild(cursorDiv);
+
+        // Inline fallback styles so custom cursor appears before stylesheet fully loads.
+        Object.assign(cursorDiv.style, {
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            width: '22px',
+            height: '22px',
+            pointerEvents: 'none',
+            zIndex: '99999',
+            backgroundImage: "url('/assets/shared/cursor/cursor_frame_0.png')",
+            backgroundSize: '22px 22px',
+            backgroundRepeat: 'no-repeat',
+            imageRendering: 'pixelated',
+            willChange: 'transform'
+        });
+
+        const cursorParent = document.body || document.documentElement;
+        if (cursorParent && cursorDiv.parentNode !== cursorParent) {
+            cursorParent.appendChild(cursorDiv);
+        }
+
+        if (hasCursorPosition) {
+            cursorDiv.style.transform = `translate(${cursorX}px, ${cursorY}px)`;
+            cursorDiv.style.display = '';
+        } else {
+            cursorDiv.style.display = 'none';
+        }
+
+        return cursorDiv;
     }
 
     function updateCursorFrame(frame) {
@@ -133,17 +211,28 @@ window.playTransition = function(type, callback) {
         }
     }
 
-    // Create cursor div as soon as body is available
-    if (document.body) {
+    hideNativeCursorImmediately();
+    loadCursorPosition();
+    createCursorDiv();
+
+    document.addEventListener('DOMContentLoaded', () => {
+        hideNativeCursorImmediately();
         createCursorDiv();
-    } else {
-        document.addEventListener('DOMContentLoaded', createCursorDiv);
-    }
+    });
 
     document.addEventListener('mousemove', (e) => {
+        if (!cursorDiv) {
+            createCursorDiv();
+        }
+
+        cursorX = e.clientX;
+        cursorY = e.clientY;
+        hasCursorPosition = true;
+
         // Position the cursor div at the mouse location
         if (cursorDiv) {
-            cursorDiv.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+            cursorDiv.style.display = '';
+            cursorDiv.style.transform = `translate(${cursorX}px, ${cursorY}px)`;
         }
 
         // Animate frames while moving
@@ -161,12 +250,15 @@ window.playTransition = function(type, callback) {
         }, 100); // Reset after 100ms of no movement
     });
 
+    window.addEventListener('beforeunload', persistCursorPosition);
+    window.addEventListener('pagehide', persistCursorPosition);
+
     // Hide custom cursor when mouse leaves the window
     document.addEventListener('mouseleave', () => {
         if (cursorDiv) cursorDiv.style.display = 'none';
     });
     document.addEventListener('mouseenter', () => {
-        if (cursorDiv) cursorDiv.style.display = '';
+        if (cursorDiv && hasCursorPosition) cursorDiv.style.display = '';
     });
 })();
 

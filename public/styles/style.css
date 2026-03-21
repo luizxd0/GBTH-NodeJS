@@ -157,21 +157,6 @@ body {
     /* Chrome, Safari, etc. */
 }
 
-.buddy-list-content {
-    position: relative;
-    padding: 0px 5px;
-    padding-right: 25px;
-    height: 140px;
-    overflow-y: scroll;
-    overflow-x: hidden;
-    scrollbar-width: none;
-    cursor: inherit;
-}
-
-.buddy-list-content::-webkit-scrollbar {
-    display: none;
-}
-
 /* Custom Scroll Controls */
 .scroll-controls {
     position: absolute;
@@ -717,11 +702,15 @@ body {
 
 .buddy-item {
     position: relative;
-    top: 13px;
+    top: 0;
     left: 1px;
     width: 160px;
     height: 28px;
-    margin-bottom: 2px;
+    min-height: 28px;
+    max-height: 28px;
+    flex: 0 0 28px;
+    flex-shrink: 0;
+    margin-bottom: 0;
 
     /* Removed transform and z-index on parent to let ::before z-index: -1 work relative to parent content */
 }
@@ -909,10 +898,12 @@ body {
 
 .buddy-list-content {
     position: absolute;
-    top: 35px;
-    left: 8px;
+    top: 47px;
+    left: 13px;
     right: 28px;
     bottom: 12px;
+    height: auto;
+    padding: 0;
     overflow-y: auto;
     overflow-x: hidden;
     display: flex;
@@ -1730,6 +1721,7 @@ body {
 }
 
 @keyframes avatar-shop-new-badge-blink {
+
     0%,
     49.999% {
         opacity: 1;

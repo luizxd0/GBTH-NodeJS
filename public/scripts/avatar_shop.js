@@ -69,6 +69,12 @@ function getUserGenderCode(userData) {
 }
 
 function canUserTryCatalogItem(item, userData) {
+    const slot = String(item?.slot || '').toLowerCase();
+    // Flags are unisex in original client behavior.
+    if (slot === 'flag') {
+        return true;
+    }
+
     const itemGender = normalizeCatalogGenderValue(item?.gender);
     const userGender = getUserGenderCode(userData);
     return itemGender === 'u' || itemGender === userGender;
