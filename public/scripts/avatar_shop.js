@@ -362,7 +362,7 @@ function resolveCatalogSellGoldValue(itemData) {
     if (goldPrice <= 0) {
         return 0;
     }
-    return Math.max(0, Math.floor(goldPrice * 0.06));
+    return Math.max(0, Math.floor(goldPrice * 0.60));
 }
 
 function isPowerUserItemData(itemData) {
@@ -689,12 +689,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     const buddyChatMessages = document.getElementById('buddy-chat-messages');
     const buddyChatContent = document.querySelector('.buddy-chat-content');
     const avatarShopBuyPopup = document.getElementById('avatar-shop-buy-popup');
+    const avatarShopSellPopup = document.getElementById('avatar-shop-sell-popup');
     const avatarShopBuyName = document.getElementById('avatar-shop-buy-name');
     const avatarShopBuyGoldLine = document.getElementById('avatar-shop-buy-gold-line');
     const avatarShopBuyCashLine = document.getElementById('avatar-shop-buy-cash-line');
     const avatarShopBuyResaleLine = document.getElementById('avatar-shop-buy-resale-line');
     const avatarShopBuyDesc = document.getElementById('avatar-shop-buy-desc');
     const avatarShopBuyThumb = document.getElementById('avatar-shop-buy-thumb');
+    const avatarShopSellItemName = document.getElementById('avatar-shop-sell-item-name');
+    const avatarShopSellPriceLine = document.getElementById('avatar-shop-sell-price-line');
+    const avatarShopSellAfterLine = document.getElementById('avatar-shop-sell-after-line');
+    const avatarShopSellQuestionLine = document.getElementById('avatar-shop-sell-question-line');
     const avatarShopOwnedList = document.getElementById('avatar-shop-owned-list');
     const avatarShopOwnedExList = document.getElementById('avatar-shop-owned-ex-list');
     const btnStoreOwnedUp = document.getElementById('btn-store-owned-up');
@@ -876,6 +881,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (buddyAlertPopup) ui?.makeDraggable(buddyAlertPopup);
     if (buddyChatWindow) ui?.makeDraggable(buddyChatWindow);
     if (avatarShopBuyPopup) ui?.makeDraggable(avatarShopBuyPopup, { handleSelector: '#avatar-shop-buy-popup-header' });
+    if (avatarShopSellPopup) ui?.makeDraggable(avatarShopSellPopup, { handleSelector: '#avatar-shop-sell-popup-header' });
 
     buddyUi?.bindInteractions({
         listContent: buddyListContent,
@@ -992,12 +998,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         return null;
     }
 
+    function getSelectedOwnedItem() {
+        const selectedChestId = getSelectedOwnedChestId();
+        if (!Number.isFinite(selectedChestId) || selectedChestId <= 0) {
+            return null;
+        }
+        const match = findOwnedItemByChestId(selectedChestId);
+        return match?.item || null;
+    }
+
     function updateSellButtonState() {
         if (!btnAvatarShopSell) {
             return;
         }
         const hasSelection = getSelectedOwnedChestId() !== null;
         btnAvatarShopSell.disabled = ownedInventoryActionInProgress || !hasSelection;
+        if ((!hasSelection || ownedInventoryActionInProgress) && avatarShopSellPopup && !avatarShopSellPopup.classList.contains('hidden')) {
+            hideAvatarShopSellPopup();
+        }
     }
 
     function clearOwnedDropTargets() {
@@ -1233,6 +1251,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             row.addEventListener('click', () => {
                 selectedOwnedRegularChestId = chestId;
                 selectedOwnedExChestId = null;
+                hideAvatarShopSellPopup();
                 renderOwnedRegularList();
                 renderOwnedExList();
                 updateSellButtonState();
@@ -1296,6 +1315,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             row.addEventListener('click', () => {
                 selectedOwnedExChestId = chestId;
                 selectedOwnedRegularChestId = null;
+                hideAvatarShopSellPopup();
                 renderOwnedRegularList();
                 renderOwnedExList();
                 updateSellButtonState();
@@ -1469,6 +1489,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        hideAvatarShopSellPopup();
         ownedInventoryActionInProgress = true;
         updateSellButtonState();
         try {
@@ -1513,6 +1534,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnStoreWindowBuyCash = document.getElementById('btn-storewindow-buy-cash');
     const btnStoreWindowBuyGold = document.getElementById('btn-storewindow-buy-gold');
     const btnStoreWindowCancel = document.getElementById('btn-storewindow-cancel');
+    const btnStoreWindowSellOk = document.getElementById('btn-storewindow-sell-ok');
+    const btnStoreWindowSellCancel = document.getElementById('btn-storewindow-sell-cancel');
 
     if (btnStorePuton) btnStorePuton.disabled = true;
     if (btnStoreBuy) btnStoreBuy.disabled = true;
@@ -1538,17 +1561,100 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     setActiveOwnedSortButton(ownedListSortPrimarySlot);
 
-    if (btnAvatarShopSell) {
-        btnAvatarShopSell.addEventListener('click', () => {
-            requestSellSelectedOwnedItem();
-        });
-    }
-
     function hideAvatarShopBuyPopup() {
         if (!avatarShopBuyPopup) {
             return;
         }
         avatarShopBuyPopup.classList.add('hidden');
+    }
+
+    function hideAvatarShopSellPopup() {
+        if (!avatarShopSellPopup) {
+            return;
+        }
+        avatarShopSellPopup.classList.add('hidden');
+    }
+
+    function renderAvatarShopSellPopup() {
+        if (
+            !avatarShopSellItemName
+            || !avatarShopSellPriceLine
+            || !avatarShopSellAfterLine
+            || !avatarShopSellQuestionLine
+        ) {
+            return false;
+        }
+
+        const selectedItem = getSelectedOwnedItem();
+        if (!selectedItem) {
+            return false;
+        }
+
+        const itemName = String(selectedItem?.name || '').trim();
+        const goldPrice = pickPriceAmount(selectedItem, 'gold');
+        const sellGold = resolveCatalogSellGoldValue(selectedItem);
+        const currentGold = formatPriceValue(userData?.gold);
+        const goldAfterSale = currentGold + sellGold;
+
+        avatarShopSellItemName.textContent = `'${itemName}'`;
+        avatarShopSellPriceLine.textContent = `Price: ${goldPrice.toLocaleString()} Gold`;
+        avatarShopSellAfterLine.textContent = `Your Gold after sale: ${goldAfterSale.toLocaleString()} Gold`;
+        avatarShopSellQuestionLine.textContent = 'Do you want to sell this item?';
+
+        if (btnStoreWindowSellOk) {
+            btnStoreWindowSellOk.disabled = ownedInventoryActionInProgress;
+        }
+        if (btnStoreWindowSellCancel) {
+            btnStoreWindowSellCancel.disabled = ownedInventoryActionInProgress;
+        }
+
+        return true;
+    }
+
+    function openAvatarShopSellPopup() {
+        if (!avatarShopSellPopup) {
+            return;
+        }
+        if (!renderAvatarShopSellPopup()) {
+            hideAvatarShopSellPopup();
+            return;
+        }
+
+        const parent = avatarShopSellPopup.offsetParent || document.getElementById('avatar-shop-screen');
+        const parentWidth = Number(parent?.clientWidth || 800);
+        const parentHeight = Number(parent?.clientHeight || 600);
+        const popupWidth = Number(avatarShopSellPopup.offsetWidth || 313);
+        const popupHeight = Number(avatarShopSellPopup.offsetHeight || 187);
+        const styleSource = parent || avatarShopSellPopup;
+        const computedStyle = window.getComputedStyle(styleSource);
+        const offsetX = Number.parseFloat(computedStyle.getPropertyValue('--avatar-shop-sell-popup-center-offset-x')) || 0;
+        const offsetY = Number.parseFloat(computedStyle.getPropertyValue('--avatar-shop-sell-popup-center-offset-y')) || 0;
+        const centeredLeft = Math.max(0, Math.floor((parentWidth - popupWidth) / 2) + Math.round(offsetX));
+        const centeredTop = Math.max(0, Math.floor((parentHeight - popupHeight) / 2) + Math.round(offsetY));
+        avatarShopSellPopup.style.left = `${centeredLeft}px`;
+        avatarShopSellPopup.style.top = `${centeredTop}px`;
+        avatarShopSellPopup.classList.remove('hidden');
+    }
+
+    if (btnAvatarShopSell) {
+        btnAvatarShopSell.addEventListener('click', () => {
+            if (btnAvatarShopSell.disabled) {
+                return;
+            }
+            openAvatarShopSellPopup();
+        });
+    }
+
+    if (btnStoreWindowSellOk) {
+        btnStoreWindowSellOk.addEventListener('click', () => {
+            requestSellSelectedOwnedItem();
+        });
+    }
+
+    if (btnStoreWindowSellCancel) {
+        btnStoreWindowSellCancel.addEventListener('click', () => {
+            hideAvatarShopSellPopup();
+        });
     }
 
     function renderAvatarShopBuyPopup(listContainer) {
@@ -2007,6 +2113,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (event.key === 'Escape' && avatarShopBuyPopup && !avatarShopBuyPopup.classList.contains('hidden')) {
             event.preventDefault();
             hideAvatarShopBuyPopup();
+            return;
+        }
+        if (event.key === 'Escape' && avatarShopSellPopup && !avatarShopSellPopup.classList.contains('hidden')) {
+            event.preventDefault();
+            hideAvatarShopSellPopup();
             return;
         }
 

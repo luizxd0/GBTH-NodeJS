@@ -219,7 +219,7 @@ function computeAvatarSellGoldAmount(item) {
     if (goldPrice <= 0) {
         return 0;
     }
-    return Math.max(0, Math.floor(goldPrice * 0.06));
+    return Math.max(0, Math.floor(goldPrice * 0.60));
 }
 
 function createEmptyUserEquipState() {
@@ -1156,10 +1156,14 @@ app.post('/api/avatar-shop/sell', async (req, res) => {
 
         const sellGoldAmount = computeAvatarSellGoldAmount(itemRow);
 
-        await connection.execute(
+        const [deleteResult] = await connection.execute(
             'DELETE FROM chest WHERE id = ? AND owner_id = ?',
             [Math.trunc(chestId), userId]
         );
+        if (!deleteResult || Number(deleteResult.affectedRows) !== 1) {
+            await connection.rollback();
+            return res.status(500).json({ error: 'Sell failed to remove item from chest' });
+        }
 
         if (sellGoldAmount > 0) {
             await connection.execute(
