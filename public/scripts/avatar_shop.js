@@ -331,6 +331,32 @@ function pickPriceAmount(itemData, keyPrefix) {
         || formatPriceValue(itemData?.[`${keyPrefix}_week`]);
 }
 
+function resolveCatalogPurchaseState(itemData, userData) {
+    const cashPrice = pickPriceAmount(itemData, 'cash');
+    const goldPrice = pickPriceAmount(itemData, 'gold');
+    const userCash = formatPriceValue(userData?.cash);
+    const userGold = formatPriceValue(userData?.gold);
+    const canBuyWithCash = cashPrice > 0 && userCash >= cashPrice;
+    const canBuyWithGold = goldPrice > 0 && userGold >= goldPrice;
+    return {
+        cashPrice,
+        goldPrice,
+        userCash,
+        userGold,
+        canBuyWithCash,
+        canBuyWithGold,
+        canBuy: canBuyWithCash || canBuyWithGold
+    };
+}
+
+function resolveCatalogSellGoldValue(itemData) {
+    const goldPrice = pickPriceAmount(itemData, 'gold');
+    if (goldPrice <= 0) {
+        return 0;
+    }
+    return Math.max(0, Math.floor(goldPrice * 0.06));
+}
+
 function resolveCatalogPriceLines(itemData) {
     const cash = pickPriceAmount(itemData, 'cash');
     const gold = pickPriceAmount(itemData, 'gold');
@@ -578,6 +604,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const buddyChatNickname = document.getElementById('buddy-chat-nickname');
     const buddyChatMessages = document.getElementById('buddy-chat-messages');
     const buddyChatContent = document.querySelector('.buddy-chat-content');
+    const avatarShopBuyPopup = document.getElementById('avatar-shop-buy-popup');
+    const avatarShopBuyName = document.getElementById('avatar-shop-buy-name');
+    const avatarShopBuyGoldLine = document.getElementById('avatar-shop-buy-gold-line');
+    const avatarShopBuyCashLine = document.getElementById('avatar-shop-buy-cash-line');
+    const avatarShopBuyResaleLine = document.getElementById('avatar-shop-buy-resale-line');
+    const avatarShopBuyDesc = document.getElementById('avatar-shop-buy-desc');
+    const avatarShopBuyThumb = document.getElementById('avatar-shop-buy-thumb');
     const BUDDY_CHAT_HISTORY_KEY = 'gbth_buddy_chat_history_v1';
     const BUDDY_CHAT_HISTORY_LIMIT = 120;
 
@@ -615,6 +648,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (addBuddyPopup) ui?.makeDraggable(addBuddyPopup);
     if (buddyAlertPopup) ui?.makeDraggable(buddyAlertPopup);
     if (buddyChatWindow) ui?.makeDraggable(buddyChatWindow);
+    if (avatarShopBuyPopup) ui?.makeDraggable(avatarShopBuyPopup, { handleSelector: '#avatar-shop-buy-popup-header' });
 
     buddyUi?.bindInteractions({
         listContent: buddyListContent,
@@ -696,6 +730,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.avatarShopPreview.setEquip('flag', data?.aflag);
         }
         refreshMyAvatarStatsSummary();
+
+        const activeShopList = document.getElementById('avatar-shop-list');
+        const activeBuyButton = document.getElementById('btn-store-buy');
+        syncBuyButtonState(activeShopList, activeBuyButton, data);
+        if (avatarShopBuyPopup && !avatarShopBuyPopup.classList.contains('hidden')) {
+            const selectedItem = getSelectedShopItem(activeShopList);
+            const purchaseState = resolveCatalogPurchaseState(selectedItem, data);
+            if (!purchaseState.canBuy) {
+                hideAvatarShopBuyPopup();
+            }
+        }
     });
 
     const btnStoreExit = document.getElementById('btn-store-exit');
@@ -704,11 +749,118 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnStoreBuy = document.getElementById('btn-store-buy');
     const btnStoreMainUp = document.getElementById('btn-store-main-up');
     const btnStoreMainDown = document.getElementById('btn-store-main-down');
+    const btnStoreWindowBuyCash = document.getElementById('btn-storewindow-buy-cash');
+    const btnStoreWindowBuyGold = document.getElementById('btn-storewindow-buy-gold');
+    const btnStoreWindowCancel = document.getElementById('btn-storewindow-cancel');
 
     if (btnStorePuton) btnStorePuton.disabled = true;
     if (btnStoreBuy) btnStoreBuy.disabled = true;
     if (btnStoreMainUp) btnStoreMainUp.disabled = true;
     if (btnStoreMainDown) btnStoreMainDown.disabled = true;
+
+    function hideAvatarShopBuyPopup() {
+        if (!avatarShopBuyPopup) {
+            return;
+        }
+        avatarShopBuyPopup.classList.add('hidden');
+    }
+
+    function renderAvatarShopBuyPopup(listContainer) {
+        if (
+            !avatarShopBuyName
+            || !avatarShopBuyGoldLine
+            || !avatarShopBuyCashLine
+            || !avatarShopBuyResaleLine
+            || !avatarShopBuyDesc
+            || !avatarShopBuyThumb
+        ) {
+            return false;
+        }
+
+        const selectedCard = listContainer?.querySelector('.avatar-shop-item.selected');
+        const selectedItem = selectedCard?.__shopItemData || null;
+        if (!selectedItem) {
+            return false;
+        }
+
+        const purchaseState = resolveCatalogPurchaseState(selectedItem, userData);
+        if (!purchaseState.canBuy) {
+            return false;
+        }
+
+        avatarShopBuyName.textContent = String(selectedItem?.name || '');
+        avatarShopBuyGoldLine.textContent = purchaseState.goldPrice > 0
+            ? `Buy with Gold ${purchaseState.goldPrice.toLocaleString()} Gold`
+            : 'Buy with Gold unavailable';
+        avatarShopBuyCashLine.textContent = purchaseState.cashPrice > 0
+            ? `Buy with Cash ${purchaseState.cashPrice.toLocaleString()} Cash`
+            : 'Buy with Cash unavailable';
+        avatarShopBuyGoldLine.classList.toggle('disabled', !purchaseState.canBuyWithGold);
+        avatarShopBuyCashLine.classList.toggle('disabled', !purchaseState.canBuyWithCash);
+
+        const sellGold = resolveCatalogSellGoldValue(selectedItem);
+        avatarShopBuyResaleLine.textContent = sellGold > 0
+            ? `(Sell -${sellGold.toLocaleString()} Gold)`
+            : '';
+
+        avatarShopBuyDesc.textContent = resolveCatalogHoverDescription(selectedItem);
+        copyAvatarShopThumbVisual(selectedCard?.querySelector('.avatar-shop-item-thumb'), avatarShopBuyThumb);
+
+        if (btnStoreWindowBuyCash) {
+            btnStoreWindowBuyCash.disabled = !purchaseState.canBuyWithCash;
+        }
+        if (btnStoreWindowBuyGold) {
+            btnStoreWindowBuyGold.disabled = !purchaseState.canBuyWithGold;
+        }
+
+        return true;
+    }
+
+    function openAvatarShopBuyPopup(listContainer) {
+        if (!avatarShopBuyPopup) {
+            return;
+        }
+        if (!renderAvatarShopBuyPopup(listContainer)) {
+            hideAvatarShopBuyPopup();
+            return;
+        }
+        avatarShopBuyPopup.classList.remove('hidden');
+    }
+
+    function handleAvatarShopBuyClick(currency) {
+        const listContainer = document.getElementById('avatar-shop-list');
+        const selectedItem = getSelectedShopItem(listContainer);
+        const purchaseState = resolveCatalogPurchaseState(selectedItem, userData);
+        const canBuy = currency === 'cash'
+            ? purchaseState.canBuyWithCash
+            : purchaseState.canBuyWithGold;
+
+        if (!canBuy) {
+            return;
+        }
+
+        hideAvatarShopBuyPopup();
+        // Purchase transaction endpoint is not implemented yet; keep this as UI parity only.
+        console.info('[AvatarShop] Purchase option selected:', currency, selectedItem?.avatar_code || selectedItem?.name || 'unknown');
+    }
+
+    if (btnStoreWindowCancel) {
+        btnStoreWindowCancel.addEventListener('click', () => {
+            hideAvatarShopBuyPopup();
+        });
+    }
+
+    if (btnStoreWindowBuyCash) {
+        btnStoreWindowBuyCash.addEventListener('click', () => {
+            handleAvatarShopBuyClick('cash');
+        });
+    }
+
+    if (btnStoreWindowBuyGold) {
+        btnStoreWindowBuyGold.addEventListener('click', () => {
+            handleAvatarShopBuyClick('gold');
+        });
+    }
 
     if (btnStoreExit) {
         btnStoreExit.addEventListener('click', () => {
@@ -1013,6 +1165,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && avatarShopBuyPopup && !avatarShopBuyPopup.classList.contains('hidden')) {
+            event.preventDefault();
+            hideAvatarShopBuyPopup();
+            return;
+        }
+
         if (event.key === 'F10') {
             event.preventDefault();
             toggleBuddyPanel();
@@ -1058,6 +1216,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (avatarShopList) {
         avatarShopList.addEventListener('avatar-shop-selection-change', () => {
             syncTryButtonState(avatarShopList, btnStorePuton);
+            syncBuyButtonState(avatarShopList, btnStoreBuy, userData);
+            hideAvatarShopBuyPopup();
         });
         avatarShopList.addEventListener('avatar-shop-item-activate', () => {
             applyCurrentSelectionTry();
@@ -1067,6 +1227,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (btnStorePuton) {
         btnStorePuton.addEventListener('click', () => {
             applyCurrentSelectionTry();
+        });
+    }
+
+    if (btnStoreBuy) {
+        btnStoreBuy.addEventListener('click', () => {
+            if (btnStoreBuy.disabled) {
+                return;
+            }
+            openAvatarShopBuyPopup(avatarShopList);
         });
     }
 
@@ -1080,6 +1249,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (btnStorePuton) {
                 btnStorePuton.disabled = true;
             }
+            if (btnStoreBuy) {
+                btnStoreBuy.disabled = true;
+            }
+            hideAvatarShopBuyPopup();
             categoryButtons.forEach((btn) => btn.classList.remove('active'));
             button.classList.add('active');
 
@@ -1105,6 +1278,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (btnStorePuton) {
                 btnStorePuton.disabled = true;
             }
+            if (btnStoreBuy) {
+                btnStoreBuy.disabled = true;
+            }
+            hideAvatarShopBuyPopup();
             const activeCategoryId = avatarShopList.dataset.activeCategoryId;
             if (!activeCategoryId) {
                 return;
@@ -1134,6 +1311,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (btnStorePuton) {
                 btnStorePuton.disabled = true;
             }
+            if (btnStoreBuy) {
+                btnStoreBuy.disabled = true;
+            }
+            hideAvatarShopBuyPopup();
             const activeCategoryId = avatarShopList.dataset.activeCategoryId;
             if (!activeCategoryId) {
                 return;
@@ -1187,6 +1368,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (btnStoreMainUp) btnStoreMainUp.disabled = true;
             if (btnStoreMainDown) btnStoreMainDown.disabled = true;
             if (btnStorePuton) btnStorePuton.disabled = true;
+            if (btnStoreBuy) btnStoreBuy.disabled = true;
+            hideAvatarShopBuyPopup();
         }
     }
 
@@ -1405,6 +1588,43 @@ function syncTryButtonState(container, tryButton) {
     const selected = container?.querySelector?.('.avatar-shop-item.selected');
     const canTry = Boolean(selected && selected.__shopItemData && selected.__canTry === true);
     tryButton.disabled = !canTry;
+}
+
+function syncBuyButtonState(container, buyButton, userData) {
+    if (!buyButton) {
+        return;
+    }
+    const selectedItem = getSelectedShopItem(container);
+    if (!selectedItem) {
+        buyButton.disabled = true;
+        return;
+    }
+    const purchaseState = resolveCatalogPurchaseState(selectedItem, userData);
+    buyButton.disabled = !purchaseState.canBuy;
+}
+
+function copyAvatarShopThumbVisual(sourceThumb, targetThumb) {
+    if (!targetThumb) {
+        return;
+    }
+
+    targetThumb.style.display = 'none';
+    targetThumb.style.backgroundImage = '';
+    targetThumb.style.backgroundPosition = '';
+    targetThumb.style.backgroundSize = '';
+    targetThumb.style.width = '';
+    targetThumb.style.height = '';
+
+    if (!sourceThumb || sourceThumb.style.display === 'none' || !sourceThumb.style.backgroundImage) {
+        return;
+    }
+
+    targetThumb.style.display = 'block';
+    targetThumb.style.backgroundImage = sourceThumb.style.backgroundImage;
+    targetThumb.style.backgroundPosition = sourceThumb.style.backgroundPosition || 'center center';
+    targetThumb.style.backgroundSize = sourceThumb.style.backgroundSize || 'auto';
+    targetThumb.style.width = sourceThumb.style.width || '100%';
+    targetThumb.style.height = sourceThumb.style.height || '100%';
 }
 
 function resolvePreviewItemId(item) {

@@ -2360,6 +2360,187 @@ body {
     background-image: url('/assets/screens/avatar_shop/b_store_buy/b_store_buy_frame_3.png');
 }
 
+#avatar-shop-buy-popup {
+    position: absolute;
+    top: 168px;
+    left: 262px;
+    width: 275px;
+    height: 263px;
+    background-image: url('/assets/screens/avatar_shop/store_window_back/store_window_back_frame_7.png');
+    background-size: 275px 263px;
+    image-rendering: pixelated;
+    z-index: 3200;
+}
+
+#avatar-shop-buy-popup-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 275px;
+    height: 30px;
+    cursor: inherit;
+}
+
+#avatar-shop-buy-title {
+    position: absolute;
+    top: 14px;
+    left: 41px;
+    color: #ffe357;
+    font-family: var(--gbth-ui-font);
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 1;
+    text-shadow:
+        1px 0 0 #00131f,
+        -1px 0 0 #00131f,
+        0 1px 0 #00131f,
+        0 -1px 0 #00131f;
+    pointer-events: none;
+}
+
+#avatar-shop-buy-item-frame {
+    position: absolute;
+    top: 46px;
+    left: 25px;
+    width: 89px;
+    height: 82px;
+    border: none;
+    border-radius: 0;
+    background-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+#avatar-shop-buy-thumb {
+    width: 100%;
+    height: 100%;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+}
+
+#avatar-shop-buy-name,
+#avatar-shop-buy-gold-line,
+#avatar-shop-buy-cash-line,
+#avatar-shop-buy-resale-line,
+#avatar-shop-buy-desc {
+    position: absolute;
+    color: #fff;
+    font-family: var(--gbth-ui-font);
+    font-size: 11px;
+    line-height: 1.2;
+    text-shadow: 1px 1px 0 #001421;
+}
+
+#avatar-shop-buy-name {
+    top: 48px;
+    left: 119px;
+    width: 144px;
+    color: #ebfaff;
+}
+
+#avatar-shop-buy-gold-line {
+    top: 68px;
+    left: 119px;
+    width: 144px;
+    color: #ffe35d;
+}
+
+#avatar-shop-buy-cash-line {
+    top: 84px;
+    left: 119px;
+    width: 144px;
+    color: #79f2ff;
+}
+
+.avatar-shop-buy-line.disabled {
+    opacity: 0.55;
+}
+
+#avatar-shop-buy-resale-line {
+    top: 100px;
+    left: 119px;
+    width: 144px;
+    color: #d5d5d5;
+}
+
+#avatar-shop-buy-desc {
+    top: 132px;
+    left: 24px;
+    width: 230px;
+    max-height: 58px;
+    overflow: hidden;
+    color: #f0f0f0;
+}
+
+.avatar-shop-window-btn {
+    position: absolute;
+    width: 85px;
+    height: 36px;
+    border: none;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-position: top left;
+    cursor: inherit;
+    outline: none;
+    z-index: 1;
+}
+
+#btn-storewindow-buy-cash {
+    top: 223px;
+    left: 9px;
+    background-image: url('/assets/screens/avatar_shop/b_storewindow_cash/b_storewindow_cash_frame_0.png');
+}
+
+#btn-storewindow-buy-cash:hover:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_storewindow_cash/b_storewindow_cash_frame_1.png');
+}
+
+#btn-storewindow-buy-cash:active:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_storewindow_cash/b_storewindow_cash_frame_2.png');
+}
+
+#btn-storewindow-buy-cash:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_storewindow_cash/b_storewindow_cash_frame_3.png');
+}
+
+#btn-storewindow-buy-gold {
+    top: 223px;
+    left: 95px;
+    background-image: url('/assets/screens/avatar_shop/b_storewindow_gold/b_storewindow_gold_frame_0.png');
+}
+
+#btn-storewindow-buy-gold:hover:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_storewindow_gold/b_storewindow_gold_frame_1.png');
+}
+
+#btn-storewindow-buy-gold:active:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_storewindow_gold/b_storewindow_gold_frame_2.png');
+}
+
+#btn-storewindow-buy-gold:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_storewindow_gold/b_storewindow_gold_frame_3.png');
+}
+
+#btn-storewindow-cancel {
+    top: 223px;
+    left: 181px;
+    background-image: url('/assets/screens/avatar_shop/b_storewindow_cancel/b_storewindow_cancel_frame_0.png');
+}
+
+#btn-storewindow-cancel:hover:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_storewindow_cancel/b_storewindow_cancel_frame_1.png');
+}
+
+#btn-storewindow-cancel:active:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_storewindow_cancel/b_storewindow_cancel_frame_2.png');
+}
+
+#btn-storewindow-cancel:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_storewindow_cancel/b_storewindow_cancel_frame_3.png');
+}
+
 #btn-store-setitem,
 #btn-store-exitem {
     top: 556px;
