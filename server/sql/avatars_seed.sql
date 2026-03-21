@@ -843,4 +843,40 @@ INSERT INTO avatars (source_avatar_id, source_ref_id, avatar_code, name, descrip
 (98417, 113, 'mh00113', 'Leaf Warrior', 'O guerreiro da vila', 'head', 'm', 0, 0, 0, 0, 100000, 0, 0, 10000, 0, 0, 0, 14, 0, 3, 0, 5, NULL, NULL, 1, 1),
 (98418, 114, 'mh00114', 'Apprentice Wizard', 'Vestido como seu mestre', 'head', 'm', 0, 0, 0, 0, 80000, 0, 0, 8000, 0, 0, 0, 9, 0, 5, 5, 0, NULL, NULL, 1, 1),
 (98419, 115, 'mh00115', 'Heaven Angel', 'Pessoas virtuosas do ceu', 'head', 'm', 0, 0, 0, 0, 180000, 0, 0, 18000, 0, 12, 12, 0, 12, 0, 0, 0, NULL, NULL, 1, 1);
+
+-- Legacy seed compatibility fix:
+-- Old DAT export mapped stats as pop,time,atk,def,life,item,dig,shld
+-- but source DAT order is time,atk,def,life,item,dig,shld,pop.
+-- Rotate base avatar stats to proper columns after insert.
+UPDATE avatars a
+JOIN (
+    SELECT
+        id,
+        stat_pop  AS old_pop,
+        stat_time AS old_time,
+        stat_atk  AS old_atk,
+        stat_def  AS old_def,
+        stat_life AS old_life,
+        stat_item AS old_item,
+        stat_dig  AS old_dig,
+        stat_shld AS old_shld
+    FROM avatars
+    WHERE slot IN ('body', 'head', 'eyes', 'flag')
+) src ON src.id = a.id
+SET
+    a.stat_pop  = src.old_shld,
+    a.stat_time = src.old_pop,
+    a.stat_atk  = src.old_atk,
+    a.stat_def  = src.old_def,
+    a.stat_life = src.old_life,
+    a.stat_item = src.old_item,
+    a.stat_dig  = src.old_time,
+    a.stat_shld = src.old_dig;
+
+-- Known parity fix: Golden Helmet uses positive turn-delay value in client.
+UPDATE avatars
+SET stat_time = ABS(stat_time)
+WHERE avatar_code IN ('mh00041', 'fh00055')
+  AND stat_time < 0;
+
 COMMIT;

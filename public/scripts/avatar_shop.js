@@ -10,6 +10,26 @@ const AVATAR_THUMB_BASE_URLS = [
 const AVATAR_EXITEM_THUMB_BASE_URL = '/assets/shared/avatar_thumbs';
 const STORE_ICON_BASE_URL = '/assets/screens/avatar_shop/store_icon/store_icon_frame_';
 const STORE_AVATAR_BASE_URL = '/assets/screens/avatar_shop/store_avatar/store_avatar_frame_';
+const CATALOG_STAT_DISPLAY_ORDER = [
+    'stat_pop',
+    'stat_atk',
+    'stat_def',
+    'stat_life',
+    'stat_time',
+    'stat_item',
+    'stat_dig',
+    'stat_shld'
+];
+const CATALOG_STAT_ICON_FRAMES_BY_KEY = {
+    stat_pop: { positive: 11, negative: 10 },
+    stat_atk: { positive: 13, negative: 12 },
+    stat_def: { positive: 15, negative: 14 },
+    stat_life: { positive: 17, negative: 16 },
+    stat_time: { positive: 9, negative: 8 },
+    stat_item: { positive: 19, negative: 18 },
+    stat_dig: { positive: 21, negative: 20 },
+    stat_shld: { positive: 23, negative: 22 }
+};
 const SHOP_BUTTON_CATEGORY = {
     'btn-store-cloth': 'cloth',
     'btn-store-cap': 'cap',
@@ -155,6 +175,35 @@ function resolveCatalogHoverDescription(itemData) {
     }
 
     return '';
+}
+
+function resolveCatalogStatRows(itemData, maxRows = 3) {
+    const limit = Number.isFinite(maxRows) ? Math.max(0, Math.floor(maxRows)) : 3;
+    const rows = [];
+
+    for (const statKey of CATALOG_STAT_DISPLAY_ORDER) {
+        const numeric = Number(itemData?.[statKey]);
+        if (!Number.isFinite(numeric) || numeric === 0) {
+            continue;
+        }
+
+        const iconFrames = CATALOG_STAT_ICON_FRAMES_BY_KEY[statKey];
+        if (!iconFrames) {
+            continue;
+        }
+
+        const iconFrame = numeric < 0 ? iconFrames.negative : iconFrames.positive;
+        rows.push({
+            iconUrl: getStoreIconUrl(iconFrame),
+            value: String(Math.abs(Math.trunc(numeric))).padStart(2, '0')
+        });
+
+        if (rows.length >= limit) {
+            break;
+        }
+    }
+
+    return rows;
 }
 
 function resolveSlotIconFrame(itemData, categoryKey, userData) {
@@ -1234,6 +1283,20 @@ function initializeAvatarShopList(container) {
                     <div class="avatar-shop-item-thumb"></div>
                 </div>
                 <div class="avatar-shop-item-hover-desc"></div>
+                <div class="avatar-shop-item-stats">
+                    <div class="avatar-shop-item-stat-row">
+                        <img class="avatar-shop-item-stat-icon" alt="">
+                        <span class="avatar-shop-item-stat-value"></span>
+                    </div>
+                    <div class="avatar-shop-item-stat-row">
+                        <img class="avatar-shop-item-stat-icon" alt="">
+                        <span class="avatar-shop-item-stat-value"></span>
+                    </div>
+                    <div class="avatar-shop-item-stat-row">
+                        <img class="avatar-shop-item-stat-icon" alt="">
+                        <span class="avatar-shop-item-stat-value"></span>
+                    </div>
+                </div>
                 <div class="avatar-shop-item-price">
                     <div class="avatar-shop-item-price-line1"></div>
                     <div class="avatar-shop-item-price-line2"></div>
@@ -1658,6 +1721,8 @@ async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) 
     const newBadgeEl = itemButton.querySelector('.avatar-shop-item-new-badge');
     const thumbEl = itemButton.querySelector('.avatar-shop-item-thumb');
     const hoverDescEl = itemButton.querySelector('.avatar-shop-item-hover-desc');
+    const statsEl = itemButton.querySelector('.avatar-shop-item-stats');
+    const statRowEls = Array.from(itemButton.querySelectorAll('.avatar-shop-item-stat-row'));
     const priceLine1El = itemButton.querySelector('.avatar-shop-item-price-line1');
     const priceLine2El = itemButton.querySelector('.avatar-shop-item-price-line2');
     if (!nameEl || !thumbEl || !hoverDescEl || !slotIconEl || !genderBadgeEl || !newBadgeEl || !priceLine1El || !priceLine2El) {
@@ -1675,6 +1740,21 @@ async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) 
         newBadgeEl.removeAttribute('src');
         priceLine1El.textContent = '';
         priceLine2El.textContent = '';
+        if (statsEl) {
+            statsEl.style.display = 'none';
+        }
+        statRowEls.forEach((rowEl) => {
+            rowEl.style.display = 'none';
+            const iconEl = rowEl.querySelector('.avatar-shop-item-stat-icon');
+            const valueEl = rowEl.querySelector('.avatar-shop-item-stat-value');
+            if (iconEl) {
+                iconEl.style.display = 'none';
+                iconEl.removeAttribute('src');
+            }
+            if (valueEl) {
+                valueEl.textContent = '';
+            }
+        });
         priceLine1El.classList.remove('is-cash', 'is-gold');
         priceLine2El.classList.remove('is-cash', 'is-gold');
         hoverDescEl.textContent = '';
@@ -1715,6 +1795,36 @@ async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) 
     priceLine2El.classList.toggle('is-cash', priceInfo.line2Kind === 'cash');
     priceLine2El.classList.toggle('is-gold', priceInfo.line2Kind === 'gold');
     hoverDescEl.textContent = resolveCatalogHoverDescription(itemData);
+    const slotLower = String(itemData?.slot || '').toLowerCase();
+    const hideStats = categoryKey === 'exitem'
+        || slotLower === 'exitem'
+        || slotLower === 'background'
+        || slotLower === 'foreground';
+    const statRows = hideStats ? [] : resolveCatalogStatRows(itemData, 3);
+    if (statsEl) {
+        statsEl.style.display = statRows.length > 0 ? 'flex' : 'none';
+    }
+    statRowEls.forEach((rowEl, index) => {
+        const iconEl = rowEl.querySelector('.avatar-shop-item-stat-icon');
+        const valueEl = rowEl.querySelector('.avatar-shop-item-stat-value');
+        const statRow = statRows[index];
+        if (!statRow || !iconEl || !valueEl) {
+            rowEl.style.display = 'none';
+            if (iconEl) {
+                iconEl.style.display = 'none';
+                iconEl.removeAttribute('src');
+            }
+            if (valueEl) {
+                valueEl.textContent = '';
+            }
+            return;
+        }
+
+        iconEl.src = statRow.iconUrl;
+        iconEl.style.display = 'block';
+        valueEl.textContent = statRow.value;
+        rowEl.style.display = 'flex';
+    });
 
     const slot = getSlotByCategory(categoryKey, itemData);
     const itemId = Number(itemData?.source_ref_id);
@@ -1726,7 +1836,6 @@ async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) 
         || String(itemData?.avatar_code || '').trim();
 
     try {
-        const slotLower = String(itemData?.slot || '').toLowerCase();
         const isExitemLike = categoryKey === 'exitem'
             || slotLower === 'exitem'
             || slotLower === 'background'

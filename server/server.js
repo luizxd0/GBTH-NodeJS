@@ -74,6 +74,14 @@ function toBaseAvatarValue(value) {
     return parsed;
 }
 
+function toSignedAvatarStatValue(value) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+        return 0;
+    }
+    return Math.trunc(parsed);
+}
+
 function pickAvatarCatalogPriceAmount(item, keyPrefix) {
     const week = toBaseAvatarValue(item?.[`${keyPrefix}_week`]);
     const month = toBaseAvatarValue(item?.[`${keyPrefix}_month`]);
@@ -395,14 +403,14 @@ app.get('/api/avatar-shop/catalog', async (req, res) => {
                     cash_week: toBaseAvatarValue(row?.cash_week),
                     cash_month: toBaseAvatarValue(row?.cash_month),
                     cash_perm: toBaseAvatarValue(row?.cash_perm),
-                    stat_pop: toBaseAvatarValue(row?.stat_pop),
-                    stat_time: toBaseAvatarValue(row?.stat_time),
-                    stat_atk: toBaseAvatarValue(row?.stat_atk),
-                    stat_def: toBaseAvatarValue(row?.stat_def),
-                    stat_life: toBaseAvatarValue(row?.stat_life),
-                    stat_item: toBaseAvatarValue(row?.stat_item),
-                    stat_dig: toBaseAvatarValue(row?.stat_dig),
-                    stat_shld: toBaseAvatarValue(row?.stat_shld),
+                    stat_pop: toSignedAvatarStatValue(row?.stat_pop),
+                    stat_time: toSignedAvatarStatValue(row?.stat_time),
+                    stat_atk: toSignedAvatarStatValue(row?.stat_atk),
+                    stat_def: toSignedAvatarStatValue(row?.stat_def),
+                    stat_life: toSignedAvatarStatValue(row?.stat_life),
+                    stat_item: toSignedAvatarStatValue(row?.stat_item),
+                    stat_dig: toSignedAvatarStatValue(row?.stat_dig),
+                    stat_shld: toSignedAvatarStatValue(row?.stat_shld),
                     is_unlocked: toBaseAvatarValue(row?.is_unlocked ?? 1),
                     enabled
                 };

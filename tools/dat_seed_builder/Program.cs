@@ -191,14 +191,23 @@ class Program
                     0,
                     0,
                     Math.Max(0, cash),
-                    s[0],
-                    s[1],
-                    s[2],
-                    s[3],
-                    s[4],
-                    s[5],
-                    s[6],
-                    s[7],
+                    // DAT stat order differs from DB column order:
+                    // DAT: time, ?, atk, def, life, item, shld?, pop  (legacy client layout)
+                    // DB : pop, time, atk, def, life, item, dig, shld
+                    // Calibrated against original client card stats:
+                    // - def column was actually atk
+                    // - life column was actually def
+                    // - item column was actually life
+                    // - dig column was actually item delay
+                    // - atk column maps to dig
+                    s[7], // stat_pop
+                    s[0], // stat_time
+                    s[2], // stat_atk
+                    s[3], // stat_def
+                    s[4], // stat_life
+                    s[5], // stat_item
+                    s[1], // stat_dig
+                    s[6], // stat_shld
                     null,
                     null,
                     d[0x23] == 0 ? 0 : 1,
