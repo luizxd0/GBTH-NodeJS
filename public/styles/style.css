@@ -1643,7 +1643,7 @@ body {
         url('/assets/screens/avatar_shop/store_avatar/store_avatar_frame_0.png');
     background-repeat: no-repeat;
     background-position:
-        9px 22px,
+        9px 20px,
         top left;
     background-size:
         142px 82px,
@@ -1656,7 +1656,7 @@ body {
         url('/assets/screens/avatar_shop/store_avatar/store_avatar_frame_1.png');
     background-repeat: no-repeat;
     background-position:
-        9px 22px,
+        9px 20px,
         top left;
     background-size:
         142px 82px,
@@ -1664,7 +1664,7 @@ body {
 }
 
 #avatar-shop-list.exitem-mode .avatar-shop-item-preview {
-    top: 22px;
+    top: 20px;
     left: 9px;
     width: 142px;
     height: 82px;
@@ -1672,14 +1672,7 @@ body {
 }
 
 #avatar-shop-list.exitem-mode .avatar-shop-item-preview::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 1px;
-    background-color: #0a4f70;
-    pointer-events: none;
+    content: none;
 }
 
 .avatar-shop-item-content {
@@ -1828,6 +1821,10 @@ body {
         opacity 0.12s linear,
         visibility 0s linear 0.12s;
     transition-delay: 0s, 0.12s;
+}
+
+#avatar-shop-list.exitem-mode .avatar-shop-item-hover-desc {
+    top: 20px;
 }
 
 #avatar-shop-list.set-mode .avatar-shop-item-hover-desc {
