@@ -27,9 +27,14 @@ const PREVIEW_EX_EFFECT_POSITION_OFFSETS = {
 const PREVIEW_EX_EFFECT_LOCK_Y_FOLDERS = new Set([
     'sf204854',
     'sf204855',
+    'sb204854',
+    'sb204855',
+    'b204854',
+    'b204855',
     'f204854',
     'f204855'
 ]);
+const PREVIEW_EX_EFFECT_LOCK_Y_SOURCE_IDS = new Set([204854, 204855]);
 const AVATAR_ATLAS_METADATA_URL = '/assets/shared/avatar_sheets/avatar_metadata.json';
 const AVATAR_SHEET_TEST_MODE = 'atlas_avatar';
 const AVATAR_LAYERED_BASE_URLS = [
@@ -115,7 +120,17 @@ function getExEffectPositionOffset(layerKind, animation) {
 
 function shouldLockExEffectY(animation) {
     const folder = String(animation?.folder || '').trim().toLowerCase();
-    return PREVIEW_EX_EFFECT_LOCK_Y_FOLDERS.has(folder);
+    if (PREVIEW_EX_EFFECT_LOCK_Y_FOLDERS.has(folder)) {
+        return true;
+    }
+
+    const idMatch = folder.match(/(\d+)$/);
+    if (!idMatch) {
+        return false;
+    }
+
+    const sourceAvatarId = Number(idMatch[1]);
+    return Number.isFinite(sourceAvatarId) && PREVIEW_EX_EFFECT_LOCK_Y_SOURCE_IDS.has(sourceAvatarId);
 }
 
 function getExEffectFrameIndexByEpa(animation, frameCount, playbackStartMs, nowMs) {

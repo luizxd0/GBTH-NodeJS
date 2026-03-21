@@ -82,6 +82,25 @@ function pickPriceAmount(itemData, keyPrefix) {
 function resolveCatalogPriceLines(itemData) {
     const cash = pickPriceAmount(itemData, 'cash');
     const gold = pickPriceAmount(itemData, 'gold');
+    const nameLower = String(itemData?.name || '').toLowerCase();
+    const codeLower = String(itemData?.avatar_code || '').toLowerCase();
+    const sourceAvatarId = Number(itemData?.source_avatar_id);
+    const isPowerUser = nameLower.includes('power user')
+        || codeLower === 'ex2_204802'
+        || codeLower === 'ex2_204803'
+        || codeLower === 'ex2_204804'
+        || sourceAvatarId === 204802
+        || sourceAvatarId === 204803
+        || sourceAvatarId === 204804;
+
+    if (isPowerUser && cash > 0) {
+        return {
+            line1: `${cash.toLocaleString()} CASH`,
+            line2: 'CASH ONLY',
+            line1Kind: 'cash',
+            line2Kind: 'cash'
+        };
+    }
 
     if (cash > 0 && gold > 0) {
         return {
@@ -731,11 +750,19 @@ async function updateShopGridForCategoryButton(
 
     const pageSize = getPageSizeForCategory(categoryKey);
     const totalPages = getTotalPages(categoryItems.length, pageSize);
-    const currentPage = clampPageIndex(pageIndex, totalPages);
-    const startIndex = currentPage * pageSize;
-    const visibleItems = categoryItems.slice(startIndex, startIndex + pageSize);
+    let currentPage = clampPageIndex(pageIndex, totalPages);
+    let startIndex = currentPage * pageSize;
+    let visibleItems = categoryItems.slice(startIndex, startIndex + pageSize);
 
-    syncAvatarShopListMode(container, buttonId, visibleItems.length);
+    // Never render a blank page while the category still has items.
+    if (categoryItems.length > 0 && visibleItems.length === 0) {
+        currentPage = 0;
+        startIndex = 0;
+        visibleItems = categoryItems.slice(0, pageSize);
+    }
+
+    const cardCountOverride = visibleItems.length;
+    syncAvatarShopListMode(container, buttonId, cardCountOverride);
 
     const cardButtons = Array.from(container.querySelectorAll('.avatar-shop-item'));
     await Promise.all(cardButtons.map((cardButton, index) =>
@@ -1280,10 +1307,6 @@ async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) 
         : itemGender;
     const folderCode = resolveAtlasFolderCode(genderCode, slot, itemId, false)
         || String(itemData?.avatar_code || '').trim();
-    if (!folderCode) {
-        thumbEl.style.display = 'none';
-        return;
-    }
 
     try {
         const slotLower = String(itemData?.slot || '').toLowerCase();
@@ -1295,27 +1318,31 @@ async function applyGridItemVisual(itemButton, itemData, categoryKey, userData) 
         let thumbAsset = null;
         let cropFrame = null;
 
-        if (slotLower === 'background' || slotLower === 'foreground') {
+        if (isExitemLike) {
             try {
-                thumbAsset = await resolveExEffectThumbAsset(itemData, slotLower);
-                cropFrame = thumbAsset?.cropFrame || null;
+                // Match original shop appearance: EX category cards use ex2_* thumbnail assets.
+                thumbAsset = await resolveExitemThumbAsset(itemData);
             } catch (error) {
                 thumbAsset = null;
                 cropFrame = null;
             }
         }
 
-        if (isExitemLike) {
+        if (!thumbAsset && (slotLower === 'background' || slotLower === 'foreground')) {
             try {
-                if (!thumbAsset) {
-                    thumbAsset = await resolveExitemThumbAsset(itemData);
-                }
+                // Fallback only if a thumbnail is missing.
+                thumbAsset = await resolveExEffectThumbAsset(itemData, slotLower);
+                cropFrame = thumbAsset?.cropFrame || null;
             } catch (error) {
                 thumbAsset = null;
             }
         }
 
         if (!thumbAsset) {
+            if (!folderCode) {
+                thumbEl.style.display = 'none';
+                return;
+            }
             const codeCandidates = buildThumbCodeCandidates(itemData, folderCode);
             if (!codeCandidates.length) {
                 thumbEl.style.display = 'none';

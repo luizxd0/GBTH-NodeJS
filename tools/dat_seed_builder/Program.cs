@@ -262,14 +262,14 @@ class Program
                 {
                     goldPerm = 0;
                     cashPerm = 0;
+                    goldWeek = 0;
+                    goldMonth = 0;
                     if (name.Contains("mth", StringComparison.OrdinalIgnoreCase))
                     {
-                        goldMonth = Math.Max(0, gold);
                         cashMonth = Math.Max(0, cash);
                     }
                     else
                     {
-                        goldWeek = Math.Max(0, gold);
                         cashWeek = Math.Max(0, cash);
                     }
                 }

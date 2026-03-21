@@ -1640,38 +1640,26 @@ body {
 #avatar-shop-list.exitem-mode .avatar-shop-item {
     background-image:
         url('/assets/screens/avatar_shop/store_avatar/store_avatar_frame_13.png'),
-        linear-gradient(to bottom, #ffffff 0%, #ffffff 100%),
-        linear-gradient(to bottom, #1ba7dc 0%, #1ba7dc 100%),
         url('/assets/screens/avatar_shop/store_avatar/store_avatar_frame_0.png');
     background-repeat: no-repeat;
     background-position:
-        9px 1px,
-        9px 83px,
-        9px 126px,
+        9px 22px,
         top left;
     background-size:
         142px 82px,
-        142px 43px,
-        142px 29px,
         160px 156px;
 }
 
 #avatar-shop-list.exitem-mode .avatar-shop-item.selected {
     background-image:
         url('/assets/screens/avatar_shop/store_avatar/store_avatar_frame_13.png'),
-        linear-gradient(to bottom, #ffffff 0%, #ffffff 100%),
-        linear-gradient(to bottom, #1ba7dc 0%, #1ba7dc 100%),
         url('/assets/screens/avatar_shop/store_avatar/store_avatar_frame_1.png');
     background-repeat: no-repeat;
     background-position:
-        9px 1px,
-        9px 83px,
-        9px 126px,
+        9px 22px,
         top left;
     background-size:
         142px 82px,
-        142px 43px,
-        142px 29px,
         160px 156px;
 }
 
@@ -1680,7 +1668,18 @@ body {
     left: 9px;
     width: 142px;
     height: 82px;
-    background-color: #ffffff;
+    background-color: transparent;
+}
+
+#avatar-shop-list.exitem-mode .avatar-shop-item-preview::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background-color: #0a4f70;
+    pointer-events: none;
 }
 
 .avatar-shop-item-content {

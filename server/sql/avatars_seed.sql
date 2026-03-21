@@ -3,10 +3,14 @@
 START TRANSACTION;
 DELETE FROM avatars;
 INSERT INTO avatars (source_avatar_id, source_ref_id, avatar_code, name, description, slot, gender, min_rank, note, gold_week, gold_month, gold_perm, cash_week, cash_month, cash_perm, stat_pop, stat_time, stat_atk, stat_def, stat_life, stat_item, stat_dig, stat_shld, set_key, remove_time, is_unlocked, enabled) VALUES
+(196609, 1, 'ex1_196609', 'Golden Armor Set(M)', 'Full Set de Golden Armor por "apenas" 63,000 Cash.', 'exitem', 'm', 0, 0, 0, 0, 630000, 0, 0, 63000, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, 1, 1),
+(196610, 2, 'ex1_196610', 'Golden Armor Set(F)', 'Full Set de Golden Armor por "apenas" 63,000 Cash.', 'exitem', 'f', 0, 0, 0, 0, 630000, 0, 0, 63000, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, 1, 1),
+(196611, 3, 'ex1_196611', 'Panda Set(M)', 'Transforme-se em um Panda!', 'exitem', 'm', 0, 0, 0, 0, 199000, 0, 0, 19900, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, 1, 1),
+(196612, 4, 'ex1_196612', 'Panda Set(F)', 'Transforme-se em um Panda!', 'exitem', 'f', 0, 0, 0, 0, 199000, 0, 0, 19900, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, 1, 1),
 (204801, 1, 'ex2_204801', 'Power User', 'Power User', 'exitem', 'u', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, 1, 1),
-(204802, 2, 'ex2_204802', 'Power User (1wk)', 'Mais Gold e GP, sem penalidade de Gold, e mais!', 'exitem', 'u', 0, 0, 35000, 0, 0, 3500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, 1, 1),
-(204803, 3, 'ex2_204803', 'Power User (2wks)', 'Mais Gold e GP, sem penalidade de Gold, e mais!', 'exitem', 'u', 0, 0, 60000, 0, 0, 6000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, 1, 1),
-(204804, 4, 'ex2_204804', 'Power User (1mth)', 'Mais Gold e GP, sem penalidade de Gold, e mais!', 'exitem', 'u', 0, 0, 0, 80000, 0, 0, 8000, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, 1, 1),
+(204802, 2, 'ex2_204802', 'Power User (1wk)', 'Mais Gold e GP, sem penalidade de Gold, e mais!', 'exitem', 'u', 0, 0, 0, 0, 0, 3500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, 1, 1),
+(204803, 3, 'ex2_204803', 'Power User (2wks)', 'Mais Gold e GP, sem penalidade de Gold, e mais!', 'exitem', 'u', 0, 0, 0, 0, 0, 6000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, 1, 1),
+(204804, 4, 'ex2_204804', 'Power User (1mth)', 'Mais Gold e GP, sem penalidade de Gold, e mais!', 'exitem', 'u', 0, 0, 0, 0, 0, 0, 8000, 0, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, 1, 1),
 (204805, 5, 'ex2_204805', 'Magic Circle', 'Obrigatório para fazer a melhor magia', 'background', 'u', 0, 0, 0, 0, 45000, 0, 0, 4500, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, 1, 1),
 (204806, 6, 'ex2_204806', 'Cave', 'Estou perdido nesta caverna funda!', 'background', 'u', 0, 0, 0, 0, 40000, 0, 0, 4000, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, 1, 1),
 (204807, 7, 'ex2_204807', 'Green Field', 'A grama do vizinho é mais verde! >=[', 'background', 'u', 0, 0, 0, 0, 40000, 0, 0, 4000, 0, 0, 0, 0, 0, 0, 0, 0, NULL, NULL, 1, 1),
