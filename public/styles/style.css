@@ -1439,16 +1439,16 @@ body {
     position: relative;
     --avatar-shop-buy-popup-center-offset-x: 0px;
     --avatar-shop-buy-popup-center-offset-y: 0px;
-    --avatar-shop-owned-list-top: 113px;
-    --avatar-shop-owned-list-left: 558px;
+    --avatar-shop-owned-list-top: 108px;
+    --avatar-shop-owned-list-left: 565px;
     --avatar-shop-owned-list-right: auto;
-    --avatar-shop-owned-list-width: 223px;
+    --avatar-shop-owned-list-width: 184px;
     --avatar-shop-owned-list-height: 232px;
     --avatar-shop-owned-list-padding-top: 0px;
-    --avatar-shop-owned-ex-list-top: 425px;
-    --avatar-shop-owned-ex-list-left: 558px;
+    --avatar-shop-owned-ex-list-top: 390px;
+    --avatar-shop-owned-ex-list-left: 565px;
     --avatar-shop-owned-ex-list-right: auto;
-    --avatar-shop-owned-ex-list-width: 223px;
+    --avatar-shop-owned-ex-list-width: 184px;
     --avatar-shop-owned-ex-list-height: 108px;
     --avatar-shop-owned-ex-list-padding-top: 0px;
     --avatar-shop-owned-row-width: 100%;
@@ -1462,16 +1462,16 @@ body {
     --avatar-shop-owned-row-gap: 3px;
     --avatar-shop-owned-row-padding-x: 4px;
     --avatar-shop-owned-row-font-size: 11px;
-    --avatar-shop-owned-selected-bg-width: 194px;
+    --avatar-shop-owned-selected-bg-width: 196px;
     --avatar-shop-owned-selected-bg-height: 18px;
-    --avatar-shop-owned-selected-bg-offset-x: 0px;
+    --avatar-shop-owned-selected-bg-offset-x: 6px;
     --avatar-shop-owned-selected-bg-offset-y: 0px;
     --avatar-shop-owned-slot-size: 12px;
     --avatar-shop-owned-slot-offset-x: 0px;
     --avatar-shop-owned-slot-offset-y: 0px;
     --avatar-shop-owned-arrow-width: 5px;
     --avatar-shop-owned-arrow-height: 9px;
-    --avatar-shop-owned-arrow-offset-x: 0px;
+    --avatar-shop-owned-arrow-offset-x: 2px;
     --avatar-shop-owned-arrow-offset-y: 0px;
     --avatar-shop-owned-stat-icon-size: 11px;
     --avatar-shop-owned-stat-font-size: 10px;
@@ -1773,7 +1773,7 @@ body {
 
 .avatar-shop-owned-item:hover,
 .avatar-shop-owned-ex-item:hover {
-    background: rgba(68, 176, 222, 0.28);
+    background: transparent;
 }
 
 .avatar-shop-owned-item.selected,
