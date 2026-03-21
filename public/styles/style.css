@@ -1555,8 +1555,8 @@ body {
     height: 546px;
     background-image: url('/assets/screens/avatar_shop/store_myavatar/store_myavatar_frame_0.png');
     background-repeat: no-repeat;
-    --avatar-preview-slot-left: 18px;
-    --avatar-preview-slot-top: 34px;
+    --avatar-preview-slot-left: 17px;
+    --avatar-preview-slot-top: 33px;
     --avatar-preview-slot-width: 88px;
     --avatar-preview-slot-height: 70px;
     --avatar-preview-slot-radius: 8px;
@@ -1721,12 +1721,10 @@ body {
     right: var(--avatar-shop-owned-list-right);
     width: var(--avatar-shop-owned-list-width);
     height: var(--avatar-shop-owned-list-height);
-    padding-top: max(
-        var(--avatar-shop-owned-list-padding-top),
-        calc(var(--avatar-shop-owned-row-top) * -1),
-        calc(var(--avatar-shop-owned-slot-offset-y) * -1),
-        calc(var(--avatar-shop-owned-arrow-offset-y) * -1)
-    );
+    padding-top: max(var(--avatar-shop-owned-list-padding-top),
+            calc(var(--avatar-shop-owned-row-top) * -1),
+            calc(var(--avatar-shop-owned-slot-offset-y) * -1),
+            calc(var(--avatar-shop-owned-arrow-offset-y) * -1));
 }
 
 #avatar-shop-owned-ex-list {
@@ -1735,12 +1733,10 @@ body {
     right: var(--avatar-shop-owned-ex-list-right);
     width: var(--avatar-shop-owned-ex-list-width);
     height: var(--avatar-shop-owned-ex-list-height);
-    padding-top: max(
-        var(--avatar-shop-owned-ex-list-padding-top),
-        calc(var(--avatar-shop-owned-ex-row-top) * -1),
-        calc(var(--avatar-shop-owned-slot-offset-y) * -1),
-        calc(var(--avatar-shop-owned-arrow-offset-y) * -1)
-    );
+    padding-top: max(var(--avatar-shop-owned-ex-list-padding-top),
+            calc(var(--avatar-shop-owned-ex-row-top) * -1),
+            calc(var(--avatar-shop-owned-slot-offset-y) * -1),
+            calc(var(--avatar-shop-owned-arrow-offset-y) * -1));
 }
 
 .avatar-shop-owned-item,
@@ -2544,12 +2540,7 @@ body {
 }
 
 #btn-store-owned-down {
-    top: calc(
-        var(--avatar-shop-owned-list-top)
-        + var(--avatar-shop-owned-list-height)
-        - var(--avatar-shop-owned-scroll-height)
-        - var(--avatar-shop-owned-scroll-down-bottom-offset)
-    );
+    top: calc(var(--avatar-shop-owned-list-top) + var(--avatar-shop-owned-list-height) - var(--avatar-shop-owned-scroll-height) - var(--avatar-shop-owned-scroll-down-bottom-offset));
     left: calc(var(--avatar-shop-owned-list-left) + var(--avatar-shop-owned-list-width) + var(--avatar-shop-owned-scroll-left-offset));
     background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_0.png');
 }
@@ -2587,12 +2578,7 @@ body {
 }
 
 #btn-store-owned-ex-down {
-    top: calc(
-        var(--avatar-shop-owned-ex-list-top)
-        + var(--avatar-shop-owned-ex-list-height)
-        - var(--avatar-shop-owned-ex-scroll-height)
-        - var(--avatar-shop-owned-ex-scroll-down-bottom-offset)
-    );
+    top: calc(var(--avatar-shop-owned-ex-list-top) + var(--avatar-shop-owned-ex-list-height) - var(--avatar-shop-owned-ex-scroll-height) - var(--avatar-shop-owned-ex-scroll-down-bottom-offset));
     left: calc(var(--avatar-shop-owned-ex-list-left) + var(--avatar-shop-owned-ex-list-width) + var(--avatar-shop-owned-ex-scroll-left-offset));
     background-image: url('/assets/screens/world_list/b_scroll_down/b_scroll_down_frame_0.png');
 }
