@@ -1503,6 +1503,22 @@ body {
     z-index: 10;
 }
 
+#avatar-shop-myavatar-count {
+    position: absolute;
+    top: 10px;
+    left: 196px;
+    min-width: 28px;
+    text-align: right;
+    font-family: var(--gbth-ui-font);
+    font-size: 14px;
+    font-weight: bold;
+    color: #ffff00;
+    line-height: 1;
+    text-shadow: 1px 1px 0 #003850;
+    pointer-events: none;
+    z-index: 13;
+}
+
 #avatar-shop-character-preview,
 .avatar-character-preview {
     position: absolute;
@@ -1615,6 +1631,113 @@ body {
     background-repeat: no-repeat;
     pointer-events: none;
     z-index: 11;
+}
+
+#avatar-shop-sort-strip {
+    position: absolute;
+    top: 349px;
+    left: 619px;
+    display: flex;
+    gap: 4px;
+    pointer-events: auto;
+    z-index: 14;
+}
+
+.avatar-shop-sort-btn {
+    width: 22px;
+    height: 14px;
+    border: none;
+    outline: none;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-size: 22px 14px;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+#btn-store-sort-hat {
+    background-image: url('/assets/screens/avatar_shop/b_store_sorthat/b_store_sorthat_frame_0.png');
+}
+
+#btn-store-sort-hat:hover:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_store_sorthat/b_store_sorthat_frame_1.png');
+}
+
+#btn-store-sort-hat:active:not(:disabled),
+#btn-store-sort-hat.active {
+    background-image: url('/assets/screens/avatar_shop/b_store_sorthat/b_store_sorthat_frame_2.png');
+}
+
+#btn-store-sort-hat:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_store_sorthat/b_store_sorthat_frame_3.png');
+}
+
+#btn-store-sort-glasses {
+    background-image: url('/assets/screens/avatar_shop/b_store_sortglasses/b_store_sortglasses_frame_0.png');
+}
+
+#btn-store-sort-glasses:hover:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_store_sortglasses/b_store_sortglasses_frame_1.png');
+}
+
+#btn-store-sort-glasses:active:not(:disabled),
+#btn-store-sort-glasses.active {
+    background-image: url('/assets/screens/avatar_shop/b_store_sortglasses/b_store_sortglasses_frame_2.png');
+}
+
+#btn-store-sort-glasses:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_store_sortglasses/b_store_sortglasses_frame_3.png');
+}
+
+#btn-store-sort-flag {
+    background-image: url('/assets/screens/avatar_shop/b_store_sortflag/b_store_sortflag_frame_0.png');
+}
+
+#btn-store-sort-flag:hover:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_store_sortflag/b_store_sortflag_frame_1.png');
+}
+
+#btn-store-sort-flag:active:not(:disabled),
+#btn-store-sort-flag.active {
+    background-image: url('/assets/screens/avatar_shop/b_store_sortflag/b_store_sortflag_frame_2.png');
+}
+
+#btn-store-sort-flag:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_store_sortflag/b_store_sortflag_frame_3.png');
+}
+
+#btn-store-sort-puton {
+    background-image: url('/assets/screens/avatar_shop/b_store_sortputon/b_store_sortputon_frame_0.png');
+}
+
+#btn-store-sort-puton:hover:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_store_sortputon/b_store_sortputon_frame_1.png');
+}
+
+#btn-store-sort-puton:active:not(:disabled),
+#btn-store-sort-puton.active {
+    background-image: url('/assets/screens/avatar_shop/b_store_sortputon/b_store_sortputon_frame_2.png');
+}
+
+#btn-store-sort-puton:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_store_sortputon/b_store_sortputon_frame_3.png');
+}
+
+#btn-store-sort-cloth {
+    background-image: url('/assets/screens/avatar_shop/b_store_sortclothe/b_store_sortclothe_frame_0.png');
+}
+
+#btn-store-sort-cloth:hover:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_store_sortclothe/b_store_sortclothe_frame_1.png');
+}
+
+#btn-store-sort-cloth:active:not(:disabled),
+#btn-store-sort-cloth.active {
+    background-image: url('/assets/screens/avatar_shop/b_store_sortclothe/b_store_sortclothe_frame_2.png');
+}
+
+#btn-store-sort-cloth:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_store_sortclothe/b_store_sortclothe_frame_3.png');
 }
 
 #avatar-shop-list {

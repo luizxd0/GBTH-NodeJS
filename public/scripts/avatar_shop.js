@@ -206,6 +206,32 @@ function ensureMyAvatarStatsOverlay(frameElement) {
     return overlay;
 }
 
+function ensureMyAvatarCountOverlay(frameElement) {
+    if (!frameElement) {
+        return null;
+    }
+
+    let countEl = frameElement.querySelector('#avatar-shop-myavatar-count');
+    if (countEl) {
+        return countEl;
+    }
+
+    countEl = document.createElement('span');
+    countEl.id = 'avatar-shop-myavatar-count';
+    countEl.textContent = '0';
+    frameElement.appendChild(countEl);
+    return countEl;
+}
+
+function renderMyAvatarCountValue(countEl, value) {
+    if (!countEl) {
+        return;
+    }
+    const numeric = Number(value);
+    const safeValue = Number.isFinite(numeric) ? Math.max(0, Math.trunc(numeric)) : 0;
+    countEl.textContent = safeValue.toLocaleString();
+}
+
 function renderMyAvatarStatSummary(overlay, totals) {
     if (!overlay) {
         return;
@@ -524,6 +550,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentPreviewEquip = buildPreviewEquipStateFromUserData(userData);
     let myAvatarStatIndex = new Map();
     let myAvatarStatsOverlay = null;
+    let myAvatarCountEl = null;
 
     const nicknameSpan = document.getElementById('lobby-nickname');
     const guildSpan = document.getElementById('lobby-guild');
@@ -1175,6 +1202,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const avatarFrame = document.getElementById('avatar-shop-myavatar-frame');
     if (avatarFrame) {
+        myAvatarCountEl = ensureMyAvatarCountOverlay(avatarFrame);
+        renderMyAvatarCountValue(myAvatarCountEl, 0);
         myAvatarStatsOverlay = ensureMyAvatarStatsOverlay(avatarFrame);
         try {
             window.avatarShopPreview = await createAvatarPreviewAnimator(avatarFrame, userData);
@@ -1492,6 +1521,15 @@ async function updateShopGridForCategoryButton(
     container.dataset.totalItems = String(categoryItems.length);
 
     updateMainPagerButtons(upButton, downButton, currentPage, totalPages);
+    container.dispatchEvent(new CustomEvent('avatar-shop-grid-updated', {
+        detail: {
+            categoryId: String(buttonId || ''),
+            categoryKey: String(categoryKey || ''),
+            totalItems: Number(categoryItems.length),
+            pageIndex: Number(currentPage),
+            totalPages: Number(totalPages)
+        }
+    }));
     container.dispatchEvent(new CustomEvent('avatar-shop-selection-change'));
 }
 
