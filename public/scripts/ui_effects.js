@@ -108,7 +108,7 @@ window.playTransition = function(type, callback) {
 
     document.addEventListener('click', (e) => {
         const target = e.target.closest('button, a, .btn, .nav-btn, .nav-btn-mini, .bottom-btn, .buddy-mini-btn, .server-item, .buddy-item, .buddy-scroll-button, .chat-scroll-button, .channel-scroll-button');
-        if (target && !target.disabled && !target.classList.contains('disabled')) {
+        if (target && !target.disabled && !target.classList.contains('disabled') && !shouldSuppressHoverSound(target)) {
             const soundClone = clickSound.cloneNode();
             soundClone.volume = clickSound.volume;
             soundClone.play().catch(() => {});

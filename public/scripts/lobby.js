@@ -35,6 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const buddyChatNickname = document.getElementById('buddy-chat-nickname');
     const buddyChatMessages = document.getElementById('buddy-chat-messages');
     const buddyChatContent = document.querySelector('.buddy-chat-content');
+    const BUDDY_CHAT_HISTORY_KEY = 'gbth_buddy_chat_history_v1';
+    const BUDDY_CHAT_HISTORY_LIMIT = 120;
 
     const chatInput = document.getElementById('chat-input');
     const chatCursor = document.getElementById('chat-cursor');
@@ -359,7 +361,69 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function appendBuddyChatMessage(sender, message) {
+    function normalizeBuddyThreadKey(nickname) {
+        return String(nickname || '').trim().toLowerCase();
+    }
+
+    function loadBuddyChatHistoryStore() {
+        try {
+            const raw = sessionStorage.getItem(BUDDY_CHAT_HISTORY_KEY);
+            if (!raw) return {};
+            const parsed = JSON.parse(raw);
+            return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch (error) {
+            return {};
+        }
+    }
+
+    function saveBuddyChatHistoryStore(store) {
+        try {
+            sessionStorage.setItem(BUDDY_CHAT_HISTORY_KEY, JSON.stringify(store || {}));
+        } catch (error) {
+            // Ignore storage failures and keep in-session behavior.
+        }
+    }
+
+    function persistBuddyChatMessage(threadNickname, sender, message) {
+        const threadKey = normalizeBuddyThreadKey(threadNickname);
+        const senderText = String(sender || '').trim();
+        const messageText = String(message || '').trim();
+        if (!threadKey || !senderText || !messageText) return;
+
+        const store = loadBuddyChatHistoryStore();
+        const existing = store[threadKey];
+        const payload = existing && typeof existing === 'object'
+            ? existing
+            : { nickname: String(threadNickname || '').trim(), messages: [] };
+
+        if (!Array.isArray(payload.messages)) {
+            payload.messages = [];
+        }
+        payload.nickname = String(threadNickname || payload.nickname || '').trim();
+        payload.messages.push({
+            sender: senderText,
+            message: messageText
+        });
+        if (payload.messages.length > BUDDY_CHAT_HISTORY_LIMIT) {
+            payload.messages = payload.messages.slice(-BUDDY_CHAT_HISTORY_LIMIT);
+        }
+
+        store[threadKey] = payload;
+        saveBuddyChatHistoryStore(store);
+    }
+
+    function getBuddyChatHistory(threadNickname) {
+        const threadKey = normalizeBuddyThreadKey(threadNickname);
+        if (!threadKey) return [];
+        const store = loadBuddyChatHistoryStore();
+        const payload = store[threadKey];
+        if (!payload || !Array.isArray(payload.messages)) {
+            return [];
+        }
+        return payload.messages;
+    }
+
+    function appendBuddyChatMessageToDom(sender, message) {
         if (!buddyChatMessages) return;
 
         const msgDiv = document.createElement('div');
@@ -374,11 +438,38 @@ document.addEventListener('DOMContentLoaded', () => {
         window.setTimeout(() => buddyChatScroll?.update(), 50);
     }
 
+    function appendBuddyChatMessage(threadNickname, sender, message, persist = true) {
+        const senderText = String(sender || '').trim();
+        const messageText = String(message || '').trim();
+        if (!senderText || !messageText) return;
+
+        if (persist) {
+            persistBuddyChatMessage(threadNickname, senderText, messageText);
+        }
+
+        const activeThread = String(buddyChatNickname?.textContent || '').trim();
+        if (normalizeBuddyThreadKey(activeThread) !== normalizeBuddyThreadKey(threadNickname)) {
+            return;
+        }
+
+        appendBuddyChatMessageToDom(senderText, messageText);
+    }
+
+    function renderBuddyChatHistory(threadNickname) {
+        if (!buddyChatMessages) return;
+        buddyChatMessages.innerHTML = '';
+        const history = getBuddyChatHistory(threadNickname);
+        history.forEach((entry) => {
+            appendBuddyChatMessageToDom(entry?.sender, entry?.message);
+        });
+    }
+
     window.openBuddyChat = function openBuddyChat(nickname) {
         if (!buddyChatWindow) return;
         if (userData && userData.nickname.toLowerCase() === nickname.toLowerCase()) return;
 
         buddyChatNickname.textContent = nickname;
+        renderBuddyChatHistory(nickname);
         buddyChatWindow.classList.remove('hidden');
 
         buddyChatWindow.style.bottom = '';
@@ -408,7 +499,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!message || !toNickname || !userData) return;
 
             socket.emit('private_message', { toNickname, message });
-            appendBuddyChatMessage(userData.nickname, message);
+            appendBuddyChatMessage(toNickname, userData.nickname, message);
             buddyChatInput.value = '';
             buddyChatCursorController?.update();
         });
@@ -417,7 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.on('private_message', (data) => {
         const { fromNickname, message } = data;
         window.openBuddyChat(fromNickname);
-        appendBuddyChatMessage(fromNickname, message);
+        appendBuddyChatMessage(fromNickname, fromNickname, message);
     });
 
     socket.on('lobby_message', (data) => {

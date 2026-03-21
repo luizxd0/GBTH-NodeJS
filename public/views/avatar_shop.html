@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="/styles/style.css">
     <script src="/socket.io/socket.io.js"></script>
     <script src="/scripts/shared/ui_common.js"></script>
+    <script src="/scripts/shared/buddy_common.js"></script>
     <script src="/scripts/shared/avatar_preview_runtime.js"></script>
     <script src="/scripts/ui_effects.js"></script>
     <script src="/scripts/avatar_shop.js"></script>
@@ -57,11 +58,81 @@
             <button id="btn-store-setitem" class="avatar-shop-btn avatar-shop-toggle"></button>
             <button id="btn-store-exitem" class="avatar-shop-btn avatar-shop-toggle"></button>
 
-            <button id="btn-store-puton" class="avatar-shop-btn"></button>
+            <button id="btn-store-puton" class="avatar-shop-btn" disabled></button>
             <button id="btn-store-buy" class="avatar-shop-btn"></button>
 
             <button id="btn-store-exit" class="avatar-shop-btn"></button>
             <button id="btn-store-buddy" class="avatar-shop-btn"></button>
+
+            <!-- Buddy List Panel -->
+            <div id="buddy-list-panel" class="lobby-panel hidden">
+                <div class="buddy-header">
+                    <div class="buddy-icon"></div>
+                    <div class="buddy-status-box">
+                        <span id="buddy-online-count">0</span><span id="buddy-total-count">0</span>
+                    </div>
+                    <button id="btn-buddy-plus" class="buddy-mini-btn"></button>
+                    <button id="btn-buddy-del" class="buddy-mini-btn"></button>
+                    <button id="btn-buddy-exit" class="buddy-mini-btn"></button>
+                </div>
+                <div class="buddy-list-content">
+                    <!-- Buddy list items will be injected here -->
+                </div>
+                <div class="buddy-scroll-controls">
+                    <button class="buddy-scroll-button btn-buddy-scroll-up disabled"></button>
+                    <button class="buddy-scroll-button btn-buddy-scroll-down disabled"></button>
+                </div>
+            </div>
+
+            <!-- Add Buddy Popup (Internal to scale with lobby) -->
+            <div id="add-buddy-popup" class="hidden">
+                <div class="buddy-window-header"></div>
+                <div class="buddy-window-content">
+                    <div id="add-buddy-text-box">
+                        To add a friend, type his nickname below.
+                    </div>
+                    <input type="text" id="add-buddy-input" maxlength="20" autocomplete="off">
+                    <div id="add-buddy-cursor"></div>
+                    <!-- Hidden span to measure text width for cursor positioning -->
+                    <span id="add-buddy-input-ghost"
+                        style="visibility: hidden; white-space: pre; position: absolute; font-family: var(--gbth-ui-font); font-size: 11px;"></span>
+                    <button id="btn-add-buddy-ok" class="buddy-window-btn"></button>
+                    <button id="btn-add-buddy-close" class="buddy-window-btn"></button>
+                </div>
+            </div>
+
+            <!-- Already Friends / Buddy Alert Popup -->
+            <div id="buddy-alert-popup" class="hidden">
+                <div class="buddy-window-header"></div>
+                <div class="buddy-window-content">
+                    <div id="buddy-alert-text-box">
+                        'Nickname' already exists in your Buddy list.
+                    </div>
+                    <button id="btn-buddy-alert-yes" class="buddy-alert-btn"></button>
+                    <button id="btn-buddy-alert-no" class="buddy-alert-btn hidden"></button>
+                </div>
+            </div>
+
+            <!-- Buddy Chat Window -->
+            <div id="buddy-chat-window" class="hidden">
+                <div class="buddy-chat-header">
+                    <span id="buddy-chat-nickname"></span>
+                    <button id="btn-buddy-chat-close"></button>
+                </div>
+                <div class="buddy-chat-content">
+                    <div id="buddy-chat-messages"></div>
+                </div>
+                <div class="buddy-chat-scroll-controls">
+                    <button class="buddy-chat-scroll-up disabled"></button>
+                    <button class="buddy-chat-scroll-down disabled"></button>
+                </div>
+                <div class="buddy-chat-input-container">
+                    <input type="text" id="buddy-chat-input" maxlength="100" autocomplete="off">
+                    <div id="buddy-chat-cursor"></div>
+                    <span id="buddy-chat-input-ghost"
+                        style="visibility: hidden; white-space: pre; position: absolute; font-family: var(--gbth-ui-font); font-size: 11px;"></span>
+                </div>
+            </div>
         </div>
     </div>
 </body>
