@@ -92,6 +92,8 @@ window.playTransition = function(type, callback) {
     const shouldSuppressHoverSound = (target) => {
         if (!target) return false;
         return target.classList?.contains('avatar-shop-item') === true
+            || target.classList?.contains('avatar-shop-owned-item') === true
+            || target.classList?.contains('avatar-shop-owned-ex-item') === true
             || target.classList?.contains('buddy-item') === true;
     };
 

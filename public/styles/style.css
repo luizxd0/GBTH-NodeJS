@@ -1690,6 +1690,7 @@ body {
     position: absolute;
     overflow-y: auto;
     overflow-x: hidden;
+    scroll-behavior: auto;
     pointer-events: auto;
     z-index: 15;
     padding-top: 0;

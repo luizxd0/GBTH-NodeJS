@@ -732,18 +732,118 @@ document.addEventListener('DOMContentLoaded', async () => {
         scrollAmount: 30
     });
 
-    const ownedRegularScroll = ui?.setupScrollControls({
+    function setupOwnedListScrollControls(config) {
+        const {
+            viewport,
+            upButton,
+            downButton,
+            stepResolver
+        } = config || {};
+
+        if (!viewport || !upButton || !downButton) {
+            return { update: () => {}, snap: () => {} };
+        }
+
+        const resolveStep = () => {
+            const numeric = Number(stepResolver?.());
+            if (!Number.isFinite(numeric) || numeric <= 0) {
+                return 17;
+            }
+            return Math.max(1, Math.round(numeric));
+        };
+
+        const clampScrollTop = (value) => {
+            const max = Math.max(0, viewport.scrollHeight - viewport.clientHeight);
+            return Math.max(0, Math.min(max, Math.round(value)));
+        };
+
+        const update = () => {
+            const scrollTop = Math.max(0, viewport.scrollTop);
+            const atTop = scrollTop <= 0;
+            const atBottom = scrollTop + viewport.clientHeight >= viewport.scrollHeight - 1;
+            upButton.classList.toggle('disabled', atTop);
+            downButton.classList.toggle('disabled', atBottom);
+        };
+
+        const snap = () => {
+            const step = resolveStep();
+            const snapped = clampScrollTop(Math.round(viewport.scrollTop / step) * step);
+            if (Math.abs(snapped - viewport.scrollTop) >= 1) {
+                viewport.scrollTop = snapped;
+            }
+            update();
+        };
+
+        const scrollByStep = (direction) => {
+            const step = resolveStep();
+            const current = Math.round(viewport.scrollTop / step) * step;
+            const next = clampScrollTop(current + (direction * step));
+            viewport.scrollTop = next;
+            update();
+        };
+
+        let snapTimer = null;
+        const scheduleSnap = () => {
+            if (snapTimer) {
+                window.clearTimeout(snapTimer);
+            }
+            snapTimer = window.setTimeout(() => {
+                snapTimer = null;
+                snap();
+            }, 35);
+        };
+
+        upButton.addEventListener('click', () => {
+            if (upButton.classList.contains('disabled')) {
+                return;
+            }
+            scrollByStep(-1);
+        });
+
+        downButton.addEventListener('click', () => {
+            if (downButton.classList.contains('disabled')) {
+                return;
+            }
+            scrollByStep(1);
+        });
+
+        viewport.addEventListener('wheel', (event) => {
+            if (event.deltaY === 0) {
+                return;
+            }
+            event.preventDefault();
+            scrollByStep(event.deltaY > 0 ? 1 : -1);
+        }, { passive: false });
+
+        viewport.addEventListener('scroll', () => {
+            update();
+            scheduleSnap();
+        });
+
+        update();
+        return { update, snap };
+    }
+
+    const ownedRegularScroll = setupOwnedListScrollControls({
         viewport: avatarShopOwnedList,
         upButton: btnStoreOwnedUp,
         downButton: btnStoreOwnedDown,
-        scrollAmount: 34
+        stepResolver: () => {
+            const screen = document.getElementById('avatar-shop-screen');
+            const computed = window.getComputedStyle(screen || document.documentElement);
+            return Number.parseFloat(computed.getPropertyValue('--avatar-shop-owned-row-height')) || 17;
+        }
     });
 
-    const ownedExScroll = ui?.setupScrollControls({
+    const ownedExScroll = setupOwnedListScrollControls({
         viewport: avatarShopOwnedExList,
         upButton: btnStoreOwnedExUp,
         downButton: btnStoreOwnedExDown,
-        scrollAmount: 34
+        stepResolver: () => {
+            const screen = document.getElementById('avatar-shop-screen');
+            const computed = window.getComputedStyle(screen || document.documentElement);
+            return Number.parseFloat(computed.getPropertyValue('--avatar-shop-owned-ex-row-height')) || 17;
+        }
     });
 
     const addBuddyCursorController = ui?.setupInputCursor({
@@ -1146,7 +1246,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             avatarShopOwnedList.appendChild(row);
         });
-        ownedRegularScroll?.update();
+        ownedRegularScroll?.snap();
     }
 
     function renderOwnedExList() {
@@ -1209,7 +1309,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             avatarShopOwnedExList.appendChild(row);
         });
-        ownedExScroll?.update();
+        ownedExScroll?.snap();
     }
 
     function applyInventoryPayload(inventoryPayload, options = {}) {
