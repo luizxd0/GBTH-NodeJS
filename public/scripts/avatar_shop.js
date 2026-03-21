@@ -182,7 +182,11 @@ function resolveCatalogStatRows(itemData, maxRows = 3) {
     const rows = [];
 
     for (const statKey of CATALOG_STAT_DISPLAY_ORDER) {
-        const numeric = Number(itemData?.[statKey]);
+        let numeric = Number(itemData?.[statKey]);
+        // Client parity: turn-delay sign is inverted vs stored DB sign.
+        if (statKey === 'stat_time') {
+            numeric = -numeric;
+        }
         if (!Number.isFinite(numeric) || numeric === 0) {
             continue;
         }

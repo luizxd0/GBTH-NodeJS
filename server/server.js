@@ -97,23 +97,31 @@ function hasAvatarCatalogPrice(item) {
 function getAvatarCatalogDedupeKey(item) {
     const slot = String(item?.slot || '').trim().toLowerCase();
     const gender = String(item?.gender || 'u').trim().toLowerCase();
+    const name = String(item?.name || '').trim().toLowerCase();
+    const setKey = String(item?.set_key || '').trim().toLowerCase();
+    const note = Number(item?.note || 0);
 
-    const sourceRefId = Number(item?.source_ref_id);
-    if (Number.isFinite(sourceRefId) && sourceRefId >= 0) {
-        return `${slot}|${gender}|ref:${Math.floor(sourceRefId)}`;
-    }
+    const prices = [
+        Number(item?.gold_week || 0),
+        Number(item?.gold_month || 0),
+        Number(item?.gold_perm || 0),
+        Number(item?.cash_week || 0),
+        Number(item?.cash_month || 0),
+        Number(item?.cash_perm || 0)
+    ].join(',');
 
-    const code = String(item?.avatar_code || '').trim().toLowerCase();
-    if (code) {
-        return `${slot}|${gender}|code:${code}`;
-    }
+    const stats = [
+        Number(item?.stat_pop || 0),
+        Number(item?.stat_time || 0),
+        Number(item?.stat_atk || 0),
+        Number(item?.stat_def || 0),
+        Number(item?.stat_life || 0),
+        Number(item?.stat_item || 0),
+        Number(item?.stat_dig || 0),
+        Number(item?.stat_shld || 0)
+    ].join(',');
 
-    const sourceAvatarId = Number(item?.source_avatar_id);
-    if (Number.isFinite(sourceAvatarId) && sourceAvatarId >= 0) {
-        return `${slot}|${gender}|src:${Math.floor(sourceAvatarId)}`;
-    }
-
-    return `${slot}|${gender}|id:${toBaseAvatarValue(item?.id)}`;
+    return `${slot}|${gender}|${name}|set:${setKey}|note:${note}|p:${prices}|s:${stats}`;
 }
 
 function buildUserPayload(row) {
