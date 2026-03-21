@@ -1439,7 +1439,7 @@ body {
     position: relative;
     --avatar-shop-buy-popup-center-offset-x: 0px;
     --avatar-shop-buy-popup-center-offset-y: 0px;
-    --avatar-shop-owned-list-top: 108px;
+    --avatar-shop-owned-list-top: 110px;
     --avatar-shop-owned-list-left: 565px;
     --avatar-shop-owned-list-right: auto;
     --avatar-shop-owned-list-width: 184px;
@@ -1452,18 +1452,18 @@ body {
     --avatar-shop-owned-ex-list-height: 108px;
     --avatar-shop-owned-ex-list-padding-top: 0px;
     --avatar-shop-owned-row-width: 100%;
-    --avatar-shop-owned-row-height: 18px;
+    --avatar-shop-owned-row-height: 17px;
     --avatar-shop-owned-row-top: 0px;
     --avatar-shop-owned-row-right: 0px;
     --avatar-shop-owned-ex-row-width: 100%;
-    --avatar-shop-owned-ex-row-height: 18px;
+    --avatar-shop-owned-ex-row-height: 17px;
     --avatar-shop-owned-ex-row-top: 0px;
     --avatar-shop-owned-ex-row-right: 0px;
     --avatar-shop-owned-row-gap: 3px;
     --avatar-shop-owned-row-padding-x: 4px;
     --avatar-shop-owned-row-font-size: 11px;
     --avatar-shop-owned-selected-bg-width: 196px;
-    --avatar-shop-owned-selected-bg-height: 18px;
+    --avatar-shop-owned-selected-bg-height: 17px;
     --avatar-shop-owned-selected-bg-offset-x: 6px;
     --avatar-shop-owned-selected-bg-offset-y: 0px;
     --avatar-shop-owned-slot-size: 12px;
@@ -1726,6 +1726,7 @@ body {
 .avatar-shop-owned-ex-item {
     position: relative;
     border: none;
+    margin: 0;
     background: transparent;
     display: flex;
     align-items: center;
@@ -1843,8 +1844,9 @@ body {
 }
 
 .avatar-shop-owned-item-stat-icon {
-    width: var(--avatar-shop-owned-stat-icon-size);
-    height: var(--avatar-shop-owned-stat-icon-size);
+    width: auto;
+    height: auto;
+    flex: 0 0 auto;
     image-rendering: pixelated;
 }
 

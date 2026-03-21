@@ -365,19 +365,33 @@ function resolveCatalogSellGoldValue(itemData) {
     return Math.max(0, Math.floor(goldPrice * 0.06));
 }
 
+function isPowerUserItemData(itemData) {
+    const nameLower = String(itemData?.name || '').toLowerCase();
+    const avatarCodeLower = String(itemData?.avatar_code || '').toLowerCase();
+    const itemCodeLower = String(itemData?.item_code || '').toLowerCase();
+    const sourceAvatarId = Number(itemData?.source_avatar_id);
+    const sourceRefId = Number(itemData?.source_ref_id);
+    const avatarId = Number(itemData?.avatar_id);
+    const itemId = Number(itemData?.item_id);
+    const knownPowerUserIds = new Set([204802, 204803, 204804]);
+
+    return nameLower.includes('power user')
+        || avatarCodeLower === 'ex2_204802'
+        || avatarCodeLower === 'ex2_204803'
+        || avatarCodeLower === 'ex2_204804'
+        || itemCodeLower === 'ex2_204802'
+        || itemCodeLower === 'ex2_204803'
+        || itemCodeLower === 'ex2_204804'
+        || knownPowerUserIds.has(sourceAvatarId)
+        || knownPowerUserIds.has(sourceRefId)
+        || knownPowerUserIds.has(avatarId)
+        || knownPowerUserIds.has(itemId);
+}
+
 function resolveCatalogPriceLines(itemData) {
     const cash = pickPriceAmount(itemData, 'cash');
     const gold = pickPriceAmount(itemData, 'gold');
-    const nameLower = String(itemData?.name || '').toLowerCase();
-    const codeLower = String(itemData?.avatar_code || '').toLowerCase();
-    const sourceAvatarId = Number(itemData?.source_avatar_id);
-    const isPowerUser = nameLower.includes('power user')
-        || codeLower === 'ex2_204802'
-        || codeLower === 'ex2_204803'
-        || codeLower === 'ex2_204804'
-        || sourceAvatarId === 204802
-        || sourceAvatarId === 204803
-        || sourceAvatarId === 204804;
+    const isPowerUser = isPowerUserItemData(itemData);
 
     if (isPowerUser && cash > 0) {
         return {
@@ -437,6 +451,53 @@ function resolveCatalogHoverDescription(itemData) {
     }
 
     return '';
+}
+
+function formatOwnedItemRemainingLabel(itemData, nowMs = Date.now()) {
+    const expireAtMs = Number(itemData?.expire_at);
+    if (!Number.isFinite(expireAtMs) || expireAtMs <= 0) {
+        return '';
+    }
+
+    const remainingMs = Math.max(0, expireAtMs - nowMs);
+    if (remainingMs <= 0) {
+        return 'Expired';
+    }
+
+    const hourMs = 60 * 60 * 1000;
+    const dayMs = 24 * hourMs;
+    const weekMs = 7 * dayMs;
+    const monthMs = 30 * dayMs;
+    const yearMs = 365 * dayMs;
+
+    const formatUnit = (value, unit) => {
+        const safeValue = Math.max(1, Math.ceil(value));
+        const plural = safeValue === 1 ? '' : 's';
+        return `${safeValue} ${unit}${plural} Left`;
+    };
+
+    if (remainingMs < dayMs) {
+        return formatUnit(remainingMs / hourMs, 'Hour');
+    }
+    if (remainingMs < weekMs) {
+        return formatUnit(remainingMs / dayMs, 'Day');
+    }
+    if (remainingMs < monthMs) {
+        return formatUnit(remainingMs / weekMs, 'Week');
+    }
+    if (remainingMs < yearMs) {
+        return formatUnit(remainingMs / monthMs, 'Month');
+    }
+    return formatUnit(remainingMs / yearMs, 'Year');
+}
+
+function resolveOwnedExDisplayName(itemData, nowMs = Date.now()) {
+    const baseName = String(itemData?.name || '').trim();
+    const remainingLabel = formatOwnedItemRemainingLabel(itemData, nowMs);
+    if (!remainingLabel) {
+        return baseName;
+    }
+    return `${baseName}:${remainingLabel}`;
 }
 
 function resolveCatalogStatRows(itemData, maxRows = 3) {
@@ -1074,6 +1135,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        const nowMs = Date.now();
         avatarShopOwnedExList.innerHTML = '';
         ownedInventoryExItems.forEach((item) => {
             const chestId = Number(item?.chest_id);
@@ -1109,7 +1171,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const nameEl = document.createElement('span');
             nameEl.className = 'avatar-shop-owned-ex-item-name';
-            nameEl.textContent = String(item?.name || '');
+            nameEl.textContent = resolveOwnedExDisplayName(item, nowMs);
             row.appendChild(nameEl);
 
             row.addEventListener('click', () => {
@@ -1221,6 +1283,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         const shouldEquip = Number(match.item?.wearing) !== 1;
+        if (!shouldEquip && isPowerUserItemData(match.item)) {
+            showAvatarShopError('Equip Error', 'Power User cannot be unequipped.');
+            return;
+        }
         await requestSetOwnedItemEquip(chestId, shouldEquip);
     }
 
@@ -2050,6 +2116,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     await refreshAvatarShopInventory({ preserveSelection: false });
+
+    window.setInterval(() => {
+        if (ownedInventoryActionInProgress || ownedDragState || document.hidden) {
+            return;
+        }
+        if (!Array.isArray(ownedInventoryExItems) || ownedInventoryExItems.length <= 0) {
+            return;
+        }
+        renderOwnedExList();
+    }, 60 * 1000);
 
     window.setTimeout(() => {
         buddyScroll?.update();

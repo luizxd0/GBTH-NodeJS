@@ -156,6 +156,7 @@ function buildUserPayload(row) {
 const CHEST_EQUIPABLE_SLOTS = new Set(['head', 'body', 'eyes', 'flag', 'background', 'foreground', 'exitem']);
 const CHEST_EX_SLOTS = new Set(['background', 'foreground', 'exitem']);
 const CHEST_REGULAR_SLOTS = new Set(['head', 'body', 'eyes', 'flag']);
+const POWER_USER_SOURCE_IDS = new Set([204802, 204803, 204804]);
 
 function normalizeChestSlot(slotValue) {
     const normalized = normalizeAvatarCatalogSlot(slotValue);
@@ -165,6 +166,28 @@ function normalizeChestSlot(slotValue) {
 function isChestExSlot(slotValue) {
     const slot = normalizeChestSlot(slotValue);
     return slot ? CHEST_EX_SLOTS.has(slot) : false;
+}
+
+function isPowerUserChestRow(itemRow) {
+    const nameLower = String(itemRow?.name || '').toLowerCase();
+    const avatarCodeLower = String(itemRow?.avatar_code || '').toLowerCase();
+    const itemCodeLower = String(itemRow?.item_code || '').toLowerCase();
+    const sourceAvatarId = Number(itemRow?.source_avatar_id);
+    const sourceRefId = Number(itemRow?.source_ref_id);
+    const avatarId = Number(itemRow?.avatar_id);
+    const itemId = Number(itemRow?.item_id);
+
+    return nameLower.includes('power user')
+        || avatarCodeLower === 'ex2_204802'
+        || avatarCodeLower === 'ex2_204803'
+        || avatarCodeLower === 'ex2_204804'
+        || itemCodeLower === 'ex2_204802'
+        || itemCodeLower === 'ex2_204803'
+        || itemCodeLower === 'ex2_204804'
+        || POWER_USER_SOURCE_IDS.has(sourceAvatarId)
+        || POWER_USER_SOURCE_IDS.has(sourceRefId)
+        || POWER_USER_SOURCE_IDS.has(avatarId)
+        || POWER_USER_SOURCE_IDS.has(itemId);
 }
 
 function pickAvatarPricePlan(item, keyPrefix) {
@@ -953,9 +976,19 @@ app.post('/api/avatar-shop/unequip', async (req, res) => {
         await connection.beginTransaction();
 
         const [itemRows] = await connection.execute(
-            `SELECT id, owner_id
-             FROM chest
-             WHERE id = ? AND owner_id = ?
+            `SELECT
+                c.id,
+                c.owner_id,
+                c.avatar_id,
+                c.item_id,
+                c.item_code,
+                a.name,
+                a.avatar_code,
+                a.source_avatar_id,
+                a.source_ref_id
+             FROM chest c
+             LEFT JOIN avatars a ON a.id = c.avatar_id
+             WHERE c.id = ? AND c.owner_id = ?
              LIMIT 1
              FOR UPDATE`,
             [Math.trunc(chestId), userId]
@@ -964,6 +997,11 @@ app.post('/api/avatar-shop/unequip', async (req, res) => {
         if (!itemRow) {
             await connection.rollback();
             return res.status(404).json({ error: 'Owned item not found' });
+        }
+
+        if (isPowerUserChestRow(itemRow)) {
+            await connection.rollback();
+            return res.status(400).json({ error: 'Power User cannot be unequipped' });
         }
 
         await connection.execute(
