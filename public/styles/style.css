@@ -1441,6 +1441,54 @@ body {
     --avatar-shop-buy-popup-center-offset-y: 0px;
     --avatar-shop-sell-popup-center-offset-x: 0px;
     --avatar-shop-sell-popup-center-offset-y: 0px;
+    --avatar-shop-gift-popup-center-offset-x: 0px;
+    --avatar-shop-gift-popup-center-offset-y: 0px;
+    --avatar-shop-gift-received-popup-center-offset-x: 0px;
+    --avatar-shop-gift-received-popup-center-offset-y: 0px;
+    --avatar-shop-gift-received-popup-top: 206px;
+    --avatar-shop-gift-received-popup-left: 243px;
+    --avatar-shop-gift-received-popup-width: 313px;
+    --avatar-shop-gift-received-popup-height: 187px;
+    --avatar-shop-gift-received-header-height: 30px;
+    --avatar-shop-gift-received-item-frame-top: 46px;
+    --avatar-shop-gift-received-item-frame-left: 20px;
+    --avatar-shop-gift-received-item-frame-width: 89px;
+    --avatar-shop-gift-received-item-frame-height: 82px;
+    --avatar-shop-gift-received-thumb-offset-x: 0px;
+    --avatar-shop-gift-received-thumb-offset-y: 0px;
+    --avatar-shop-gift-received-item-name-top: 43px;
+    --avatar-shop-gift-received-item-name-left: 117px;
+    --avatar-shop-gift-received-item-name-width: 174px;
+    --avatar-shop-gift-received-from-top: 66px;
+    --avatar-shop-gift-received-from-left: 175px;
+    --avatar-shop-gift-received-from-width: 124px;
+    --avatar-shop-gift-received-message-top: 113px;
+    --avatar-shop-gift-received-message-left: 116px;
+    --avatar-shop-gift-received-message-width: 175px;
+    --avatar-shop-gift-received-message-height: 24px;
+    --avatar-shop-gift-item-frame-top: 46px;
+    --avatar-shop-gift-item-frame-left: 20px;
+    --avatar-shop-gift-item-frame-width: 89px;
+    --avatar-shop-gift-item-frame-height: 82px;
+    --avatar-shop-gift-item-name-top: 43px;
+    --avatar-shop-gift-item-name-left: 117px;
+    --avatar-shop-gift-item-name-width: 174px;
+    --avatar-shop-gift-nickname-top: 75px;
+    --avatar-shop-gift-nickname-left: 117px;
+    --avatar-shop-gift-nickname-width: 82px;
+    --avatar-shop-gift-nickname-height: 22px;
+    --avatar-shop-gift-message-top: 116px;
+    --avatar-shop-gift-message-left: 117px;
+    --avatar-shop-gift-message-width: 175px;
+    --avatar-shop-gift-message-height: 24px;
+    --avatar-shop-gift-send-btn-top: 149px;
+    --avatar-shop-gift-send-btn-left: 123px;
+    --avatar-shop-gift-cancel-btn-top: 145px;
+    --avatar-shop-gift-cancel-btn-left: 199px;
+    --avatar-shop-gift-received-yes-btn-top: 145px;
+    --avatar-shop-gift-received-yes-btn-left: 113px;
+    --avatar-shop-gift-received-no-btn-top: 145px;
+    --avatar-shop-gift-received-no-btn-left: 199px;
     --avatar-shop-owned-list-top: 110px;
     --avatar-shop-owned-list-left: 565px;
     --avatar-shop-owned-list-right: auto;
@@ -2871,6 +2919,173 @@ body {
     color: #ffffff;
 }
 
+#avatar-shop-gift-popup {
+    position: absolute;
+    top: 206px;
+    left: 243px;
+    width: 313px;
+    height: 187px;
+    background-image: url('/assets/screens/avatar_shop/store_window_back/store_window_back_frame_3.png');
+    background-size: 313px 187px;
+    image-rendering: pixelated;
+    z-index: 3220;
+}
+
+#avatar-shop-gift-popup-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 313px;
+    height: 30px;
+    cursor: inherit;
+}
+
+#avatar-shop-gift-item-frame {
+    position: absolute;
+    top: var(--avatar-shop-gift-item-frame-top);
+    left: var(--avatar-shop-gift-item-frame-left);
+    width: var(--avatar-shop-gift-item-frame-width);
+    height: var(--avatar-shop-gift-item-frame-height);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+#avatar-shop-gift-thumb {
+    width: 100%;
+    height: 100%;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+}
+
+#avatar-shop-gift-item-name {
+    position: absolute;
+    top: var(--avatar-shop-gift-item-name-top);
+    left: var(--avatar-shop-gift-item-name-left);
+    width: var(--avatar-shop-gift-item-name-width);
+    color: #ebfaff;
+    font-family: var(--gbth-ui-font);
+    font-size: 11px;
+    line-height: 1.2;
+    text-shadow: 1px 1px 0 #001421;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+}
+
+#avatar-shop-gift-nickname-input,
+#avatar-shop-gift-message-input {
+    position: absolute;
+    color: #ffffff;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: var(--gbth-ui-font);
+    font-size: 13px;
+    line-height: 1;
+    text-shadow: 1px 1px 0 #001421;
+    box-sizing: border-box;
+    z-index: 1;
+}
+
+#avatar-shop-gift-nickname-input {
+    top: var(--avatar-shop-gift-nickname-top);
+    left: var(--avatar-shop-gift-nickname-left);
+    width: var(--avatar-shop-gift-nickname-width);
+    height: var(--avatar-shop-gift-nickname-height);
+    padding: 3px 2px 2px 2px;
+}
+
+#avatar-shop-gift-message-input {
+    top: var(--avatar-shop-gift-message-top);
+    left: var(--avatar-shop-gift-message-left);
+    width: var(--avatar-shop-gift-message-width);
+    height: var(--avatar-shop-gift-message-height);
+    padding: 3px 2px 2px 2px;
+    resize: none;
+    overflow: hidden;
+}
+
+#avatar-shop-gift-received-popup {
+    position: absolute;
+    top: var(--avatar-shop-gift-received-popup-top);
+    left: var(--avatar-shop-gift-received-popup-left);
+    width: var(--avatar-shop-gift-received-popup-width);
+    height: var(--avatar-shop-gift-received-popup-height);
+    background-image: url('/assets/screens/avatar_shop/store_window_back/store_window_back_frame_4.png');
+    background-size: var(--avatar-shop-gift-received-popup-width) var(--avatar-shop-gift-received-popup-height);
+    image-rendering: pixelated;
+    z-index: 3230;
+}
+
+#avatar-shop-gift-received-popup-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--avatar-shop-gift-received-popup-width);
+    height: var(--avatar-shop-gift-received-header-height);
+    cursor: inherit;
+}
+
+#avatar-shop-gift-received-item-frame {
+    position: absolute;
+    top: var(--avatar-shop-gift-received-item-frame-top);
+    left: var(--avatar-shop-gift-received-item-frame-left);
+    width: var(--avatar-shop-gift-received-item-frame-width);
+    height: var(--avatar-shop-gift-received-item-frame-height);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+#avatar-shop-gift-received-thumb {
+    width: 100%;
+    height: 100%;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+    transform: translate(var(--avatar-shop-gift-received-thumb-offset-x), var(--avatar-shop-gift-received-thumb-offset-y));
+}
+
+#avatar-shop-gift-received-item-name,
+#avatar-shop-gift-received-from-line,
+#avatar-shop-gift-received-message-line {
+    position: absolute;
+    color: #ebfaff;
+    font-family: var(--gbth-ui-font);
+    font-size: 11px;
+    line-height: 1.2;
+    text-shadow: 1px 1px 0 #001421;
+    overflow: hidden;
+}
+
+#avatar-shop-gift-received-item-name {
+    top: var(--avatar-shop-gift-received-item-name-top);
+    left: var(--avatar-shop-gift-received-item-name-left);
+    width: var(--avatar-shop-gift-received-item-name-width);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#avatar-shop-gift-received-from-line {
+    top: var(--avatar-shop-gift-received-from-top);
+    left: var(--avatar-shop-gift-received-from-left);
+    width: var(--avatar-shop-gift-received-from-width);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#avatar-shop-gift-received-message-line {
+    top: var(--avatar-shop-gift-received-message-top);
+    left: var(--avatar-shop-gift-received-message-left);
+    width: var(--avatar-shop-gift-received-message-width);
+    height: var(--avatar-shop-gift-received-message-height);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
 #avatar-shop-buy-popup-header {
     position: absolute;
     top: 0;
@@ -3074,6 +3289,80 @@ body {
 
 #btn-storewindow-sell-cancel:disabled {
     background-image: url('/assets/screens/avatar_shop/b_storewindow_cancel/b_storewindow_cancel_frame_3.png');
+}
+
+#btn-storewindow-gift-send {
+    width: 72px;
+    height: 29px;
+    top: var(--avatar-shop-gift-send-btn-top);
+    left: var(--avatar-shop-gift-send-btn-left);
+    background-image: url('/assets/screens/avatar_shop/b_myavatar_gift/b_myavatar_gift_frame_0.png');
+}
+
+#btn-storewindow-gift-send:hover:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_myavatar_gift/b_myavatar_gift_frame_1.png');
+}
+
+#btn-storewindow-gift-send:active:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_myavatar_gift/b_myavatar_gift_frame_2.png');
+}
+
+#btn-storewindow-gift-send:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_myavatar_gift/b_myavatar_gift_frame_3.png');
+}
+
+#btn-storewindow-gift-cancel {
+    top: var(--avatar-shop-gift-cancel-btn-top);
+    left: var(--avatar-shop-gift-cancel-btn-left);
+    background-image: url('/assets/screens/avatar_shop/b_storewindow_cancel/b_storewindow_cancel_frame_0.png');
+}
+
+#btn-storewindow-gift-cancel:hover:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_storewindow_cancel/b_storewindow_cancel_frame_1.png');
+}
+
+#btn-storewindow-gift-cancel:active:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_storewindow_cancel/b_storewindow_cancel_frame_2.png');
+}
+
+#btn-storewindow-gift-cancel:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_storewindow_cancel/b_storewindow_cancel_frame_3.png');
+}
+
+#btn-storewindow-gift-received-yes {
+    top: var(--avatar-shop-gift-received-yes-btn-top);
+    left: var(--avatar-shop-gift-received-yes-btn-left);
+    background-image: url('/assets/screens/avatar_shop/b_storewindow_yes/b_storewindow_yes_frame_0.png');
+}
+
+#btn-storewindow-gift-received-yes:hover:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_storewindow_yes/b_storewindow_yes_frame_1.png');
+}
+
+#btn-storewindow-gift-received-yes:active:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_storewindow_yes/b_storewindow_yes_frame_2.png');
+}
+
+#btn-storewindow-gift-received-yes:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_storewindow_yes/b_storewindow_yes_frame_3.png');
+}
+
+#btn-storewindow-gift-received-no {
+    top: var(--avatar-shop-gift-received-no-btn-top);
+    left: var(--avatar-shop-gift-received-no-btn-left);
+    background-image: url('/assets/screens/avatar_shop/b_storewindow_no/b_storewindow_no_frame_0.png');
+}
+
+#btn-storewindow-gift-received-no:hover:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_storewindow_no/b_storewindow_no_frame_1.png');
+}
+
+#btn-storewindow-gift-received-no:active:not(:disabled) {
+    background-image: url('/assets/screens/avatar_shop/b_storewindow_no/b_storewindow_no_frame_2.png');
+}
+
+#btn-storewindow-gift-received-no:disabled {
+    background-image: url('/assets/screens/avatar_shop/b_storewindow_no/b_storewindow_no_frame_3.png');
 }
 
 #btn-store-setitem,

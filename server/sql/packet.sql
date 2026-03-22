@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS packet (
+    SerialNo INT(11) NOT NULL AUTO_INCREMENT,
+    Receiver VARCHAR(16) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+    Sender VARCHAR(16) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+    Code INT(10) UNSIGNED NOT NULL DEFAULT 0,
+    Body VARBINARY(1024) DEFAULT NULL,
+    Time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (SerialNo),
+    KEY idx_packet_receiver_serial (Receiver, SerialNo)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

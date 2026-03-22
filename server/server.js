@@ -14,7 +14,9 @@ const userSockets = new Map(); // nickname -> socket.id
 const socketData = new Map(); // socket.id -> { nickname, id }
 const pendingNotifications = new Map(); // userId -> timeoutId
 const pendingDisconnects = new Map(); // userId -> timeoutId
+const lastKnownPresence = new Map(); // userId -> { location, serverId, channelId }
 const RECONNECT_GRACE_MS = 2500;
+const WORLD_LIST_DISCONNECT_GRACE_MS = 150;
 
 function getUKTimestamp() {
     const now = new Date();
@@ -416,6 +418,318 @@ async function buildUserPayloadById(userId, executor = pool) {
         ...userRow,
         ...equipState
     });
+}
+
+let avatarGiftTableInitPromise = null;
+
+async function ensureAvatarShopGiftTable() {
+    if (!avatarGiftTableInitPromise) {
+        avatarGiftTableInitPromise = pool.execute(
+            `CREATE TABLE IF NOT EXISTS avatar_shop_gifts (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                from_user_id VARCHAR(16) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+                to_user_id VARCHAR(16) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+                from_nickname VARCHAR(32) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+                to_nickname VARCHAR(32) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+                message VARCHAR(120) NOT NULL DEFAULT '',
+                avatar_id BIGINT UNSIGNED NULL,
+                item_id INT UNSIGNED NOT NULL DEFAULT 0,
+                item_code VARCHAR(64) NULL,
+                slot ENUM('head', 'body', 'eyes', 'flag', 'background', 'foreground', 'exitem') NOT NULL,
+                acquisition_type ENUM('C', 'G', 'E', 'R', 'S', 'M') NOT NULL DEFAULT 'G',
+                expire_at DATETIME NULL,
+                volume INT UNSIGNED NOT NULL DEFAULT 1,
+                recovered TINYINT(1) NOT NULL DEFAULT 0,
+                expire_type ENUM('I', 'W', 'M', 'P') NOT NULL DEFAULT 'I',
+                avatar_code VARCHAR(64) NULL,
+                item_name VARCHAR(128) NULL,
+                gender CHAR(1) NOT NULL DEFAULT 'u',
+                source_avatar_id INT UNSIGNED NOT NULL DEFAULT 0,
+                source_ref_id INT NULL,
+                status ENUM('pending', 'accepted', 'declined') NOT NULL DEFAULT 'pending',
+                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                responded_at DATETIME NULL,
+                PRIMARY KEY (id),
+                KEY idx_avatar_shop_gifts_to_status (to_user_id, status, id),
+                KEY idx_avatar_shop_gifts_from_status (from_user_id, status, id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`
+        );
+    }
+    await avatarGiftTableInitPromise;
+}
+
+function buildAvatarGiftClientPayload(row) {
+    const slot = normalizeChestSlot(row?.slot) || 'head';
+    const itemName = String(row?.item_name || row?.avatar_code || row?.item_code || '').trim();
+    const sourceRefId = toOptionalAvatarValue(row?.source_ref_id);
+    return {
+        giftId: toBaseAvatarValue(row?.id),
+        fromUserId: String(row?.from_user_id || ''),
+        toUserId: String(row?.to_user_id || ''),
+        fromNickname: String(row?.from_nickname || ''),
+        toNickname: String(row?.to_nickname || ''),
+        itemName,
+        message: String(row?.message || ''),
+        item: {
+            slot,
+            name: itemName,
+            avatar_code: String(row?.avatar_code || row?.item_code || ''),
+            item_code: String(row?.item_code || row?.avatar_code || ''),
+            source_avatar_id: toBaseAvatarValue(row?.source_avatar_id),
+            source_ref_id: sourceRefId == null ? toOptionalAvatarValue(row?.item_id) : sourceRefId,
+            item_id: toOptionalAvatarValue(row?.item_id),
+            avatar_id: toOptionalAvatarValue(row?.avatar_id),
+            gender: normalizeAvatarCatalogGender(row?.gender)
+        }
+    };
+}
+
+async function sendPendingAvatarShopGifts(socket, userId, executor = pool) {
+    if (!socket || !userId) {
+        return;
+    }
+    await ensureAvatarShopGiftTable();
+    const [rows] = await executor.execute(
+        `SELECT
+            id, from_user_id, to_user_id, from_nickname, to_nickname, message,
+            avatar_id, item_id, item_code, slot, acquisition_type, expire_at, volume,
+            recovered, expire_type, avatar_code, item_name, gender, source_avatar_id, source_ref_id
+         FROM avatar_shop_gifts
+         WHERE to_user_id = ? AND status = 'pending'
+         ORDER BY id ASC`,
+        [userId]
+    );
+
+    (rows || []).forEach((row) => {
+        socket.emit('avatar_shop_gift_pending', buildAvatarGiftClientPayload(row));
+    });
+}
+
+const PACKET_CODE_BUDDY_REQUEST = 1001;
+const PACKET_CODE_PRIVATE_MESSAGE = 1002;
+const PACKET_CODE_GIFT_PENDING = 1003;
+const PACKET_CODE_GIFT_RESULT = 1004;
+const PACKET_CODE_BUDDY_ACCEPTED = 1005;
+const PACKET_CODE_BUDDY_REJECTED = 1006;
+let packetTableInitPromise = null;
+
+async function ensurePacketTable() {
+    if (!packetTableInitPromise) {
+        packetTableInitPromise = pool.execute(
+            `CREATE TABLE IF NOT EXISTS packet (
+                SerialNo INT(11) NOT NULL AUTO_INCREMENT,
+                Receiver VARCHAR(16) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+                Sender VARCHAR(16) CHARACTER SET latin1 COLLATE latin1_swedish_ci NOT NULL,
+                Code INT(10) UNSIGNED NOT NULL DEFAULT 0,
+                Body VARBINARY(1024) DEFAULT NULL,
+                Time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (SerialNo),
+                KEY idx_packet_receiver_serial (Receiver, SerialNo)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`
+        );
+    }
+    await packetTableInitPromise;
+}
+
+function encodePacketBody(body) {
+    if (body == null) {
+        return null;
+    }
+    const json = JSON.stringify(body);
+    if (!json) {
+        return null;
+    }
+    const bytes = Buffer.from(json, 'utf8');
+    return bytes.length > 1024 ? bytes.subarray(0, 1024) : bytes;
+}
+
+function decodePacketBody(rawBody) {
+    if (rawBody == null) {
+        return {};
+    }
+    const bytes = Buffer.isBuffer(rawBody) ? rawBody : Buffer.from(rawBody);
+    const json = bytes.toString('utf8').trim();
+    if (!json) {
+        return {};
+    }
+    try {
+        return JSON.parse(json);
+    } catch (error) {
+        return {};
+    }
+}
+
+async function enqueueOfflinePacket(receiverId, senderId, code, body, executor = pool) {
+    const normalizedReceiver = String(receiverId || '').trim();
+    const normalizedSender = String(senderId || '').trim();
+    const numericCode = Math.trunc(Number(code));
+    if (!normalizedReceiver || !normalizedSender || !Number.isFinite(numericCode) || numericCode <= 0) {
+        return;
+    }
+    await ensurePacketTable();
+    await executor.execute(
+        'INSERT INTO packet (Receiver, Sender, Code, Body) VALUES (?, ?, ?, ?)',
+        [normalizedReceiver, normalizedSender, numericCode, encodePacketBody(body)]
+    );
+}
+
+async function consumeOfflinePackets(receiverId, allowedCodes = [], executor = pool) {
+    const normalizedReceiver = String(receiverId || '').trim();
+    const numericCodes = Array.isArray(allowedCodes)
+        ? allowedCodes.map((value) => Math.trunc(Number(value))).filter((value) => Number.isFinite(value) && value > 0)
+        : [];
+    if (!normalizedReceiver || !numericCodes.length) {
+        return [];
+    }
+
+    await ensurePacketTable();
+    const placeholders = numericCodes.map(() => '?').join(', ');
+    const [rows] = await executor.execute(
+        `SELECT SerialNo, Receiver, Sender, Code, Body, Time
+         FROM packet
+         WHERE Receiver = ?
+           AND Code IN (${placeholders})
+         ORDER BY SerialNo ASC`,
+        [normalizedReceiver, ...numericCodes]
+    );
+    const packets = rows || [];
+    if (!packets.length) {
+        return [];
+    }
+
+    const serials = packets
+        .map((row) => Math.trunc(Number(row?.SerialNo)))
+        .filter((value) => Number.isFinite(value) && value > 0);
+    if (serials.length) {
+        const serialPlaceholders = serials.map(() => '?').join(', ');
+        await executor.execute(
+            `DELETE FROM packet
+             WHERE Receiver = ?
+               AND SerialNo IN (${serialPlaceholders})`,
+            [normalizedReceiver, ...serials]
+        );
+    }
+
+    return packets.map((row) => ({
+        serialNo: Math.trunc(Number(row?.SerialNo || 0)),
+        receiver: String(row?.Receiver || ''),
+        sender: String(row?.Sender || ''),
+        code: Math.trunc(Number(row?.Code || 0)),
+        body: decodePacketBody(row?.Body),
+        time: row?.Time || null
+    }));
+}
+
+function resolvePacketCodesForLocation(location) {
+    const normalized = String(location || '').toLowerCase();
+    if (normalized === 'avatar_shop') {
+        return [
+            PACKET_CODE_BUDDY_REQUEST,
+            PACKET_CODE_BUDDY_ACCEPTED,
+            PACKET_CODE_BUDDY_REJECTED,
+            PACKET_CODE_PRIVATE_MESSAGE
+        ];
+    }
+    if (normalized === 'channel') {
+        return [
+            PACKET_CODE_BUDDY_REQUEST,
+            PACKET_CODE_BUDDY_ACCEPTED,
+            PACKET_CODE_BUDDY_REJECTED,
+            PACKET_CODE_PRIVATE_MESSAGE
+        ];
+    }
+    if (normalized === 'world_list') {
+        return [];
+    }
+    return [PACKET_CODE_PRIVATE_MESSAGE];
+}
+
+async function deliverOfflinePacketsToSocket(socket, user, executor = pool, allowedCodesOverride = null) {
+    if (!socket || !user?.id) {
+        return;
+    }
+    const allowedCodes = Array.isArray(allowedCodesOverride) && allowedCodesOverride.length
+        ? allowedCodesOverride
+        : resolvePacketCodesForLocation(user.location);
+    const packets = await consumeOfflinePackets(user.id, allowedCodes, executor);
+    if (!packets.length) {
+        return;
+    }
+
+    for (const packet of packets) {
+        if (packet.code === PACKET_CODE_BUDDY_REQUEST) {
+            const fromId = String(packet.body?.fromId || packet.sender || '').trim();
+            const fromNickname = String(packet.body?.fromNickname || '').trim();
+            if (fromId && fromNickname) {
+                socket.emit('incoming_buddy_request', {
+                    fromNickname,
+                    fromId
+                });
+            }
+            continue;
+        }
+
+        if (packet.code === PACKET_CODE_BUDDY_ACCEPTED) {
+            const nickname = String(packet.body?.nickname || '').trim();
+            if (nickname) {
+                socket.emit('buddy_request_accepted', { nickname });
+            }
+            continue;
+        }
+
+        if (packet.code === PACKET_CODE_BUDDY_REJECTED) {
+            const nickname = String(packet.body?.nickname || '').trim();
+            if (nickname) {
+                socket.emit('buddy_request_rejected', { nickname });
+            }
+            continue;
+        }
+
+        if (packet.code === PACKET_CODE_PRIVATE_MESSAGE) {
+            const fromNickname = String(packet.body?.fromNickname || '').trim();
+            const message = String(packet.body?.message || '').trim();
+            if (fromNickname && message) {
+                socket.emit('private_message', {
+                    fromNickname,
+                    message
+                });
+            }
+            continue;
+        }
+
+        if (packet.code === PACKET_CODE_GIFT_PENDING) {
+            const giftId = Number(packet.body?.giftId);
+            if (!Number.isFinite(giftId) || giftId <= 0) {
+                continue;
+            }
+            await ensureAvatarShopGiftTable();
+            const [giftRows] = await executor.execute(
+                `SELECT
+                    id, from_user_id, to_user_id, from_nickname, to_nickname, message,
+                    avatar_id, item_id, item_code, slot, acquisition_type, expire_at, volume,
+                    recovered, expire_type, avatar_code, item_name, gender, source_avatar_id, source_ref_id
+                 FROM avatar_shop_gifts
+                 WHERE id = ? AND to_user_id = ? AND status = 'pending'
+                 LIMIT 1`,
+                [Math.trunc(giftId), String(user.id)]
+            );
+            const giftRow = giftRows?.[0] || null;
+            if (giftRow) {
+                socket.emit('avatar_shop_gift_pending', buildAvatarGiftClientPayload(giftRow));
+            }
+            continue;
+        }
+
+        if (packet.code === PACKET_CODE_GIFT_RESULT) {
+            socket.emit('avatar_shop_gift_result', {
+                giftId: Number(packet.body?.giftId) || 0,
+                accepted: Boolean(packet.body?.accepted),
+                itemName: String(packet.body?.itemName || ''),
+                toNickname: String(packet.body?.toNickname || ''),
+                fromNickname: String(packet.body?.fromNickname || '')
+            });
+        }
+    }
 }
 
 
@@ -927,6 +1241,10 @@ app.post('/api/avatar-shop/equip', async (req, res) => {
             await connection.rollback();
             return res.status(404).json({ error: 'Owned item not found' });
         }
+        if (isPowerUserChestRow(itemRow)) {
+            await connection.rollback();
+            return res.status(400).json({ error: 'Power User cannot be gifted' });
+        }
 
         const slot = normalizeChestSlot(itemRow.slot);
         if (!slot) {
@@ -1192,6 +1510,327 @@ app.post('/api/avatar-shop/sell', async (req, res) => {
     }
 });
 
+app.post('/api/avatar-shop/gift', async (req, res) => {
+    const userId = String(req.body?.userId || '').trim();
+    const chestId = Number(req.body?.chestId);
+    const targetNicknameInput = String(req.body?.targetNickname || '').trim();
+    const messageInput = String(req.body?.message || '');
+    const giftMessage = messageInput.replace(/\r/g, '').replace(/\n+/g, ' ').trim().slice(0, 120);
+
+    if (!userId || !Number.isFinite(chestId) || chestId <= 0 || !targetNicknameInput) {
+        return res.status(400).json({ error: 'Invalid gift payload' });
+    }
+
+    let connection;
+    try {
+        await ensureAvatarShopGiftTable();
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        const [senderRows] = await connection.execute(
+            'SELECT Id, Nickname FROM game WHERE Id = ? LIMIT 1 FOR UPDATE',
+            [userId]
+        );
+        const senderRow = senderRows?.[0] || null;
+        if (!senderRow) {
+            await connection.rollback();
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const [itemRows] = await connection.execute(
+            `SELECT
+                c.id,
+                c.owner_id,
+                c.avatar_id,
+                c.item_id,
+                c.item_code,
+                c.slot,
+                c.wearing,
+                c.acquisition_type,
+                c.expire_at,
+                c.volume,
+                c.place_order,
+                c.recovered,
+                c.expire_type,
+                a.name,
+                a.avatar_code,
+                a.gender,
+                a.source_avatar_id,
+                a.source_ref_id
+             FROM chest c
+             LEFT JOIN avatars a ON a.id = c.avatar_id
+             WHERE c.id = ? AND c.owner_id = ?
+             LIMIT 1
+             FOR UPDATE`,
+            [Math.trunc(chestId), userId]
+        );
+        const itemRow = itemRows?.[0] || null;
+        if (!itemRow) {
+            await connection.rollback();
+            return res.status(404).json({ error: 'Owned item not found' });
+        }
+
+        const slot = normalizeChestSlot(itemRow.slot);
+        if (!slot) {
+            await connection.rollback();
+            return res.status(400).json({ error: 'Owned item slot is invalid' });
+        }
+
+        const [targetRows] = await connection.execute(
+            'SELECT Id, Nickname FROM game WHERE LOWER(Nickname) = LOWER(?) LIMIT 1 FOR UPDATE',
+            [targetNicknameInput]
+        );
+        const targetRow = targetRows?.[0] || null;
+        if (!targetRow) {
+            await connection.rollback();
+            return res.status(404).json({ error: 'Recipient nickname not found' });
+        }
+        if (String(targetRow.Id) === userId) {
+            await connection.rollback();
+            return res.status(400).json({ error: 'You cannot gift an item to yourself' });
+        }
+
+        const recipientId = String(targetRow.Id);
+        const senderNickname = String(senderRow.Nickname || '').trim();
+        const recipientNickname = String(targetRow.Nickname || '').trim();
+        const itemName = String(itemRow.name || itemRow.avatar_code || itemRow.item_code || '').trim();
+        const sourceRefId = toOptionalAvatarValue(itemRow.source_ref_id);
+        const sourceAvatarId = toBaseAvatarValue(itemRow.source_avatar_id);
+
+        const [deleteResult] = await connection.execute(
+            'DELETE FROM chest WHERE id = ? AND owner_id = ?',
+            [Math.trunc(chestId), userId]
+        );
+        if (!deleteResult || Number(deleteResult.affectedRows) !== 1) {
+            await connection.rollback();
+            return res.status(500).json({ error: 'Gift failed to remove item from sender inventory' });
+        }
+
+        const [insertGiftResult] = await connection.execute(
+            `INSERT INTO avatar_shop_gifts (
+                from_user_id, to_user_id, from_nickname, to_nickname, message,
+                avatar_id, item_id, item_code, slot, acquisition_type, expire_at,
+                volume, recovered, expire_type, avatar_code, item_name, gender,
+                source_avatar_id, source_ref_id, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+            [
+                userId,
+                recipientId,
+                senderNickname,
+                recipientNickname,
+                giftMessage,
+                toOptionalAvatarValue(itemRow.avatar_id),
+                toBaseAvatarValue(itemRow.item_id),
+                String(itemRow.item_code || ''),
+                slot,
+                String(itemRow.acquisition_type || 'G'),
+                itemRow.expire_at || null,
+                Math.max(1, toBaseAvatarValue(itemRow.volume || 1)),
+                Number(itemRow.recovered) === 1 ? 1 : 0,
+                String(itemRow.expire_type || 'I'),
+                String(itemRow.avatar_code || itemRow.item_code || ''),
+                itemName,
+                normalizeAvatarCatalogGender(itemRow.gender),
+                sourceAvatarId,
+                sourceRefId
+            ]
+        );
+
+        const giftId = toBaseAvatarValue(insertGiftResult?.insertId);
+        const recipientSocketId = userSockets.get(recipientNickname.toLowerCase());
+        const recipientSocket = recipientSocketId ? io.sockets.sockets.get(recipientSocketId) : null;
+        const recipientSocketInfo = recipientSocketId ? socketData.get(recipientSocketId) : null;
+        const recipientCanReceiveGiftNow = Boolean(
+            recipientSocket
+            && recipientSocketInfo
+            && String(recipientSocketInfo.location || '').toLowerCase() === 'avatar_shop'
+        );
+        if (!recipientCanReceiveGiftNow) {
+            await enqueueOfflinePacket(
+                recipientId,
+                userId,
+                PACKET_CODE_GIFT_PENDING,
+                { giftId },
+                connection
+            );
+        }
+
+        await connection.commit();
+
+        const userPayload = await buildUserPayloadById(userId, connection);
+        const inventoryRows = await loadAvatarShopInventoryRows(userId, connection);
+        const pendingGiftPayload = buildAvatarGiftClientPayload({
+            id: giftId,
+            from_user_id: userId,
+            to_user_id: recipientId,
+            from_nickname: senderNickname,
+            to_nickname: recipientNickname,
+            message: giftMessage,
+            avatar_id: itemRow.avatar_id,
+            item_id: itemRow.item_id,
+            item_code: itemRow.item_code,
+            slot,
+            avatar_code: itemRow.avatar_code || itemRow.item_code,
+            item_name: itemName,
+            gender: itemRow.gender,
+            source_avatar_id: sourceAvatarId,
+            source_ref_id: sourceRefId
+        });
+        if (recipientCanReceiveGiftNow && recipientSocketId) {
+            io.to(recipientSocketId).emit('avatar_shop_gift_pending', pendingGiftPayload);
+        }
+
+        res.json({
+            user: userPayload,
+            inventory: buildAvatarShopInventoryPayload(inventoryRows),
+            giftId
+        });
+    } catch (error) {
+        if (connection) {
+            try { await connection.rollback(); } catch (rollbackError) { /* ignore */ }
+        }
+        console.error('[AvatarShop] Gift failed:', error);
+        res.status(500).json({ error: 'Gift failed' });
+    } finally {
+        if (connection) connection.release();
+    }
+});
+
+app.post('/api/avatar-shop/gift/respond', async (req, res) => {
+    const userId = String(req.body?.userId || '').trim();
+    const giftId = Number(req.body?.giftId);
+    const accept = Boolean(req.body?.accept);
+
+    if (!userId || !Number.isFinite(giftId) || giftId <= 0) {
+        return res.status(400).json({ error: 'Invalid gift response payload' });
+    }
+
+    let connection;
+    try {
+        await ensureAvatarShopGiftTable();
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        const [giftRows] = await connection.execute(
+            `SELECT *
+             FROM avatar_shop_gifts
+             WHERE id = ? AND to_user_id = ? AND status = 'pending'
+             LIMIT 1
+             FOR UPDATE`,
+            [Math.trunc(giftId), userId]
+        );
+        const giftRow = giftRows?.[0] || null;
+        if (!giftRow) {
+            await connection.rollback();
+            return res.status(404).json({ error: 'Pending gift not found' });
+        }
+
+        const slot = normalizeChestSlot(giftRow.slot);
+        if (!slot) {
+            await connection.rollback();
+            return res.status(400).json({ error: 'Gift item slot is invalid' });
+        }
+
+        const receiverId = String(giftRow.to_user_id || '');
+        const senderId = String(giftRow.from_user_id || '');
+        const targetOwnerId = accept ? receiverId : senderId;
+        const isExSlot = isChestExSlot(slot);
+        const orderSlotList = isExSlot
+            ? ['background', 'foreground', 'exitem']
+            : ['head', 'body', 'eyes', 'flag'];
+        const orderPlaceholders = orderSlotList.map(() => '?').join(', ');
+        const [orderRows] = await connection.execute(
+            `SELECT COALESCE(MAX(place_order), 0) AS max_order
+             FROM chest
+             WHERE owner_id = ?
+               AND slot IN (${orderPlaceholders})`,
+            [targetOwnerId, ...orderSlotList]
+        );
+        const nextPlaceOrder = Math.max(0, Math.trunc(Number(orderRows?.[0]?.max_order || 0))) + 1;
+
+        await connection.execute(
+            `INSERT INTO chest (
+                owner_id, avatar_id, item_id, item_code, slot, wearing,
+                acquisition_type, expire_at, volume, place_order, recovered, expire_type
+            ) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)`,
+            [
+                targetOwnerId,
+                toOptionalAvatarValue(giftRow.avatar_id),
+                toBaseAvatarValue(giftRow.item_id),
+                String(giftRow.item_code || ''),
+                slot,
+                String(giftRow.acquisition_type || 'G'),
+                giftRow.expire_at || null,
+                Math.max(1, toBaseAvatarValue(giftRow.volume || 1)),
+                nextPlaceOrder,
+                Number(giftRow.recovered) === 1 ? 1 : 0,
+                String(giftRow.expire_type || 'I')
+            ]
+        );
+
+        await connection.execute(
+            'UPDATE avatar_shop_gifts SET status = ?, responded_at = NOW() WHERE id = ?',
+            [accept ? 'accepted' : 'declined', Math.trunc(giftId)]
+        );
+
+        const senderNickname = String(giftRow.from_nickname || '').trim();
+        const recipientNickname = String(giftRow.to_nickname || '').trim();
+        const itemName = String(giftRow.item_name || giftRow.avatar_code || giftRow.item_code || '').trim();
+        const senderSocketId = userSockets.get(senderNickname.toLowerCase());
+        const senderSocket = senderSocketId ? io.sockets.sockets.get(senderSocketId) : null;
+        const senderSocketInfo = senderSocketId ? socketData.get(senderSocketId) : null;
+        const senderCanReceiveGiftResultNow = Boolean(
+            senderSocket
+            && senderSocketInfo
+            && String(senderSocketInfo.location || '').toLowerCase() === 'avatar_shop'
+        );
+        if (!senderCanReceiveGiftResultNow) {
+            await enqueueOfflinePacket(
+                senderId,
+                receiverId,
+                PACKET_CODE_GIFT_RESULT,
+                {
+                    giftId: Math.trunc(giftId),
+                    accepted: accept,
+                    itemName,
+                    toNickname: recipientNickname,
+                    fromNickname: senderNickname
+                },
+                connection
+            );
+        }
+
+        await connection.commit();
+
+        const userPayload = await buildUserPayloadById(userId, connection);
+        const inventoryRows = await loadAvatarShopInventoryRows(userId, connection);
+        if (senderCanReceiveGiftResultNow && senderSocketId) {
+            io.to(senderSocketId).emit('avatar_shop_gift_result', {
+                giftId: Math.trunc(giftId),
+                accepted: accept,
+                itemName,
+                toNickname: recipientNickname,
+                fromNickname: senderNickname
+            });
+        }
+
+        res.json({
+            accepted: accept,
+            giftId: Math.trunc(giftId),
+            user: userPayload,
+            inventory: buildAvatarShopInventoryPayload(inventoryRows)
+        });
+    } catch (error) {
+        if (connection) {
+            try { await connection.rollback(); } catch (rollbackError) { /* ignore */ }
+        }
+        console.error('[AvatarShop] Gift response failed:', error);
+        res.status(500).json({ error: 'Gift response failed' });
+    } finally {
+        if (connection) connection.release();
+    }
+});
+
 app.get('/api/worlds', (req, res) => {
     // Return only 1 world as requested, counting only users in the lobby
     res.json([
@@ -1250,7 +1889,7 @@ io.on('connection', (socket) => {
                         && !isRepeatIdentificationOnSameSocket;
 
                     userSockets.set(dbUser.Nickname.toLowerCase(), socket.id);
-                    socketData.set(socket.id, {
+                    const nextPresence = {
                         nickname: dbUser.Nickname,
                         id: dbUser.UserId,
                         gender: dbUser.Gender,
@@ -1260,7 +1899,8 @@ io.on('connection', (socket) => {
                         location: data.location || 'unknown',
                         serverId: data.location === 'world_list' ? 0 : 1,
                         channelId: data.location === 'channel' ? 1 : (data.location === 'in_game' ? (data.roomId || 1) : 0)
-                    });
+                    };
+                    socketData.set(socket.id, nextPresence);
 
                     // Send updated user info back to client
                     const equipState = await loadUserEquipState(dbUser.UserId);
@@ -1272,6 +1912,18 @@ io.on('connection', (socket) => {
                     if (shouldLogLogin) {
                         console.log(`[Login] [${getUKTimestamp()}] ${data.nickname} logged in.`);
                     }
+
+                    const previousPresence = lastKnownPresence.get(userId) || null;
+                    const hasPresenceChanged = !previousPresence
+                        || previousPresence.location !== nextPresence.location
+                        || Number(previousPresence.serverId) !== Number(nextPresence.serverId)
+                        || Number(previousPresence.channelId) !== Number(nextPresence.channelId);
+                    nextPresence.__hasPresenceChanged = hasPresenceChanged;
+                    lastKnownPresence.set(userId, {
+                        location: nextPresence.location,
+                        serverId: nextPresence.serverId,
+                        channelId: nextPresence.channelId
+                    });
                 }
             } catch (err) {
                 console.error('[UserSync] Error fetching latest data:', err);
@@ -1284,11 +1936,35 @@ io.on('connection', (socket) => {
             const currentData = socketData.get(socket.id);
             if (currentData) {
                 sendBuddyList(socket, currentData.id);
-                if (!resumedFromReconnect) {
+                const shouldNotifyBuddyStatus = Boolean(currentData.__hasPresenceChanged) || !resumedFromReconnect;
+                if (shouldNotifyBuddyStatus) {
                     notifyBuddiesOfStatusChange(currentData.id, 0);
                 }
                 broadcastChannelUsers(currentData.channelId);
+                deliverOfflinePacketsToSocket(socket, currentData).catch((error) => {
+                    console.error('[Packet] Failed to deliver offline packets:', error);
+                });
+                delete currentData.__hasPresenceChanged;
             }
+        }
+    });
+
+    socket.on('consume_avatar_shop_packets', async () => {
+        const user = socketData.get(socket.id);
+        if (!user) {
+            return;
+        }
+        try {
+            await deliverOfflinePacketsToSocket(
+                socket,
+                user,
+                pool,
+                [PACKET_CODE_GIFT_PENDING, PACKET_CODE_GIFT_RESULT]
+            );
+            // Safety net: deliver any still-pending gifts even if a packet was previously missed.
+            await sendPendingAvatarShopGifts(socket, user.id);
+        } catch (error) {
+            console.error('[Packet] Failed to deliver avatar shop packets:', error);
         }
     });
 
@@ -1337,19 +2013,53 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('private_message', (data) => {
+    socket.on('private_message', async (data) => {
         const { toNickname, message } = data;
         const sender = socketData.get(socket.id);
-        if (!sender || !toNickname || !message || message.trim() === '') return;
+        const trimmedMessage = String(message || '').trim();
+        const normalizedTargetNickname = String(toNickname || '').trim();
+        if (!sender || !normalizedTargetNickname || !trimmedMessage) return;
 
-        console.log(`[Whisper] [${getUKTimestamp()}] ${sender.nickname} to ${toNickname}: ${message.trim()}`);
+        console.log(`[Whisper] [${getUKTimestamp()}] ${sender.nickname} to ${normalizedTargetNickname}: ${trimmedMessage}`);
 
-        const targetSocketId = userSockets.get(toNickname.toLowerCase());
-        if (targetSocketId) {
-            io.to(targetSocketId).emit('private_message', {
-                fromNickname: sender.nickname,
-                message: message.trim()
-            });
+        try {
+            const [targetRows] = await pool.execute(
+                'SELECT Id, Nickname FROM game WHERE LOWER(Nickname) = LOWER(?) LIMIT 1',
+                [normalizedTargetNickname]
+            );
+            const targetRow = targetRows?.[0] || null;
+            if (!targetRow) {
+                return;
+            }
+
+            const targetId = String(targetRow.Id || '').trim();
+            const targetNicknameKey = String(targetRow.Nickname || normalizedTargetNickname).toLowerCase();
+            const targetSocketId = userSockets.get(targetNicknameKey);
+            const targetSocket = targetSocketId ? io.sockets.sockets.get(targetSocketId) : null;
+            const targetSocketInfo = targetSocketId ? socketData.get(targetSocketId) : null;
+            const targetCanReceiveWhisperNow = Boolean(
+                targetSocket
+                && targetSocketInfo
+                && String(targetSocketInfo.location || '').toLowerCase() !== 'world_list'
+            );
+            if (targetCanReceiveWhisperNow && targetSocketId) {
+                io.to(targetSocketId).emit('private_message', {
+                    fromNickname: sender.nickname,
+                    message: trimmedMessage
+                });
+            } else {
+                await enqueueOfflinePacket(
+                    targetId,
+                    sender.id,
+                    PACKET_CODE_PRIVATE_MESSAGE,
+                    {
+                        fromNickname: sender.nickname,
+                        message: trimmedMessage
+                    }
+                );
+            }
+        } catch (error) {
+            console.error('[Whisper] Failed to deliver or queue message:', error);
         }
     });
 
@@ -1493,18 +2203,56 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('send_buddy_request', (targetNickname) => {
+    socket.on('send_buddy_request', async (targetNickname) => {
         const sender = socketData.get(socket.id);
         if (!sender) return;
+        const normalizedTargetNickname = String(targetNickname || '').trim();
+        if (!normalizedTargetNickname) return;
 
-        console.log(`[Buddy] [${getUKTimestamp()}] ${sender.nickname} is trying to add ${targetNickname}`);
+        console.log(`[Buddy] [${getUKTimestamp()}] ${sender.nickname} is trying to add ${normalizedTargetNickname}`);
 
-        const targetSocketId = userSockets.get(targetNickname.toLowerCase());
-        if (targetSocketId && io.sockets.sockets.get(targetSocketId)) {
-            io.to(targetSocketId).emit('incoming_buddy_request', {
-                fromNickname: sender.nickname,
-                fromId: sender.id
-            });
+        try {
+            const [targetRows] = await pool.execute(
+                'SELECT Id, Nickname FROM game WHERE LOWER(Nickname) = LOWER(?) LIMIT 1',
+                [normalizedTargetNickname]
+            );
+            const targetRow = targetRows?.[0] || null;
+            if (!targetRow) {
+                return;
+            }
+
+            const targetId = String(targetRow.Id || '').trim();
+            if (!targetId || targetId === String(sender.id)) {
+                return;
+            }
+
+            const targetNicknameKey = String(targetRow.Nickname || normalizedTargetNickname).toLowerCase();
+            const targetSocketId = userSockets.get(targetNicknameKey);
+            const targetSocket = targetSocketId ? io.sockets.sockets.get(targetSocketId) : null;
+            const targetSocketInfo = targetSocketId ? socketData.get(targetSocketId) : null;
+            const targetCanReceiveBuddyRequestNow = Boolean(
+                targetSocket
+                && targetSocketInfo
+                && String(targetSocketInfo.location || '').toLowerCase() !== 'world_list'
+            );
+            if (targetCanReceiveBuddyRequestNow && targetSocketId) {
+                io.to(targetSocketId).emit('incoming_buddy_request', {
+                    fromNickname: sender.nickname,
+                    fromId: sender.id
+                });
+            } else {
+                await enqueueOfflinePacket(
+                    targetId,
+                    sender.id,
+                    PACKET_CODE_BUDDY_REQUEST,
+                    {
+                        fromNickname: sender.nickname,
+                        fromId: sender.id
+                    }
+                );
+            }
+        } catch (error) {
+            console.error('[Buddy] Failed to deliver or queue buddy request:', error);
         }
         // No specific error if offline, as per user's "wait for answer" requirement
     });
@@ -1522,6 +2270,14 @@ io.on('connection', (socket) => {
         if (!receiver) return;
 
         const senderSocketId = userSockets.get(fromNickname.toLowerCase());
+        const senderSocket = senderSocketId ? io.sockets.sockets.get(senderSocketId) : null;
+        const senderSocketInfo = senderSocketId ? socketData.get(senderSocketId) : null;
+        const senderCanReceiveBuddyPopupNow = Boolean(
+            senderSocket
+            && senderSocketInfo
+            && String(senderSocketInfo.location || '').toLowerCase() !== 'world_list'
+        );
+        const normalizedSenderId = String(fromId || '').trim();
 
         if (accepted) {
             try {
@@ -1541,16 +2297,28 @@ io.on('connection', (socket) => {
                         [fromId, 'Friend', receiver.id]
                     );
 
+                    if (!senderCanReceiveBuddyPopupNow && normalizedSenderId) {
+                        await enqueueOfflinePacket(
+                            normalizedSenderId,
+                            receiver.id,
+                            PACKET_CODE_BUDDY_ACCEPTED,
+                            {
+                                nickname: receiver.nickname
+                            },
+                            connection
+                        );
+                    }
+
                     await connection.commit();
                     console.log(`[Buddy] [${getUKTimestamp()}] ${receiver.nickname} accepted buddy request from ${fromNickname}`);
 
                     // Refresh buddy list instantly
                     sendBuddyList(socket, receiver.id);
-                    if (senderSocketId && io.sockets.sockets.get(senderSocketId)) {
+                    if (senderSocket) {
                         sendBuddyList(io.sockets.sockets.get(senderSocketId), fromId);
                     }
 
-                    if (senderSocketId) {
+                    if (senderCanReceiveBuddyPopupNow && senderSocketId) {
                         io.to(senderSocketId).emit('buddy_request_accepted', { nickname: receiver.nickname });
                     }
                 } catch (err) {
@@ -1564,8 +2332,21 @@ io.on('connection', (socket) => {
             }
         } else {
             console.log(`[Buddy] [${getUKTimestamp()}] ${receiver.nickname} rejected buddy request from ${fromNickname}`);
-            if (senderSocketId) {
+            if (senderCanReceiveBuddyPopupNow && senderSocketId) {
                 io.to(senderSocketId).emit('buddy_request_rejected', { nickname: receiver.nickname });
+            } else if (normalizedSenderId) {
+                try {
+                    await enqueueOfflinePacket(
+                        normalizedSenderId,
+                        receiver.id,
+                        PACKET_CODE_BUDDY_REJECTED,
+                        {
+                            nickname: receiver.nickname
+                        }
+                    );
+                } catch (error) {
+                    console.error('[Buddy] Failed to queue rejected request packet:', error);
+                }
             }
         }
     });
@@ -1635,6 +2416,11 @@ io.on('connection', (socket) => {
                     pendingDisconnects.delete(userId);
                 }
 
+                const locationAtDisconnect = String(data.location || '').toLowerCase();
+                const disconnectGraceMs = locationAtDisconnect === 'world_list'
+                    ? WORLD_LIST_DISCONNECT_GRACE_MS
+                    : RECONNECT_GRACE_MS;
+
                 const timeoutId = setTimeout(() => {
                     pendingDisconnects.delete(userId);
                     const activeSocketId = userSockets.get(nicknameKey);
@@ -1643,9 +2429,14 @@ io.on('connection', (socket) => {
                     if (isStillOnline) {
                         return;
                     }
+                    lastKnownPresence.set(userId, {
+                        location: 'offline',
+                        serverId: 0,
+                        channelId: 0
+                    });
                     console.log(`[Logoff] [${getUKTimestamp()}] ${nickname} logged off.`);
                     notifyBuddiesOfStatusChange(userId, 100);
-                }, RECONNECT_GRACE_MS);
+                }, disconnectGraceMs);
 
                 pendingDisconnects.set(userId, timeoutId);
             }

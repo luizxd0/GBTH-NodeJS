@@ -77,7 +77,7 @@
                 aria-label="Owned EX items scroll down"></button>
             <button id="btn-avatar-shop-sell" type="button" aria-label="Sell selected item"></button>
             <button id="btn-avatar-shop-laundry" type="button" aria-label="Laundry selected item" disabled></button>
-            <button id="btn-avatar-shop-gift" type="button" aria-label="Gift selected item" disabled></button>
+            <button id="btn-avatar-shop-gift" type="button" aria-label="Gift selected item"></button>
 
             <button id="btn-store-cashcharge" class="avatar-shop-btn"></button>
             <button id="btn-store-main-up" class="avatar-shop-btn"></button>
@@ -120,6 +120,31 @@
                 </div>
                 <button id="btn-storewindow-sell-ok" class="avatar-shop-window-btn" type="button"></button>
                 <button id="btn-storewindow-sell-cancel" class="avatar-shop-window-btn" type="button"></button>
+            </div>
+
+            <div id="avatar-shop-gift-popup" class="hidden">
+                <div id="avatar-shop-gift-popup-header"></div>
+                <div id="avatar-shop-gift-item-frame">
+                    <div id="avatar-shop-gift-thumb"></div>
+                </div>
+                <div id="avatar-shop-gift-item-name"></div>
+                <input id="avatar-shop-gift-nickname-input" type="text" maxlength="20" autocomplete="off"
+                    aria-label="Recipient nickname">
+                <textarea id="avatar-shop-gift-message-input" maxlength="120" aria-label="Gift message"></textarea>
+                <button id="btn-storewindow-gift-send" class="avatar-shop-window-btn" type="button"></button>
+                <button id="btn-storewindow-gift-cancel" class="avatar-shop-window-btn" type="button"></button>
+            </div>
+
+            <div id="avatar-shop-gift-received-popup" class="hidden">
+                <div id="avatar-shop-gift-received-popup-header"></div>
+                <div id="avatar-shop-gift-received-item-frame">
+                    <div id="avatar-shop-gift-received-thumb"></div>
+                </div>
+                <div id="avatar-shop-gift-received-item-name"></div>
+                <div id="avatar-shop-gift-received-from-line"></div>
+                <div id="avatar-shop-gift-received-message-line"></div>
+                <button id="btn-storewindow-gift-received-yes" class="avatar-shop-window-btn" type="button"></button>
+                <button id="btn-storewindow-gift-received-no" class="avatar-shop-window-btn" type="button"></button>
             </div>
 
             <button id="btn-store-exit" class="avatar-shop-btn"></button>
