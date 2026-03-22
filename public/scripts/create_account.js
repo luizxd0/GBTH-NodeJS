@@ -9,9 +9,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const formData = new FormData(signupForm);
             const data = Object.fromEntries(formData.entries());
+            const normalizedUsername = String(data.username || '').trim();
+            const normalizedNickname = String(data.nickname || '').trim();
 
             if (data.password !== data.confirm_password) {
                 showMessage('Passwords do not match!', 'error');
+                return;
+            }
+
+            if (normalizedUsername.toLowerCase() === normalizedNickname.toLowerCase()) {
+                showMessage('Username and Nickname must be different', 'error');
                 return;
             }
 

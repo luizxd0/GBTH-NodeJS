@@ -770,6 +770,10 @@ const pool = mysql.createPool({
 // Signup Endpoint
 app.post('/api/signup', async (req, res) => {
     const { username, nickname, gender, password, email } = req.body;
+    const normalizedUsername = String(username || '').trim();
+    const normalizedNickname = String(nickname || '').trim();
+    const normalizedPassword = String(password || '');
+    const normalizedEmail = String(email || '').trim();
     const normalizedGender = normalizeGender(gender);
 
     const authority = 0;
@@ -778,56 +782,90 @@ app.post('/api/signup', async (req, res) => {
     const score = 1000;
     const grade = 24;
 
+    if (!normalizedUsername || !normalizedNickname || !normalizedPassword || !normalizedEmail) {
+        return res.status(400).json({ error: 'Username, Nickname, Password and E-Mail are required' });
+    }
+
+    if (normalizedUsername.toLowerCase() === normalizedNickname.toLowerCase()) {
+        return res.status(400).json({ error: 'Username and Nickname must be different' });
+    }
+
+    if (normalizedUsername.length > 16 || normalizedNickname.length > 16) {
+        return res.status(400).json({ error: 'Username and Nickname must be 16 characters or less' });
+    }
+
+    let connection;
     try {
-        const connection = await pool.getConnection();
+        connection = await pool.getConnection();
         await connection.beginTransaction();
-
-        try {
-            await connection.execute(
-                `INSERT INTO user (UserId, Gender, Password, Status, Authority, E_Mail, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-                [username, normalizedGender, password, 'OK', authority, email]
-            );
-
-            await connection.execute(
-                `INSERT INTO game (Id, Nickname, Gold, Cash, TotalScore, TotalGrade, SeasonScore, SeasonGrade) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                [username, nickname, gold, cash, score, grade, score, grade]
-            );
-
-            await connection.commit();
-            res.status(201).json({
-                message: 'Account created successfully',
-                user: {
-                    id: username,
-                    nickname: nickname,
-                    guild: '',
-                    authority: authority,
-                    gender: normalizedGender,
-                    ahead: 0,
-                    abody: 0,
-                    aeyes: null,
-                    aflag: null,
-                    abackground: null,
-                    aforeground: null,
-                    aexitem: null,
-                    gold: gold,
-                    cash: cash,
-                    score: score,
-                    grade: grade,
-                    rank: 0
-                }
-            });
-        } catch (err) {
+        const [existingUserRows] = await connection.execute(
+            `SELECT UserId FROM user WHERE LOWER(UserId) = LOWER(?) LIMIT 1 FOR UPDATE`,
+            [normalizedUsername]
+        );
+        if (existingUserRows.length > 0) {
             await connection.rollback();
-            if (err.code === 'ER_DUP_ENTRY') {
-                return res.status(400).json({ error: 'Username or Nickname already exists' });
+            return res.status(400).json({ error: 'Username already exists' });
+        }
+
+        const [existingNicknameRows] = await connection.execute(
+            `SELECT Id FROM game WHERE LOWER(Nickname) = LOWER(?) LIMIT 1 FOR UPDATE`,
+            [normalizedNickname]
+        );
+        if (existingNicknameRows.length > 0) {
+            await connection.rollback();
+            return res.status(400).json({ error: 'Nickname already exists' });
+        }
+
+        await connection.execute(
+            `INSERT INTO user (UserId, Gender, Password, Status, Authority, E_Mail, created_at) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+            [normalizedUsername, normalizedGender, normalizedPassword, 'OK', authority, normalizedEmail]
+        );
+
+        await connection.execute(
+            `INSERT INTO game (Id, Nickname, Gold, Cash, TotalScore, TotalGrade, SeasonScore, SeasonGrade) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [normalizedUsername, normalizedNickname, gold, cash, score, grade, score, grade]
+        );
+
+        await connection.commit();
+        return res.status(201).json({
+            message: 'Account created successfully',
+            user: {
+                id: normalizedUsername,
+                nickname: normalizedNickname,
+                guild: '',
+                authority: authority,
+                gender: normalizedGender,
+                ahead: 0,
+                abody: 0,
+                aeyes: null,
+                aflag: null,
+                abackground: null,
+                aforeground: null,
+                aexitem: null,
+                gold: gold,
+                cash: cash,
+                score: score,
+                grade: grade,
+                rank: 0
             }
-            throw err;
-        } finally {
+        });
+    } catch (error) {
+        if (connection) {
+            try {
+                await connection.rollback();
+            } catch (_) {
+                // Ignore rollback errors.
+            }
+        }
+        if (error?.code === 'ER_DUP_ENTRY') {
+            return res.status(400).json({ error: 'Username or Nickname already exists' });
+        }
+        console.error('Signup error:', error);
+        return res.status(500).json({ error: 'Database error' });
+    } finally {
+        if (connection) {
             connection.release();
         }
-    } catch (error) {
-        console.error('Signup error:', error);
-        res.status(500).json({ error: 'Database error' });
     }
 });
 
@@ -1972,6 +2010,10 @@ io.on('connection', (socket) => {
         const user = socketData.get(socket.id);
         if (user && message && message.trim() !== '') {
             const trimmedMessage = message.trim();
+            const normalizedChannelId = Math.trunc(Number(user.channelId));
+            const channelLabel = Number.isFinite(normalizedChannelId) && normalizedChannelId > 0
+                ? `Channel ${normalizedChannelId}`
+                : 'Channel ?';
 
             // Check for commands
             if (trimmedMessage.startsWith('/')) {
@@ -1980,7 +2022,7 @@ io.on('connection', (socket) => {
                 return;
             }
 
-            console.log(`[Chat] [${getUKTimestamp()}] ${user.nickname} to Lobby/Channel: ${trimmedMessage}`);
+            console.log(`[Chat] [${getUKTimestamp()}] ${user.nickname} to ${channelLabel}: ${trimmedMessage}`);
 
             // Broadcasting to users in the same channel
             const usersInChannel = [];
@@ -2218,11 +2260,19 @@ io.on('connection', (socket) => {
             );
             const targetRow = targetRows?.[0] || null;
             if (!targetRow) {
+                socket.emit('buddy_request_error', {
+                    nickname: normalizedTargetNickname,
+                    message: `'${normalizedTargetNickname}' does not exist.`
+                });
                 return;
             }
 
             const targetId = String(targetRow.Id || '').trim();
             if (!targetId || targetId === String(sender.id)) {
+                socket.emit('buddy_request_error', {
+                    nickname: normalizedTargetNickname,
+                    message: "You can't add your nickname to buddy."
+                });
                 return;
             }
 
@@ -2251,8 +2301,15 @@ io.on('connection', (socket) => {
                     }
                 );
             }
+            socket.emit('buddy_request_sent', {
+                nickname: String(targetRow.Nickname || normalizedTargetNickname)
+            });
         } catch (error) {
             console.error('[Buddy] Failed to deliver or queue buddy request:', error);
+            socket.emit('buddy_request_error', {
+                nickname: normalizedTargetNickname,
+                message: 'Unable to send buddy request right now. Please try again.'
+            });
         }
         // No specific error if offline, as per user's "wait for answer" requirement
     });

@@ -293,26 +293,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const btnAddBuddyOk = document.getElementById('btn-add-buddy-ok');
+    const submitBuddyInvite = () => {
+        const nickname = addBuddyInput?.value.trim() || '';
+        const currentNickname = userData?.nickname || '';
+
+        if (nickname.toLowerCase() === currentNickname.toLowerCase()) {
+            window.showBuddyAlert("You can't add your nickname to buddy.");
+            return;
+        }
+
+        if (nickname === 'Perry') {
+            window.showBuddyAlert(`'${nickname}' is already your friend.`);
+            return;
+        }
+
+        if (nickname !== '') {
+            socket.emit('send_buddy_request', nickname);
+        }
+    };
+
     if (btnAddBuddyOk) {
-        btnAddBuddyOk.addEventListener('click', () => {
-            const nickname = addBuddyInput?.value.trim() || '';
-            const currentNickname = userData?.nickname || '';
+        btnAddBuddyOk.addEventListener('click', submitBuddyInvite);
+    }
 
-            if (nickname.toLowerCase() === currentNickname.toLowerCase()) {
-                window.showBuddyAlert("You can't add your nickname to buddy.");
-                return;
-            }
-
-            if (nickname === 'Perry') {
-                window.showBuddyAlert(`'${nickname}' is already your friend.`);
-                return;
-            }
-
-            if (nickname !== '') {
-                socket.emit('send_buddy_request', nickname);
-                window.showBuddyAlert(`You trying to add ${nickname} to the buddy list, wait for an answer.`);
-                addBuddyPopup?.classList.add('hidden');
-            }
+    if (addBuddyInput) {
+        addBuddyInput.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            submitBuddyInvite();
         });
     }
 
@@ -322,6 +330,25 @@ document.addEventListener('DOMContentLoaded', () => {
             onYes: () => socket.emit('respond_buddy_request', { fromNickname: data.fromNickname, fromId: data.fromId, accepted: true }),
             onNo: () => socket.emit('respond_buddy_request', { fromNickname: data.fromNickname, fromId: data.fromId, accepted: false })
         });
+    });
+
+    socket.on('buddy_request_sent', (data) => {
+        const nickname = String(data?.nickname || '').trim();
+        if (!nickname) return;
+        window.showBuddyAlert(`You trying to add ${nickname} to the buddy list, wait for an answer.`);
+        addBuddyPopup?.classList.add('hidden');
+    });
+
+    socket.on('buddy_request_error', (data) => {
+        const message = String(data?.message || 'Unable to send buddy request.');
+        window.showBuddyAlert(message);
+        if (addBuddyPopup && addBuddyPopup.classList.contains('hidden')) {
+            addBuddyPopup.classList.remove('hidden');
+        }
+        if (addBuddyInput) {
+            addBuddyInput.focus();
+            addBuddyCursorController?.update();
+        }
     });
 
     socket.on('buddy_request_accepted', (data) => {

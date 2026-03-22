@@ -44,6 +44,13 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const formData = new FormData(signupForm);
         const data = Object.fromEntries(formData.entries());
+        const normalizedUsername = String(data.username || '').trim();
+        const normalizedNickname = String(data.nickname || '').trim();
+
+        if (normalizedUsername.toLowerCase() === normalizedNickname.toLowerCase()) {
+            showError('Signup Error', 'Username and Nickname must be different');
+            return;
+        }
 
         try {
             const response = await fetch('/api/signup', {
