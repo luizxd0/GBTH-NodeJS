@@ -209,6 +209,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const selectedServerName = String(selectedServer.server_name || '').trim();
+        if (selectedServerName) {
+            sessionStorage.setItem('gbth_selected_server_name', selectedServerName);
+        }
+
         showJoiningAnimation(() => {
             socket.emit('joinWorld');
             window.playTransition('closing', () => {
@@ -229,6 +234,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         buddyPanel.classList.toggle('hidden');
     }
+
+    window.toggleBuddyList = toggleBuddyPanel;
 
     function appendBuddyChatMessage(sender, message) {
         if (!buddyChatMessages) return;
@@ -308,12 +315,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.addEventListener('keydown', (event) => {
-        if (event.key === 'F10') {
-            event.preventDefault();
-            toggleBuddyPanel();
-            return;
-        }
-
         const isTyping = document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA';
         if (isTyping) return;
 

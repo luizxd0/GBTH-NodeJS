@@ -80,6 +80,18 @@ window.playTransition = function(type, callback) {
         window.playTransition('opening');
     });
 
+    document.addEventListener('keydown', (event) => {
+        if (event.defaultPrevented) return;
+        if (event.repeat) return;
+        if (event.key !== 'F10') return;
+
+        const toggleBuddyList = window.toggleBuddyList;
+        if (typeof toggleBuddyList !== 'function') return;
+
+        event.preventDefault();
+        toggleBuddyList();
+    });
+
     const hoverSound = new Audio('/assets/shared/sounds/bselect1.ogg');
     hoverSound.preload = 'auto';
     hoverSound.volume = 0.5;

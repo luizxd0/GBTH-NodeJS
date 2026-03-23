@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ui = window.GBTH?.ui;
     const buddyUi = window.GBTH?.buddy;
     const socket = io();
+    const lobbyScreen = document.getElementById('lobby-screen');
 
     let userData = JSON.parse(sessionStorage.getItem('user'));
 
@@ -22,6 +23,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const addBuddyInput = document.getElementById('add-buddy-input');
     const addBuddyCursor = document.getElementById('add-buddy-cursor');
     const addBuddyGhostSpan = document.getElementById('add-buddy-input-ghost');
+
+    const createRoomPopup = document.getElementById('create-room-popup');
+    const createRoomTitleInput = document.getElementById('create-room-title');
+    const createRoomTitleCursor = document.getElementById('create-room-title-cursor');
+    const createRoomTitleGhostSpan = document.getElementById('create-room-title-ghost');
+    const createRoomPasswordInput = document.getElementById('create-room-password');
+    const createRoomPasswordCursor = document.getElementById('create-room-password-cursor');
+    const createRoomPasswordGhostSpan = document.getElementById('create-room-password-ghost');
+    const createRoomModeDesc = document.getElementById('create-room-mode-desc');
+    const createRoomSizeButtons = document.querySelectorAll('.gamecreate-size-btn');
+    const createRoomModeButtons = document.querySelectorAll('.gamecreate-mode-btn');
 
     const buddyAlertPopup = document.getElementById('buddy-alert-popup');
     const buddyAlertTextBox = document.getElementById('buddy-alert-text-box');
@@ -89,6 +101,24 @@ document.addEventListener('DOMContentLoaded', () => {
         useInputOffset: true
     });
 
+    const createRoomTitleCursorController = ui?.setupInputCursor({
+        input: createRoomTitleInput,
+        cursor: createRoomTitleCursor,
+        ghost: createRoomTitleGhostSpan,
+        baseLeft: 6,
+        baseTop: 2,
+        useInputOffset: true
+    });
+
+    const createRoomPasswordCursorController = ui?.setupInputCursor({
+        input: createRoomPasswordInput,
+        cursor: createRoomPasswordCursor,
+        ghost: createRoomPasswordGhostSpan,
+        baseLeft: 6,
+        baseTop: 2,
+        useInputOffset: true
+    });
+
     const buddyChatCursorController = ui?.setupInputCursor({
         input: buddyChatInput,
         cursor: buddyChatCursor,
@@ -107,6 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (buddyPanel) ui?.makeDraggable(buddyPanel);
     if (addBuddyPopup) ui?.makeDraggable(addBuddyPopup);
+    if (createRoomPopup) ui?.makeDraggable(createRoomPopup, { handleSelector: '.gamecreate-window-header' });
     if (buddyAlertPopup) ui?.makeDraggable(buddyAlertPopup);
     if (buddyChatWindow) ui?.makeDraggable(buddyChatWindow);
 
@@ -171,6 +202,181 @@ document.addEventListener('DOMContentLoaded', () => {
         buddyPanel.classList.toggle('hidden');
     }
 
+    window.toggleBuddyList = toggleBuddyPanel;
+
+    const CREATE_ROOM_MODE_TO_DESC_FRAME = {
+        solo: 1,
+        tag: 2,
+        jewel: 3,
+        score: 4
+    };
+
+    let selectedCreateRoomSize = '4v4';
+    let selectedCreateRoomMode = 'solo';
+
+    function updateCreateRoomModeDescription(mode) {
+        if (!createRoomModeDesc) return;
+        const frame = CREATE_ROOM_MODE_TO_DESC_FRAME[mode] || 1;
+        createRoomModeDesc.style.backgroundImage = `url('/assets/screens/lobby/gamelist_create/gamelist_create_frame_${frame}.png')`;
+    }
+
+    function setCreateRoomSize(size) {
+        selectedCreateRoomSize = size;
+        createRoomSizeButtons.forEach((button) => {
+            button.classList.toggle('active', button.dataset.size === size);
+        });
+    }
+
+    function setCreateRoomMode(mode) {
+        selectedCreateRoomMode = mode;
+        createRoomModeButtons.forEach((button) => {
+            button.classList.toggle('active', button.dataset.mode === mode);
+        });
+        updateCreateRoomModeDescription(mode);
+    }
+
+    function hideCreateRoomPopup() {
+        createRoomPopup?.classList.add('hidden');
+        setCreateRoomCursorTarget(null);
+    }
+
+    function setCreateRoomCursorTarget(target) {
+        if (createRoomTitleCursor) {
+            createRoomTitleCursor.style.display = target === 'title' ? 'block' : 'none';
+        }
+        if (createRoomPasswordCursor) {
+            createRoomPasswordCursor.style.display = target === 'password' ? 'block' : 'none';
+        }
+    }
+
+    function centerLobbyPopup(element, offsetX = 0, offsetY = 0) {
+        if (!element) return;
+        ui?.centerInContainer?.({
+            element,
+            container: lobbyScreen,
+            offsetX,
+            offsetY
+        });
+    }
+
+    function showAddBuddyPopup({ resetInput = true } = {}) {
+        if (!addBuddyPopup) return;
+        addBuddyPopup.classList.remove('hidden');
+        centerLobbyPopup(addBuddyPopup);
+
+        if (addBuddyInput) {
+            if (resetInput) {
+                addBuddyInput.value = '';
+            }
+            addBuddyInput.focus();
+            addBuddyCursorController?.update();
+        }
+    }
+
+    function showCreateRoomPopup() {
+        if (!createRoomPopup) return;
+        createRoomPopup.classList.remove('hidden');
+        centerLobbyPopup(createRoomPopup);
+        setCreateRoomSize('4v4');
+        setCreateRoomMode('solo');
+        setCreateRoomCursorTarget('title');
+
+        if (createRoomTitleInput) {
+            if (!createRoomTitleInput.value.trim()) {
+                const nickname = String(userData?.nickname || 'Room').trim();
+                createRoomTitleInput.value = `${nickname}'s Room`;
+            }
+            createRoomTitleInput.focus();
+            createRoomTitleInput.select();
+            createRoomTitleCursorController?.update();
+        }
+        if (createRoomPasswordInput) {
+            createRoomPasswordInput.value = '';
+        }
+        createRoomPasswordCursorController?.update();
+    }
+
+    function submitCreateRoom() {
+        const roomTitleInput = String(createRoomTitleInput?.value || '').trim();
+        const nickname = String(userData?.nickname || 'Room').trim();
+        const teamSize = Number.parseInt(selectedCreateRoomSize.charAt(0), 10) || 4;
+
+        const roomConfig = {
+            title: roomTitleInput || `${nickname}'s Room`,
+            password: String(createRoomPasswordInput?.value || ''),
+            mode: selectedCreateRoomMode,
+            teamSize,
+            slotLabel: selectedCreateRoomSize,
+            createdAt: Date.now()
+        };
+
+        sessionStorage.setItem('gbth_pending_room', JSON.stringify(roomConfig));
+
+        if (userData) {
+            socket.emit('set_user_data', {
+                nickname: userData.nickname,
+                id: userData.id,
+                gender: userData.gender,
+                grade: userData.grade || 24,
+                guild: userData.guild || '',
+                authority: userData.authority || 0,
+                location: 'game_room',
+                roomKey: String(roomConfig.createdAt)
+            });
+        }
+
+        hideCreateRoomPopup();
+        window.playTransition('closing', () => {
+            window.location.href = '/views/game_room/index.html';
+        });
+    }
+
+    createRoomSizeButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            setCreateRoomSize(button.dataset.size || '4v4');
+        });
+    });
+
+    createRoomModeButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            setCreateRoomMode(button.dataset.mode || 'solo');
+        });
+    });
+
+    const btnGameCreateCreate = document.getElementById('btn-gamecreate-create');
+    const btnGameCreateCancel = document.getElementById('btn-gamecreate-cancel');
+
+    if (btnGameCreateCreate) {
+        btnGameCreateCreate.addEventListener('click', submitCreateRoom);
+    }
+
+    if (btnGameCreateCancel) {
+        btnGameCreateCancel.addEventListener('click', hideCreateRoomPopup);
+    }
+
+    if (createRoomTitleInput) {
+        createRoomTitleInput.addEventListener('focus', () => {
+            setCreateRoomCursorTarget('title');
+        });
+        createRoomTitleInput.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            createRoomPasswordInput?.focus();
+            createRoomPasswordCursorController?.update();
+        });
+    }
+
+    if (createRoomPasswordInput) {
+        createRoomPasswordInput.addEventListener('focus', () => {
+            setCreateRoomCursorTarget('password');
+        });
+        createRoomPasswordInput.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            submitCreateRoom();
+        });
+    }
+
     const buttons = [
         'btn-lobby-exit', 'btn-lobby-buddy', 'btn-lobby-ranking',
         'btn-lobby-avatar', 'btn-lobby-create', 'btn-lobby-join',
@@ -189,6 +395,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (id === 'btn-lobby-buddy') {
                 toggleBuddyPanel();
+            }
+            if (id === 'btn-lobby-create') {
+                showCreateRoomPopup();
             }
             if (id === 'btn-lobby-avatar') {
                 if (userData) {
@@ -227,16 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnBuddyPlus = document.getElementById('btn-buddy-plus');
     if (btnBuddyPlus) {
         btnBuddyPlus.addEventListener('click', () => {
-            if (!addBuddyPopup) return;
-            addBuddyPopup.classList.remove('hidden');
-            addBuddyPopup.style.top = '226px';
-            addBuddyPopup.style.left = '273px';
-
-            if (addBuddyInput) {
-                addBuddyInput.value = '';
-                addBuddyInput.focus();
-                addBuddyCursorController?.update();
-            }
+            showAddBuddyPopup({ resetInput: true });
         });
     }
 
@@ -251,22 +451,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.showBuddyAlert = function showBuddyAlert(message, options = {}) {
         const { showNoButton = false, onYes = null, onNo = null } = options;
-        if (!buddyAlertPopup || !buddyAlertTextBox || !addBuddyPopup || !btnBuddyAlertYes || !btnBuddyAlertNo) return;
+        if (!buddyAlertPopup || !buddyAlertTextBox || !btnBuddyAlertYes || !btnBuddyAlertNo) return;
 
         buddyAlertTextBox.textContent = message;
         buddyAlertPopup.classList.remove('hidden');
         currentAlertCallbacks = { onYes, onNo };
-
-        const parentRect = {
-            top: parseInt(addBuddyPopup.style.top, 10) || 226,
-            left: parseInt(addBuddyPopup.style.left, 10) || 273
-        };
-
-        const offsetTop = (147 - 138) / 2;
-        const offsetLeft = (253 - 200) / 2;
-
-        buddyAlertPopup.style.top = `${parentRect.top + offsetTop}px`;
-        buddyAlertPopup.style.left = `${parentRect.left + offsetLeft}px`;
+        centerLobbyPopup(buddyAlertPopup);
 
         if (showNoButton) {
             btnBuddyAlertNo.classList.remove('hidden');
@@ -343,7 +533,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const message = String(data?.message || 'Unable to send buddy request.');
         window.showBuddyAlert(message);
         if (addBuddyPopup && addBuddyPopup.classList.contains('hidden')) {
-            addBuddyPopup.classList.remove('hidden');
+            showAddBuddyPopup({ resetInput: false });
         }
         if (addBuddyInput) {
             addBuddyInput.focus();
@@ -704,9 +894,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.addEventListener('keydown', (event) => {
-        if (event.key === 'F10') {
+        const isCreateRoomVisible = createRoomPopup && !createRoomPopup.classList.contains('hidden');
+        if (event.key === 'Escape' && isCreateRoomVisible) {
             event.preventDefault();
-            toggleBuddyPanel();
+            hideCreateRoomPopup();
             return;
         }
 
@@ -719,7 +910,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const isAddBuddyVisible = addBuddyPopup && !addBuddyPopup.classList.contains('hidden');
         const isBuddyChatVisible = buddyChatWindow && !buddyChatWindow.classList.contains('hidden');
 
-        if (isBuddyChatVisible && buddyChatInput) {
+        if (isCreateRoomVisible && createRoomTitleInput) {
+            createRoomTitleInput.focus();
+        } else if (isBuddyChatVisible && buddyChatInput) {
             buddyChatInput.focus();
         } else if (isAddBuddyVisible && addBuddyInput) {
             addBuddyInput.focus();
@@ -733,6 +926,9 @@ document.addEventListener('DOMContentLoaded', () => {
         channelScroll?.update();
         chatScroll?.update();
         buddyChatScroll?.update();
+        setCreateRoomCursorTarget(null);
+        createRoomTitleCursorController?.update();
+        createRoomPasswordCursorController?.update();
         updateChannelButtonsUI();
         sendSystemWelcome(1);
     }, 100);

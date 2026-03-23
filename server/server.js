@@ -14,7 +14,10 @@ const userSockets = new Map(); // nickname -> socket.id
 const socketData = new Map(); // socket.id -> { nickname, id }
 const pendingNotifications = new Map(); // userId -> timeoutId
 const pendingDisconnects = new Map(); // userId -> timeoutId
-const lastKnownPresence = new Map(); // userId -> { location, serverId, channelId }
+const lastKnownPresence = new Map(); // userId -> { location, serverId, channelId, roomId }
+const activeGameRooms = new Map(); // roomKey -> Set(userId)
+const userGameRoomMembership = new Map(); // userId -> roomKey
+const gameRoomNumbers = new Map(); // roomKey -> room number
 const RECONNECT_GRACE_MS = 2500;
 const WORLD_LIST_DISCONNECT_GRACE_MS = 150;
 
@@ -32,6 +35,160 @@ function getActivePlayerCount() {
         }
     }
     return count;
+}
+
+function normalizeGameRoomKey(roomKey, userId) {
+    const rawRoomKey = String(roomKey || '').trim();
+    if (rawRoomKey) {
+        return rawRoomKey;
+    }
+    return `room:${String(userId || '').trim() || 'guest'}`;
+}
+
+function getUsedGameRoomNumbers() {
+    const used = new Set();
+    for (const value of gameRoomNumbers.values()) {
+        const numeric = Math.trunc(Number(value));
+        if (Number.isFinite(numeric) && numeric > 0) {
+            used.add(numeric);
+        }
+    }
+    return used;
+}
+
+function allocateGameRoomNumber() {
+    const used = getUsedGameRoomNumbers();
+    let candidate = 1;
+    while (used.has(candidate)) {
+        candidate += 1;
+    }
+    return candidate;
+}
+
+function getGameRoomNumberForKey(roomKey) {
+    const normalizedKey = String(roomKey || '').trim();
+    if (!normalizedKey) return 0;
+    return Math.trunc(Number(gameRoomNumbers.get(normalizedKey) || 0));
+}
+
+function isUserGameRoomMaster(userId, roomKey) {
+    const normalizedUserId = String(userId || '').trim();
+    const normalizedRoomKey = String(roomKey || '').trim();
+    if (!normalizedUserId || !normalizedRoomKey) return false;
+
+    const members = activeGameRooms.get(normalizedRoomKey);
+    if (!members || members.size <= 0) return false;
+
+    const firstMember = members.values().next().value;
+    return String(firstMember || '').trim() === normalizedUserId;
+}
+
+function getGameRoomMemberCount(roomKey) {
+    const normalizedRoomKey = String(roomKey || '').trim();
+    if (!normalizedRoomKey) return 0;
+    const members = activeGameRooms.get(normalizedRoomKey);
+    return members ? members.size : 0;
+}
+
+function syncSocketGameRoomNumbers(notifyClients = false) {
+    for (const [socketId, presence] of socketData.entries()) {
+        if (!presence) continue;
+        if (String(presence.location || '').toLowerCase() !== 'game_room') continue;
+
+        const resolvedRoomId = getGameRoomNumberForKey(presence.roomKey);
+        presence.roomId = resolvedRoomId > 0 ? resolvedRoomId : 1;
+
+        if (notifyClients) {
+            const targetSocket = io.sockets.sockets.get(socketId);
+            if (targetSocket) {
+                io.to(socketId).emit('game_room_presence', {
+                    roomId: Number(presence.roomId || 1),
+                    roomKey: String(presence.roomKey || ''),
+                    isMaster: isUserGameRoomMaster(presence.id, presence.roomKey),
+                    memberCount: getGameRoomMemberCount(presence.roomKey)
+                });
+            }
+        }
+    }
+}
+
+function removeUserFromGameRoom(userId) {
+    const normalizedUserId = String(userId || '').trim();
+    if (!normalizedUserId) {
+        return false;
+    }
+
+    const previousRoomKey = userGameRoomMembership.get(normalizedUserId);
+    if (!previousRoomKey) {
+        return false;
+    }
+
+    const members = activeGameRooms.get(previousRoomKey);
+    if (members) {
+        members.delete(normalizedUserId);
+        if (members.size <= 0) {
+            activeGameRooms.delete(previousRoomKey);
+            gameRoomNumbers.delete(previousRoomKey);
+        }
+    }
+
+    userGameRoomMembership.delete(normalizedUserId);
+    syncSocketGameRoomNumbers(true);
+    return true;
+}
+
+function assignUserToGameRoom(userId, roomKey) {
+    const normalizedUserId = String(userId || '').trim();
+    if (!normalizedUserId) {
+        return { roomKey: '', roomId: 0, topologyChanged: false };
+    }
+
+    const normalizedRoomKey = normalizeGameRoomKey(roomKey, normalizedUserId);
+    const previousRoomKey = userGameRoomMembership.get(normalizedUserId);
+    let topologyChanged = false;
+
+    if (previousRoomKey && previousRoomKey !== normalizedRoomKey) {
+        const previousMembers = activeGameRooms.get(previousRoomKey);
+        if (previousMembers) {
+            previousMembers.delete(normalizedUserId);
+            if (previousMembers.size <= 0) {
+                activeGameRooms.delete(previousRoomKey);
+            }
+        }
+        topologyChanged = true;
+    }
+
+    let members = activeGameRooms.get(normalizedRoomKey);
+    if (!members) {
+        members = new Set();
+        activeGameRooms.set(normalizedRoomKey, members);
+        if (!gameRoomNumbers.has(normalizedRoomKey)) {
+            gameRoomNumbers.set(normalizedRoomKey, allocateGameRoomNumber());
+        }
+        topologyChanged = true;
+    }
+
+    const sizeBefore = members.size;
+    members.add(normalizedUserId);
+    if (members.size !== sizeBefore) {
+        topologyChanged = true;
+    }
+
+    userGameRoomMembership.set(normalizedUserId, normalizedRoomKey);
+
+    if (!gameRoomNumbers.has(normalizedRoomKey)) {
+        gameRoomNumbers.set(normalizedRoomKey, allocateGameRoomNumber());
+    }
+
+    if (topologyChanged) {
+        syncSocketGameRoomNumbers(true);
+    }
+
+    return {
+        roomKey: normalizedRoomKey,
+        roomId: getGameRoomNumberForKey(normalizedRoomKey) || 1,
+        topologyChanged
+    };
 }
 
 function normalizeGender(genderValue) {
@@ -638,6 +795,14 @@ function resolvePacketCodesForLocation(location) {
             PACKET_CODE_PRIVATE_MESSAGE
         ];
     }
+    if (normalized === 'game_room') {
+        return [
+            PACKET_CODE_BUDDY_REQUEST,
+            PACKET_CODE_BUDDY_ACCEPTED,
+            PACKET_CODE_BUDDY_REJECTED,
+            PACKET_CODE_PRIVATE_MESSAGE
+        ];
+    }
     if (normalized === 'world_list') {
         return [];
     }
@@ -747,7 +912,8 @@ const viewRedirects = {
     '/world_list.html': '/views/world_list.html',
     '/lobby.html': '/views/lobby.html',
     '/avatar_shop.html': '/views/avatar_shop.html',
-    '/create_account.html': '/views/create_account.html'
+    '/create_account.html': '/views/create_account.html',
+    '/game_room.html': '/views/game_room/index.html'
 };
 
 Object.entries(viewRedirects).forEach(([from, to]) => {
@@ -1905,6 +2071,7 @@ io.on('connection', (socket) => {
                     const dbUser = rows[0];
                     const userId = dbUser.UserId;
                     const nicknameKey = dbUser.Nickname.toLowerCase();
+                    let hasGameRoomTopologyChanged = false;
                     const hadPendingDisconnect = pendingDisconnects.has(userId);
                     if (hadPendingDisconnect) {
                         clearTimeout(pendingDisconnects.get(userId));
@@ -1927,6 +2094,22 @@ io.on('connection', (socket) => {
                         && !isRepeatIdentificationOnSameSocket;
 
                     userSockets.set(dbUser.Nickname.toLowerCase(), socket.id);
+                    const normalizedLocation = String(data.location || 'unknown').toLowerCase();
+                    let roomId = 0;
+                    let roomKey = '';
+
+                    if (normalizedLocation === 'game_room') {
+                        const roomAssignment = assignUserToGameRoom(
+                            dbUser.UserId,
+                            data.roomKey || data.roomId || data.roomTitle
+                        );
+                        roomId = roomAssignment.roomId || 1;
+                        roomKey = roomAssignment.roomKey;
+                        hasGameRoomTopologyChanged = roomAssignment.topologyChanged;
+                    } else {
+                        hasGameRoomTopologyChanged = removeUserFromGameRoom(dbUser.UserId);
+                    }
+
                     const nextPresence = {
                         nickname: dbUser.Nickname,
                         id: dbUser.UserId,
@@ -1934,9 +2117,11 @@ io.on('connection', (socket) => {
                         grade: dbUser.TotalGrade,
                         guild: dbUser.Guild,
                         authority: dbUser.Authority,
-                        location: data.location || 'unknown',
-                        serverId: data.location === 'world_list' ? 0 : 1,
-                        channelId: data.location === 'channel' ? 1 : (data.location === 'in_game' ? (data.roomId || 1) : 0)
+                        location: normalizedLocation,
+                        serverId: normalizedLocation === 'world_list' ? 0 : 1,
+                        channelId: normalizedLocation === 'channel' ? 1 : 0,
+                        roomId: normalizedLocation === 'game_room' ? roomId : 0,
+                        roomKey: normalizedLocation === 'game_room' ? roomKey : ''
                     };
                     socketData.set(socket.id, nextPresence);
 
@@ -1955,12 +2140,15 @@ io.on('connection', (socket) => {
                     const hasPresenceChanged = !previousPresence
                         || previousPresence.location !== nextPresence.location
                         || Number(previousPresence.serverId) !== Number(nextPresence.serverId)
-                        || Number(previousPresence.channelId) !== Number(nextPresence.channelId);
+                        || Number(previousPresence.channelId) !== Number(nextPresence.channelId)
+                        || Number(previousPresence.roomId || 0) !== Number(nextPresence.roomId || 0);
                     nextPresence.__hasPresenceChanged = hasPresenceChanged;
+                    nextPresence.__hasGameRoomTopologyChanged = hasGameRoomTopologyChanged;
                     lastKnownPresence.set(userId, {
                         location: nextPresence.location,
                         serverId: nextPresence.serverId,
-                        channelId: nextPresence.channelId
+                        channelId: nextPresence.channelId,
+                        roomId: nextPresence.roomId || 0
                     });
                 }
             } catch (err) {
@@ -1974,15 +2162,29 @@ io.on('connection', (socket) => {
             const currentData = socketData.get(socket.id);
             if (currentData) {
                 sendBuddyList(socket, currentData.id);
-                const shouldNotifyBuddyStatus = Boolean(currentData.__hasPresenceChanged) || !resumedFromReconnect;
-                if (shouldNotifyBuddyStatus) {
-                    notifyBuddiesOfStatusChange(currentData.id, 0);
+                if (String(currentData.location || '').toLowerCase() === 'game_room') {
+                    socket.emit('game_room_presence', {
+                        roomId: Number(currentData.roomId || 1),
+                        roomKey: String(currentData.roomKey || ''),
+                        isMaster: isUserGameRoomMaster(currentData.id, currentData.roomKey),
+                        memberCount: getGameRoomMemberCount(currentData.roomKey)
+                    });
+                }
+                const shouldRefreshAllBuddyLists = Boolean(currentData.__hasGameRoomTopologyChanged);
+                if (shouldRefreshAllBuddyLists) {
+                    refreshBuddyListsForAllOnlineUsers();
+                } else {
+                    const shouldNotifyBuddyStatus = Boolean(currentData.__hasPresenceChanged) || !resumedFromReconnect;
+                    if (shouldNotifyBuddyStatus) {
+                        notifyBuddiesOfStatusChange(currentData.id, 0);
+                    }
                 }
                 broadcastChannelUsers(currentData.channelId);
                 deliverOfflinePacketsToSocket(socket, currentData).catch((error) => {
                     console.error('[Packet] Failed to deliver offline packets:', error);
                 });
                 delete currentData.__hasPresenceChanged;
+                delete currentData.__hasGameRoomTopologyChanged;
             }
         }
     });
@@ -2105,6 +2307,36 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('game_room_message', (message) => {
+        const user = socketData.get(socket.id);
+        if (!user || String(user.location || '').toLowerCase() !== 'game_room') {
+            return;
+        }
+
+        const trimmedMessage = String(message || '').trim();
+        if (!trimmedMessage) {
+            return;
+        }
+
+        const roomKey = String(user.roomKey || '').trim();
+        if (!roomKey) {
+            return;
+        }
+
+        for (const [socketId, data] of socketData.entries()) {
+            if (String(data?.location || '').toLowerCase() !== 'game_room') continue;
+            if (String(data?.roomKey || '') !== roomKey) continue;
+
+            io.to(socketId).emit('game_room_message', {
+                nickname: user.nickname,
+                guild: user.guild || '',
+                message: trimmedMessage,
+                authority: user.authority || 0,
+                type: 'user'
+            });
+        }
+    });
+
     function broadcastChannelUsers(channelId) {
         if (!channelId) return;
         const channelUsers = [];
@@ -2145,6 +2377,7 @@ io.on('connection', (socket) => {
                     let location = 'offline';
                     let serverId = 0;
                     let channelId = 0;
+                    let roomId = 0;
 
                     if (isOnline) {
                         const buddySocketId = userSockets.get(buddyNicknameKey);
@@ -2152,6 +2385,7 @@ io.on('connection', (socket) => {
                         location = buddyData ? buddyData.location : 'online';
                         serverId = buddyData ? buddyData.serverId : 0;
                         channelId = buddyData ? buddyData.channelId : 0;
+                        roomId = buddyData ? buddyData.roomId : 0;
                     }
 
                     return {
@@ -2162,7 +2396,8 @@ io.on('connection', (socket) => {
                         online: isOnline,
                         location: location,
                         serverId: serverId || 0,
-                        channelId: channelId || 0
+                        channelId: channelId || 0,
+                        roomId: roomId || 0
                     };
                 });
 
@@ -2181,6 +2416,14 @@ io.on('connection', (socket) => {
             }
         } catch (error) {
             console.error('[Buddy] Connection Error:', error);
+        }
+    }
+
+    function refreshBuddyListsForAllOnlineUsers() {
+        for (const [socketId, data] of socketData.entries()) {
+            const onlineSocket = io.sockets.sockets.get(socketId);
+            if (!onlineSocket || !data?.id) continue;
+            sendBuddyList(onlineSocket, data.id);
         }
     }
 
@@ -2239,9 +2482,13 @@ io.on('connection', (socket) => {
                 userSockets.delete(nicknameKey);
             }
             socketData.delete(socket.id);
+            const hasGameRoomTopologyChanged = removeUserFromGameRoom(userId);
             io.emit('playerCountUpdate', getActivePlayerCount());
 
             broadcastChannelUsers(data.channelId);
+            if (hasGameRoomTopologyChanged) {
+                refreshBuddyListsForAllOnlineUsers();
+            }
         }
     });
 
@@ -2486,13 +2733,18 @@ io.on('connection', (socket) => {
                     if (isStillOnline) {
                         return;
                     }
+                    const hasGameRoomTopologyChanged = removeUserFromGameRoom(userId);
                     lastKnownPresence.set(userId, {
                         location: 'offline',
                         serverId: 0,
-                        channelId: 0
+                        channelId: 0,
+                        roomId: 0
                     });
                     console.log(`[Logoff] [${getUKTimestamp()}] ${nickname} logged off.`);
                     notifyBuddiesOfStatusChange(userId, 100);
+                    if (hasGameRoomTopologyChanged) {
+                        refreshBuddyListsForAllOnlineUsers();
+                    }
                 }, disconnectGraceMs);
 
                 pendingDisconnects.set(userId, timeoutId);

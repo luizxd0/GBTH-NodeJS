@@ -7,6 +7,7 @@
         if (location === 'world_list') return 5;
         if (location === 'channel') return 2;
         if (location === 'in_game') return 3;
+        if (location === 'game_room') return 3;
         if (location === 'avatar_shop') return 6;
         return 0;
     };
@@ -25,6 +26,9 @@
         const rankSrc = `/assets/shared/rank1/rank1_frame_${entry.grade}.png`;
         const statusFrame = buddy.getStatusFrame(entry.online, entry.location);
         const statusImg = `<img src="/assets/screens/lobby/buddy_back/buddy_back_frame_${statusFrame}.png" class="buddy-status-img status-${statusFrame} buddy-logout">`;
+        const roomNumber = Number.isFinite(Number(entry.roomId)) && Number(entry.roomId) > 0
+            ? Math.trunc(Number(entry.roomId))
+            : 1;
 
         item.innerHTML = `
             <div class="buddy-rank-box">
@@ -36,12 +40,12 @@
             </div>
             <div class="buddy-status">
                 ${statusImg}
-                ${entry.online && (entry.location === 'channel' || entry.location === 'in_game') ? `
+                ${entry.online && (entry.location === 'channel' || entry.location === 'in_game' || entry.location === 'game_room') ? `
                     <div class="buddy-server-status">
                         <span class="buddy-status-value server">${entry.serverId}</span>
                     </div>
                     <div class="buddy-channel-status">
-                        <span class="buddy-status-value channel">${entry.channelId}</span>
+                        <span class="buddy-status-value channel">${entry.location === 'game_room' ? roomNumber : entry.channelId}</span>
                     </div>
                 ` : ''}
             </div>

@@ -656,6 +656,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const ui = window.GBTH?.ui;
     const buddyUi = window.GBTH?.buddy;
     const socket = io();
+    const avatarShopScreen = document.getElementById('avatar-shop-screen');
     let userData = JSON.parse(sessionStorage.getItem('user'));
     let currentPreviewEquip = buildPreviewEquipStateFromUserData(userData);
     let myAvatarStatIndex = new Map();
@@ -917,6 +918,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     window.toggleBuddyList = toggleBuddyPanel;
+
+    function centerAvatarShopPopup(element, offsetX = 0, offsetY = 0) {
+        if (!element) return;
+        ui?.centerInContainer?.({
+            element,
+            container: avatarShopScreen,
+            offsetX,
+            offsetY
+        });
+    }
+
+    function showAddBuddyPopup({ resetInput = true } = {}) {
+        if (!addBuddyPopup) return;
+        addBuddyPopup.classList.remove('hidden');
+        centerAvatarShopPopup(addBuddyPopup);
+
+        if (addBuddyInput) {
+            if (resetInput) {
+                addBuddyInput.value = '';
+            }
+            addBuddyInput.focus();
+            addBuddyCursorController?.update();
+        }
+    }
 
     function updateUserInfo(data) {
         if (!data) return;
@@ -2218,16 +2243,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnBuddyPlus = document.getElementById('btn-buddy-plus');
     if (btnBuddyPlus) {
         btnBuddyPlus.addEventListener('click', () => {
-            if (!addBuddyPopup) return;
-            addBuddyPopup.classList.remove('hidden');
-            addBuddyPopup.style.top = '226px';
-            addBuddyPopup.style.left = '273px';
-
-            if (addBuddyInput) {
-                addBuddyInput.value = '';
-                addBuddyInput.focus();
-                addBuddyCursorController?.update();
-            }
+            showAddBuddyPopup({ resetInput: true });
         });
     }
 
@@ -2241,21 +2257,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     let currentAlertCallbacks = { onYes: null, onNo: null };
     window.showBuddyAlert = function showBuddyAlert(message, options = {}) {
         const { showNoButton = false, onYes = null, onNo = null } = options;
-        if (!buddyAlertPopup || !buddyAlertTextBox || !addBuddyPopup || !btnBuddyAlertYes || !btnBuddyAlertNo) return;
+        if (!buddyAlertPopup || !buddyAlertTextBox || !btnBuddyAlertYes || !btnBuddyAlertNo) return;
 
         buddyAlertTextBox.textContent = message;
         buddyAlertPopup.classList.remove('hidden');
         currentAlertCallbacks = { onYes, onNo };
-
-        const parentRect = {
-            top: parseInt(addBuddyPopup.style.top, 10) || 226,
-            left: parseInt(addBuddyPopup.style.left, 10) || 273
-        };
-        const offsetTop = (147 - 138) / 2;
-        const offsetLeft = (253 - 200) / 2;
-
-        buddyAlertPopup.style.top = `${parentRect.top + offsetTop}px`;
-        buddyAlertPopup.style.left = `${parentRect.left + offsetLeft}px`;
+        centerAvatarShopPopup(buddyAlertPopup);
 
         if (showNoButton) {
             btnBuddyAlertNo.classList.remove('hidden');
@@ -2327,7 +2334,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const message = String(data?.message || 'Unable to send buddy request.');
         window.showBuddyAlert(message);
         if (addBuddyPopup && addBuddyPopup.classList.contains('hidden')) {
-            addBuddyPopup.classList.remove('hidden');
+            showAddBuddyPopup({ resetInput: false });
         }
         if (addBuddyInput) {
             addBuddyInput.focus();
@@ -2532,12 +2539,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (event.key === 'Escape' && avatarShopSellPopup && !avatarShopSellPopup.classList.contains('hidden')) {
             event.preventDefault();
             hideAvatarShopSellPopup();
-            return;
-        }
-
-        if (event.key === 'F10') {
-            event.preventDefault();
-            toggleBuddyPanel();
             return;
         }
 

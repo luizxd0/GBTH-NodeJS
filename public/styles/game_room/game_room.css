@@ -1,0 +1,579 @@
+#game-room-screen {
+    position: relative;
+    width: 800px;
+    height: 600px;
+    background-image: url('/assets/screens/game_room/ready_back/ready_back_frame_0.png');
+    background-size: 800px 600px;
+    image-rendering: pixelated;
+}
+
+#game-room-room-title,
+#game-room-server-title {
+    position: absolute;
+    top: 14px;
+    color: #e9fbff;
+    font-family: var(--gbth-ui-font);
+    font-size: 11px;
+    font-weight: 700;
+    text-shadow: 1px 1px 0 #00253f;
+    pointer-events: none;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+#game-room-room-number {
+    position: absolute;
+    top: 14px;
+    left: 71px;
+    width: 30px;
+    height: 12px;
+    color: #ffff00;
+    font-family: var(--gbth-ui-font);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 12px;
+    text-align: center;
+    text-shadow: 1px 1px 0 #00253f;
+    pointer-events: none;
+}
+
+#game-room-room-title {
+    left: 99px;
+    width: 174px;
+}
+
+#game-room-server-title {
+    left: 570px;
+    width: 190px;
+}
+
+.game-room-slot {
+    position: absolute;
+    width: 127px;
+    height: 71px;
+    background-repeat: no-repeat;
+    background-size: 127px 71px;
+}
+
+.game-room-slot.team-a {
+    background-image: url('/assets/screens/game_room/ready_back/ready_back_frame_1.png');
+}
+
+.game-room-slot.team-b {
+    background-image: url('/assets/screens/game_room/ready_back/ready_back_frame_2.png');
+}
+
+#game-room-slot-a1 {
+    top: 119px;
+    left: 39px;
+}
+
+#game-room-slot-a2 {
+    top: 119px;
+    left: 178px;
+}
+
+#game-room-slot-a3 {
+    top: 271px;
+    left: 39px;
+}
+
+#game-room-slot-a4 {
+    top: 271px;
+    left: 178px;
+}
+
+#game-room-slot-b1 {
+    top: 119px;
+    left: 495px;
+}
+
+#game-room-slot-b2 {
+    top: 119px;
+    left: 636px;
+}
+
+#game-room-slot-b3 {
+    top: 271px;
+    left: 495px;
+}
+
+#game-room-slot-b4 {
+    top: 271px;
+    left: 636px;
+}
+
+#game-room-map-panel {
+    position: absolute;
+    top: 51px;
+    left: 332px;
+    width: 136px;
+    height: 84px;
+}
+
+#game-room-map-card {
+    width: 136px;
+    height: 84px;
+    background-image: url('/assets/screens/game_room/ready_selectmap/ready_selectmap_frame_0.png');
+    background-size: 136px 84px;
+    background-repeat: no-repeat;
+}
+
+.game-room-map-btn {
+    position: absolute;
+    top: 46px;
+    width: 19px;
+    height: 19px;
+    border: none;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    cursor: inherit;
+    outline: none;
+}
+
+#btn-game-room-map-prev {
+    left: -8px;
+    background-image: url('/assets/screens/game_room/b_ready_prevmap/b_ready_prevmap_frame_0.png');
+}
+
+#btn-game-room-map-prev:hover:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_prevmap/b_ready_prevmap_frame_1.png');
+}
+
+#btn-game-room-map-prev:active:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_prevmap/b_ready_prevmap_frame_2.png');
+}
+
+#btn-game-room-map-prev:disabled {
+    background-image: url('/assets/screens/game_room/b_ready_prevmap/b_ready_prevmap_frame_3.png');
+}
+
+#btn-game-room-map-next {
+    right: -8px;
+    background-image: url('/assets/screens/game_room/b_ready_nextmap/b_ready_nextmap_frame_0.png');
+}
+
+#btn-game-room-map-next:hover:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_nextmap/b_ready_nextmap_frame_1.png');
+}
+
+#btn-game-room-map-next:active:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_nextmap/b_ready_nextmap_frame_2.png');
+}
+
+#btn-game-room-map-next:disabled {
+    background-image: url('/assets/screens/game_room/b_ready_nextmap/b_ready_nextmap_frame_3.png');
+}
+
+#game-room-rule-buttons {
+    position: absolute;
+    top: 223px;
+    left: 316px;
+    display: grid;
+    grid-template-columns: repeat(2, 81px);
+    grid-template-rows: repeat(3, 24px);
+    gap: 3px 6px;
+}
+
+.game-room-rule-btn {
+    width: 81px;
+    height: 24px;
+    border: none;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    cursor: inherit;
+    outline: none;
+}
+
+#btn-game-room-solo {
+    background-image: url('/assets/screens/game_room/b_ready_solo/b_ready_solo_frame_0.png');
+}
+
+#btn-game-room-4v4[data-team-size="1"] {
+    background-image: url('/assets/screens/game_room/b_ready_1vs1/b_ready_1vs1_frame_0.png');
+}
+
+#btn-game-room-4v4[data-team-size="2"] {
+    background-image: url('/assets/screens/game_room/b_ready_2vs2/b_ready_2vs2_frame_0.png');
+}
+
+#btn-game-room-4v4[data-team-size="3"] {
+    background-image: url('/assets/screens/game_room/b_ready_3vs3/b_ready_3vs3_frame_0.png');
+}
+
+#btn-game-room-4v4[data-team-size="4"] {
+    background-image: url('/assets/screens/game_room/b_ready_4vs4/b_ready_4vs4_frame_0.png');
+}
+
+#btn-game-room-aside {
+    background-image: url('/assets/screens/game_room/b_ready_aside/b_ready_aside_frame_0.png');
+}
+
+#btn-game-room-bigbomb {
+    background-image: url('/assets/screens/game_room/b_ready_bigbombdeath/b_ready_bigbombdeath_frame_0.png');
+}
+
+#btn-game-room-basic {
+    background-image: url('/assets/screens/game_room/b_ready_basicbomb/b_ready_basicbomb_frame_0.png');
+}
+
+#btn-game-room-death56 {
+    background-image: url('/assets/screens/game_room/b_ready_death56/b_ready_death56_frame_0.png');
+}
+
+#btn-game-room-solo:hover:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_solo/b_ready_solo_frame_1.png');
+}
+
+#btn-game-room-4v4[data-team-size="1"]:hover:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_1vs1/b_ready_1vs1_frame_1.png');
+}
+
+#btn-game-room-4v4[data-team-size="2"]:hover:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_2vs2/b_ready_2vs2_frame_1.png');
+}
+
+#btn-game-room-4v4[data-team-size="3"]:hover:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_3vs3/b_ready_3vs3_frame_1.png');
+}
+
+#btn-game-room-4v4[data-team-size="4"]:hover:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_4vs4/b_ready_4vs4_frame_1.png');
+}
+
+#btn-game-room-aside:hover:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_aside/b_ready_aside_frame_1.png');
+}
+
+#btn-game-room-bigbomb:hover:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_bigbombdeath/b_ready_bigbombdeath_frame_1.png');
+}
+
+#btn-game-room-basic:hover:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_basicbomb/b_ready_basicbomb_frame_1.png');
+}
+
+#btn-game-room-death56:hover:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_death56/b_ready_death56_frame_1.png');
+}
+
+#btn-game-room-solo:active:not(:disabled),
+#btn-game-room-solo.active {
+    background-image: url('/assets/screens/game_room/b_ready_solo/b_ready_solo_frame_2.png');
+}
+
+#btn-game-room-4v4[data-team-size="1"]:active:not(:disabled),
+#btn-game-room-4v4[data-team-size="1"].active {
+    background-image: url('/assets/screens/game_room/b_ready_1vs1/b_ready_1vs1_frame_2.png');
+}
+
+#btn-game-room-4v4[data-team-size="2"]:active:not(:disabled),
+#btn-game-room-4v4[data-team-size="2"].active {
+    background-image: url('/assets/screens/game_room/b_ready_2vs2/b_ready_2vs2_frame_2.png');
+}
+
+#btn-game-room-4v4[data-team-size="3"]:active:not(:disabled),
+#btn-game-room-4v4[data-team-size="3"].active {
+    background-image: url('/assets/screens/game_room/b_ready_3vs3/b_ready_3vs3_frame_2.png');
+}
+
+#btn-game-room-4v4[data-team-size="4"]:active:not(:disabled),
+#btn-game-room-4v4[data-team-size="4"].active {
+    background-image: url('/assets/screens/game_room/b_ready_4vs4/b_ready_4vs4_frame_2.png');
+}
+
+#btn-game-room-4v4[data-team-size="1"]:disabled {
+    background-image: url('/assets/screens/game_room/b_ready_1vs1/b_ready_1vs1_frame_3.png');
+}
+
+#btn-game-room-4v4[data-team-size="2"]:disabled {
+    background-image: url('/assets/screens/game_room/b_ready_2vs2/b_ready_2vs2_frame_3.png');
+}
+
+#btn-game-room-4v4[data-team-size="3"]:disabled {
+    background-image: url('/assets/screens/game_room/b_ready_3vs3/b_ready_3vs3_frame_3.png');
+}
+
+#btn-game-room-4v4[data-team-size="4"]:disabled {
+    background-image: url('/assets/screens/game_room/b_ready_4vs4/b_ready_4vs4_frame_3.png');
+}
+
+#btn-game-room-aside:active:not(:disabled),
+#btn-game-room-aside.active {
+    background-image: url('/assets/screens/game_room/b_ready_aside/b_ready_aside_frame_2.png');
+}
+
+#btn-game-room-bigbomb:active:not(:disabled),
+#btn-game-room-bigbomb.active {
+    background-image: url('/assets/screens/game_room/b_ready_bigbombdeath/b_ready_bigbombdeath_frame_2.png');
+}
+
+#btn-game-room-basic:active:not(:disabled),
+#btn-game-room-basic.active {
+    background-image: url('/assets/screens/game_room/b_ready_basicbomb/b_ready_basicbomb_frame_2.png');
+}
+
+#btn-game-room-death56:active:not(:disabled),
+#btn-game-room-death56.active {
+    background-image: url('/assets/screens/game_room/b_ready_death56/b_ready_death56_frame_2.png');
+}
+
+#game-room-chat-input {
+    position: absolute;
+    top: 364px;
+    left: 47px;
+    width: 446px;
+    height: 17px;
+    border: none;
+    background: transparent;
+    outline: none;
+    color: #ff2c2c;
+    font-family: var(--gbth-ui-font);
+    font-size: 11px;
+}
+
+#game-room-chat-feed {
+    position: absolute;
+    top: 349px;
+    left: 47px;
+    width: 446px;
+    height: 14px;
+    overflow: hidden;
+    color: #f8fcf8;
+    font-family: var(--gbth-ui-font);
+    font-size: 11px;
+    line-height: 14px;
+    text-shadow: 1px 1px 1px #000;
+    pointer-events: none;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#game-room-mobile-grid {
+    position: absolute;
+    top: 389px;
+    left: 33px;
+    width: 331px;
+    height: 149px;
+    display: grid;
+    grid-template-columns: repeat(5, 63px);
+    grid-template-rows: repeat(3, 47px);
+    gap: 4px;
+}
+
+.game-room-mobile-btn {
+    width: 63px;
+    height: 47px;
+    border: none;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    cursor: inherit;
+    outline: none;
+}
+
+#game-room-mobile-preview {
+    position: absolute;
+    top: 390px;
+    left: 377px;
+    width: 113px;
+    height: 146px;
+    background-image: url('/assets/screens/game_room/ready_selectcharacter/ready_selectcharacter_frame_0.png');
+    background-size: 113px 146px;
+    background-repeat: no-repeat;
+}
+
+#game-room-item-grid {
+    position: absolute;
+    top: 402px;
+    left: 532px;
+    width: 198px;
+    height: 136px;
+    display: grid;
+    grid-template-columns: repeat(3, 64px);
+    grid-template-rows: repeat(3, 43px);
+    gap: 3px;
+}
+
+.game-room-item-btn {
+    width: 64px;
+    height: 43px;
+    border: none;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    cursor: inherit;
+    outline: none;
+}
+
+.game-room-item-btn.item-1 {
+    background-image: url('/assets/screens/game_room/ready_itemshop2/ready_itemshop2_frame_0.png');
+}
+
+.game-room-item-btn.item-2 {
+    background-image: url('/assets/screens/game_room/ready_itemshop1/ready_itemshop1_frame_4.png');
+}
+
+.game-room-item-btn.item-3 {
+    background-image: url('/assets/screens/game_room/ready_itemshop2/ready_itemshop2_frame_12.png');
+}
+
+.game-room-item-btn.item-4 {
+    background-image: url('/assets/screens/game_room/ready_itemshop1/ready_itemshop1_frame_12.png');
+}
+
+.game-room-item-btn.item-5 {
+    background-image: url('/assets/screens/game_room/ready_itemshop2/ready_itemshop2_frame_2.png');
+}
+
+.game-room-item-btn.item-6 {
+    background-image: url('/assets/screens/game_room/ready_itemshop1/ready_itemshop1_frame_28.png');
+}
+
+.game-room-item-btn.item-7 {
+    background-image: url('/assets/screens/game_room/ready_itemshop2/ready_itemshop2_frame_20.png');
+}
+
+.game-room-item-btn.item-8 {
+    background-image: url('/assets/screens/game_room/ready_itemshop1/ready_itemshop1_frame_0.png');
+}
+
+.game-room-item-btn.item-9 {
+    background-image: url('/assets/screens/game_room/ready_itemshop1/ready_itemshop1_frame_2.png');
+}
+
+.game-room-item-scroll {
+    position: absolute;
+    width: 16px;
+    height: 48px;
+    border: none;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    cursor: inherit;
+    outline: none;
+}
+
+#btn-game-room-item-up {
+    top: 405px;
+    left: 751px;
+    background-image: url('/assets/screens/game_room/b_ready_itemup/b_ready_itemup_frame_0.png');
+}
+
+#btn-game-room-item-up:hover:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_itemup/b_ready_itemup_frame_1.png');
+}
+
+#btn-game-room-item-up:active:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_itemup/b_ready_itemup_frame_2.png');
+}
+
+#btn-game-room-item-up:disabled {
+    background-image: url('/assets/screens/game_room/b_ready_itemup/b_ready_itemup_frame_3.png');
+}
+
+#btn-game-room-item-down {
+    top: 488px;
+    left: 751px;
+    background-image: url('/assets/screens/game_room/b_ready_itemdown/b_ready_itemdown_frame_0.png');
+}
+
+#btn-game-room-item-down:hover:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_itemdown/b_ready_itemdown_frame_1.png');
+}
+
+#btn-game-room-item-down:active:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_itemdown/b_ready_itemdown_frame_2.png');
+}
+
+#btn-game-room-item-down:disabled {
+    background-image: url('/assets/screens/game_room/b_ready_itemdown/b_ready_itemdown_frame_3.png');
+}
+
+.game-room-action-btn {
+    position: absolute;
+    border: none;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    cursor: inherit;
+    outline: none;
+}
+
+#btn-game-room-exit,
+#btn-game-room-buddy {
+    top: 550px;
+    width: 107px;
+    height: 45px;
+}
+
+#btn-game-room-exit {
+    left: 33px;
+    background-image: url('/assets/screens/game_room/b_gamelist_exit/b_gamelist_exit_frame_0.png');
+}
+
+#btn-game-room-exit:hover:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_gamelist_exit/b_gamelist_exit_frame_1.png');
+}
+
+#btn-game-room-exit:active:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_gamelist_exit/b_gamelist_exit_frame_2.png');
+}
+
+#btn-game-room-exit:disabled {
+    background-image: url('/assets/screens/game_room/b_gamelist_exit/b_gamelist_exit_frame_3.png');
+}
+
+#btn-game-room-buddy {
+    left: 160px;
+    background-image: url('/assets/screens/game_room/b_gamelist_buddy/b_gamelist_buddy_frame_0.png');
+}
+
+#btn-game-room-buddy:hover:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_gamelist_buddy/b_gamelist_buddy_frame_1.png');
+}
+
+#btn-game-room-buddy:active:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_gamelist_buddy/b_gamelist_buddy_frame_2.png');
+}
+
+#btn-game-room-buddy:disabled {
+    background-image: url('/assets/screens/game_room/b_gamelist_buddy/b_gamelist_buddy_frame_3.png');
+}
+
+#btn-game-room-change,
+#btn-game-room-start {
+    top: 550px;
+    width: 107px;
+    height: 45px;
+}
+
+#btn-game-room-change {
+    left: 542px;
+    background-image: url('/assets/screens/game_room/b_ready_changeteam/b_ready_changeteam_frame_0.png');
+}
+
+#btn-game-room-change:hover:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_changeteam/b_ready_changeteam_frame_1.png');
+}
+
+#btn-game-room-change:active:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_changeteam/b_ready_changeteam_frame_2.png');
+}
+
+#btn-game-room-change:disabled {
+    background-image: url('/assets/screens/game_room/b_ready_changeteam/b_ready_changeteam_frame_3.png');
+}
+
+#btn-game-room-start {
+    left: 668px;
+    background-image: url('/assets/screens/game_room/b_ready_startgame/b_ready_startgame_frame_0.png');
+}
+
+#btn-game-room-start:hover:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_startgame/b_ready_startgame_frame_1.png');
+}
+
+#btn-game-room-start:active:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_startgame/b_ready_startgame_frame_2.png');
+}
+
+#btn-game-room-start:disabled {
+    background-image: url('/assets/screens/game_room/b_ready_startgame/b_ready_startgame_frame_3.png');
+}

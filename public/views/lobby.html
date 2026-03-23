@@ -143,6 +143,35 @@
                 </div>
             </div>
 
+            <!-- Create Room Popup -->
+            <div id="create-room-popup" class="hidden">
+                <div class="gamecreate-window-header"></div>
+
+                <button id="btn-gamecreate-size-1v1" class="gamecreate-size-btn" data-size="1v1"></button>
+                <button id="btn-gamecreate-size-2v2" class="gamecreate-size-btn" data-size="2v2"></button>
+                <button id="btn-gamecreate-size-3v3" class="gamecreate-size-btn" data-size="3v3"></button>
+                <button id="btn-gamecreate-size-4v4" class="gamecreate-size-btn active" data-size="4v4"></button>
+
+                <input type="text" id="create-room-title" maxlength="40" autocomplete="off">
+                <div id="create-room-title-cursor"></div>
+                <span id="create-room-title-ghost"
+                    style="visibility: hidden; white-space: pre; position: absolute; font-family: var(--gbth-ui-font); font-size: 11px;"></span>
+
+                <input type="text" id="create-room-password" maxlength="20" autocomplete="off">
+                <div id="create-room-password-cursor"></div>
+                <span id="create-room-password-ghost"
+                    style="visibility: hidden; white-space: pre; position: absolute; font-family: var(--gbth-ui-font); font-size: 11px;"></span>
+
+                <button id="btn-gamecreate-mode-solo" class="gamecreate-mode-btn active" data-mode="solo"></button>
+                <button id="btn-gamecreate-mode-tag" class="gamecreate-mode-btn" data-mode="tag"></button>
+                <button id="btn-gamecreate-mode-score" class="gamecreate-mode-btn" data-mode="score"></button>
+                <button id="btn-gamecreate-mode-jewel" class="gamecreate-mode-btn" data-mode="jewel"></button>
+                <div id="create-room-mode-desc"></div>
+
+                <button id="btn-gamecreate-create" class="gamecreate-action-btn"></button>
+                <button id="btn-gamecreate-cancel" class="gamecreate-action-btn"></button>
+            </div>
+
             <!-- Already Friends / Buddy Alert Popup -->
             <div id="buddy-alert-popup" class="hidden">
                 <div class="buddy-window-header"></div>

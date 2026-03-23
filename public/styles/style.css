@@ -3539,6 +3539,321 @@ body {
     display: none !important;
 }
 
+/* Create Room Popup */
+#create-room-popup {
+    position: absolute;
+    top: 34px;
+    left: 6px;
+    width: 313px;
+    height: 193px;
+    background-image: url('/assets/screens/lobby/gamelist_create/gamelist_create_frame_0.png');
+    background-size: 313px 193px;
+    image-rendering: pixelated;
+    z-index: 3200;
+}
+
+.gamecreate-window-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 160px;
+    height: 30px;
+    cursor: inherit;
+}
+
+.gamecreate-size-btn,
+.gamecreate-mode-btn,
+.gamecreate-action-btn {
+    position: absolute;
+    border: none;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    cursor: inherit;
+    outline: none;
+}
+
+.gamecreate-size-btn {
+    width: 27px;
+    height: 27px;
+}
+
+#btn-gamecreate-size-1v1 {
+    top: 7px;
+    left: 172px;
+    background-image: url('/assets/screens/lobby/b_gamecreate_1vs1/b_gamecreate_1vs1_frame_0.png');
+}
+
+#btn-gamecreate-size-2v2 {
+    top: 7px;
+    left: 204px;
+    background-image: url('/assets/screens/lobby/b_gamecreate_2vs2/b_gamecreate_2vs2_frame_0.png');
+}
+
+#btn-gamecreate-size-3v3 {
+    top: 7px;
+    left: 236px;
+    background-image: url('/assets/screens/lobby/b_gamecreate_3vs3/b_gamecreate_3vs3_frame_0.png');
+}
+
+#btn-gamecreate-size-4v4 {
+    top: 7px;
+    left: 268px;
+    background-image: url('/assets/screens/lobby/b_gamecreate_4vs4/b_gamecreate_4vs4_frame_0.png');
+}
+
+#btn-gamecreate-size-1v1:hover:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/lobby/b_gamecreate_1vs1/b_gamecreate_1vs1_frame_1.png');
+}
+
+#btn-gamecreate-size-1v1:active:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/lobby/b_gamecreate_1vs1/b_gamecreate_1vs1_frame_2.png');
+}
+
+#btn-gamecreate-size-1v1:disabled {
+    background-image: url('/assets/screens/lobby/b_gamecreate_1vs1/b_gamecreate_1vs1_frame_3.png');
+}
+
+#btn-gamecreate-size-1v1.active {
+    background-image: url('/assets/screens/lobby/b_gamecreate_1vs1/b_gamecreate_1vs1_frame_4.png');
+}
+
+#btn-gamecreate-size-2v2:hover:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/lobby/b_gamecreate_2vs2/b_gamecreate_2vs2_frame_1.png');
+}
+
+#btn-gamecreate-size-2v2:active:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/lobby/b_gamecreate_2vs2/b_gamecreate_2vs2_frame_2.png');
+}
+
+#btn-gamecreate-size-2v2:disabled {
+    background-image: url('/assets/screens/lobby/b_gamecreate_2vs2/b_gamecreate_2vs2_frame_3.png');
+}
+
+#btn-gamecreate-size-2v2.active {
+    background-image: url('/assets/screens/lobby/b_gamecreate_2vs2/b_gamecreate_2vs2_frame_4.png');
+}
+
+#btn-gamecreate-size-3v3:hover:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/lobby/b_gamecreate_3vs3/b_gamecreate_3vs3_frame_1.png');
+}
+
+#btn-gamecreate-size-3v3:active:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/lobby/b_gamecreate_3vs3/b_gamecreate_3vs3_frame_2.png');
+}
+
+#btn-gamecreate-size-3v3:disabled {
+    background-image: url('/assets/screens/lobby/b_gamecreate_3vs3/b_gamecreate_3vs3_frame_3.png');
+}
+
+#btn-gamecreate-size-3v3.active {
+    background-image: url('/assets/screens/lobby/b_gamecreate_3vs3/b_gamecreate_3vs3_frame_4.png');
+}
+
+#btn-gamecreate-size-4v4:hover:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/lobby/b_gamecreate_4vs4/b_gamecreate_4vs4_frame_1.png');
+}
+
+#btn-gamecreate-size-4v4:active:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/lobby/b_gamecreate_4vs4/b_gamecreate_4vs4_frame_2.png');
+}
+
+#btn-gamecreate-size-4v4:disabled {
+    background-image: url('/assets/screens/lobby/b_gamecreate_4vs4/b_gamecreate_4vs4_frame_3.png');
+}
+
+#btn-gamecreate-size-4v4.active {
+    background-image: url('/assets/screens/lobby/b_gamecreate_4vs4/b_gamecreate_4vs4_frame_4.png');
+}
+
+#create-room-title,
+#create-room-password {
+    position: absolute;
+    left: 88px;
+    width: 224px;
+    height: 21px;
+    background: transparent;
+    border: none;
+    color: #fff;
+    outline: none;
+    font-family: var(--gbth-ui-font);
+    font-size: 11px;
+    padding: 0 6px;
+    box-sizing: border-box;
+    caret-color: transparent;
+}
+
+#create-room-title {
+    top: 39px;
+}
+
+#create-room-password {
+    top: 67px;
+}
+
+#create-room-title-cursor,
+#create-room-password-cursor {
+    position: absolute;
+    width: 2px;
+    height: 14px;
+    background-color: red;
+    pointer-events: none;
+    animation: cursor-blink 0.8s infinite;
+}
+
+#create-room-title-cursor {
+    top: 41px;
+    left: 27px;
+}
+
+#create-room-password-cursor {
+    top: 69px;
+    left: 27px;
+}
+
+.gamecreate-mode-btn {
+    width: 45px;
+    height: 24px;
+}
+
+#btn-gamecreate-mode-solo {
+    top: 94px;
+    left: 23px;
+    background-image: url('/assets/screens/lobby/b_gamecreate_solo/b_gamecreate_solo_frame_0.png');
+}
+
+#btn-gamecreate-mode-tag {
+    top: 94px;
+    left: 71px;
+    background-image: url('/assets/screens/lobby/b_gamecreate_tag/b_gamecreate_tag_frame_0.png');
+}
+
+#btn-gamecreate-mode-score {
+    top: 121px;
+    left: 23px;
+    background-image: url('/assets/screens/lobby/b_gamecreate_score/b_gamecreate_score_frame_0.png');
+}
+
+#btn-gamecreate-mode-jewel {
+    top: 121px;
+    left: 71px;
+    background-image: url('/assets/screens/lobby/b_gamecreate_jewel/b_gamecreate_jewel_frame_0.png');
+}
+
+#btn-gamecreate-mode-solo:hover:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/lobby/b_gamecreate_solo/b_gamecreate_solo_frame_1.png');
+}
+
+#btn-gamecreate-mode-solo:active:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/lobby/b_gamecreate_solo/b_gamecreate_solo_frame_2.png');
+}
+
+#btn-gamecreate-mode-solo:disabled {
+    background-image: url('/assets/screens/lobby/b_gamecreate_solo/b_gamecreate_solo_frame_3.png');
+}
+
+#btn-gamecreate-mode-solo.active {
+    background-image: url('/assets/screens/lobby/b_gamecreate_solo/b_gamecreate_solo_frame_4.png');
+}
+
+#btn-gamecreate-mode-tag:hover:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/lobby/b_gamecreate_tag/b_gamecreate_tag_frame_1.png');
+}
+
+#btn-gamecreate-mode-tag:active:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/lobby/b_gamecreate_tag/b_gamecreate_tag_frame_2.png');
+}
+
+#btn-gamecreate-mode-tag:disabled {
+    background-image: url('/assets/screens/lobby/b_gamecreate_tag/b_gamecreate_tag_frame_3.png');
+}
+
+#btn-gamecreate-mode-tag.active {
+    background-image: url('/assets/screens/lobby/b_gamecreate_tag/b_gamecreate_tag_frame_4.png');
+}
+
+#btn-gamecreate-mode-score:hover:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/lobby/b_gamecreate_score/b_gamecreate_score_frame_1.png');
+}
+
+#btn-gamecreate-mode-score:active:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/lobby/b_gamecreate_score/b_gamecreate_score_frame_2.png');
+}
+
+#btn-gamecreate-mode-score:disabled {
+    background-image: url('/assets/screens/lobby/b_gamecreate_score/b_gamecreate_score_frame_3.png');
+}
+
+#btn-gamecreate-mode-score.active {
+    background-image: url('/assets/screens/lobby/b_gamecreate_score/b_gamecreate_score_frame_4.png');
+}
+
+#btn-gamecreate-mode-jewel:hover:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/lobby/b_gamecreate_jewel/b_gamecreate_jewel_frame_1.png');
+}
+
+#btn-gamecreate-mode-jewel:active:not(:disabled):not(.active) {
+    background-image: url('/assets/screens/lobby/b_gamecreate_jewel/b_gamecreate_jewel_frame_2.png');
+}
+
+#btn-gamecreate-mode-jewel:disabled {
+    background-image: url('/assets/screens/lobby/b_gamecreate_jewel/b_gamecreate_jewel_frame_3.png');
+}
+
+#btn-gamecreate-mode-jewel.active {
+    background-image: url('/assets/screens/lobby/b_gamecreate_jewel/b_gamecreate_jewel_frame_4.png');
+}
+
+#create-room-mode-desc {
+    position: absolute;
+    top: 94px;
+    left: 122px;
+    width: 171px;
+    height: 56px;
+    background-size: 171px 56px;
+    background-image: url('/assets/screens/lobby/gamelist_create/gamelist_create_frame_1.png');
+}
+
+.gamecreate-action-btn {
+    width: 82px;
+    height: 34px;
+}
+
+#btn-gamecreate-create {
+    top: 151px;
+    left: 127px;
+    background-image: url('/assets/screens/lobby/b_gamecreate_create/b_gamecreate_create_frame_0.png');
+}
+
+#btn-gamecreate-create:hover:not(:disabled) {
+    background-image: url('/assets/screens/lobby/b_gamecreate_create/b_gamecreate_create_frame_1.png');
+}
+
+#btn-gamecreate-create:active:not(:disabled) {
+    background-image: url('/assets/screens/lobby/b_gamecreate_create/b_gamecreate_create_frame_2.png');
+}
+
+#btn-gamecreate-create:disabled {
+    background-image: url('/assets/screens/lobby/b_gamecreate_create/b_gamecreate_create_frame_3.png');
+}
+
+#btn-gamecreate-cancel {
+    top: 151px;
+    left: 213px;
+    background-image: url('/assets/screens/lobby/b_gamecreate_cancel/b_gamecreate_cancel_frame_0.png');
+}
+
+#btn-gamecreate-cancel:hover:not(:disabled) {
+    background-image: url('/assets/screens/lobby/b_gamecreate_cancel/b_gamecreate_cancel_frame_1.png');
+}
+
+#btn-gamecreate-cancel:active:not(:disabled) {
+    background-image: url('/assets/screens/lobby/b_gamecreate_cancel/b_gamecreate_cancel_frame_2.png');
+}
+
+#btn-gamecreate-cancel:disabled {
+    background-image: url('/assets/screens/lobby/b_gamecreate_cancel/b_gamecreate_cancel_frame_3.png');
+}
+
 /* Add Buddy Popup Styling */
 #add-buddy-popup {
     position: absolute;

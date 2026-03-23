@@ -52,6 +52,35 @@
         };
     };
 
+    ui.centerInContainer = function centerInContainer(config = {}) {
+        const isElementInput = config instanceof Element;
+        const element = isElementInput ? config : config.element;
+        const container = isElementInput
+            ? (element?.offsetParent || document.getElementById('game-container') || document.body)
+            : (config.container || element?.offsetParent || document.getElementById('game-container') || document.body);
+        const offsetX = Number(isElementInput ? 0 : config.offsetX) || 0;
+        const offsetY = Number(isElementInput ? 0 : config.offsetY) || 0;
+
+        if (!element || !container) {
+            return { left: 0, top: 0 };
+        }
+
+        const width = element.offsetWidth || Number.parseFloat(global.getComputedStyle(element).width) || 0;
+        const height = element.offsetHeight || Number.parseFloat(global.getComputedStyle(element).height) || 0;
+        const containerWidth = container.clientWidth || container.offsetWidth || 0;
+        const containerHeight = container.clientHeight || container.offsetHeight || 0;
+
+        const left = Math.max(0, Math.round((containerWidth - width) / 2 + offsetX));
+        const top = Math.max(0, Math.round((containerHeight - height) / 2 + offsetY));
+
+        element.style.right = '';
+        element.style.bottom = '';
+        element.style.left = `${left}px`;
+        element.style.top = `${top}px`;
+
+        return { left, top };
+    };
+
     ui.setupScrollControls = function setupScrollControls(config) {
         const {
             viewport,
