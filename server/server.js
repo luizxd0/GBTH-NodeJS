@@ -320,6 +320,8 @@ function buildUserPayload(row) {
         id: row.UserId,
         nickname: row.Nickname,
         guild: row.Guild,
+        guildrank: row.guildrank,
+        membercount: row.membercount,
         authority: row.Authority,
         gender: normalizeGender(row.Gender),
         ahead,
@@ -580,7 +582,8 @@ function buildAvatarShopInventoryPayload(rows) {
 
 async function loadUserRowById(userId, executor = pool) {
     const [rows] = await executor.execute(
-        `SELECT u.UserId, u.Authority, u.Gender, g.Nickname, g.Guild, g.Gold, g.Cash, g.TotalScore, g.TotalGrade, g.TotalRank
+        `SELECT u.UserId, u.Authority, u.Gender, g.Nickname, g.Guild, g.Gold, g.Cash, g.TotalScore, g.TotalGrade, g.TotalRank,
+                g.GuildRank AS guildrank, g.MemberCount AS membercount
          FROM user u
          JOIN game g ON u.UserId = g.Id
          WHERE u.UserId = ?
@@ -1168,7 +1171,8 @@ app.post('/api/login', async (req, res) => {
 
     try {
         const [users] = await pool.execute(
-            `    SELECT u.UserId, u.Authority, u.Gender, g.Nickname, g.Guild, g.Gold, g.Cash, g.TotalScore, g.TotalGrade, g.TotalRank
+            `    SELECT u.UserId, u.Authority, u.Gender, g.Nickname, g.Guild, g.Gold, g.Cash, g.TotalScore, g.TotalGrade, g.TotalRank,
+                        g.GuildRank AS guildrank, g.MemberCount AS membercount
              FROM user u
              JOIN game g ON u.UserId = g.Id
              WHERE u.UserId = ? AND u.Password = ?`,
@@ -2085,7 +2089,8 @@ io.on('connection', (socket) => {
             try {
                 const existingSocketUser = socketData.get(socket.id);
                 const [rows] = await pool.execute(
-                    `SELECT u.UserId, u.Authority, u.Gender, g.Nickname, g.Guild, g.Gold, g.Cash, g.TotalScore, g.TotalGrade, g.TotalRank
+                    `SELECT u.UserId, u.Authority, u.Gender, g.Nickname, g.Guild, g.Gold, g.Cash, g.TotalScore, g.TotalGrade, g.TotalRank,
+                            g.GuildRank AS guildrank, g.MemberCount AS membercount
                      FROM user u
                      JOIN game g ON u.UserId = g.Id
                      WHERE g.Nickname = ?`,

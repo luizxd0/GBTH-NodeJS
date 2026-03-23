@@ -53,6 +53,8 @@
     height: 71px;
     background-repeat: no-repeat;
     background-size: 127px 71px;
+    isolation: isolate;
+    --slot-nickname-offset-y: 7px;
 }
 
 .game-room-slot.team-a {
@@ -60,6 +62,24 @@
 }
 
 .game-room-slot.team-b {
+    background-image: url('/assets/screens/game_room/ready_back/ready_back_frame_2.png');
+}
+
+.game-room-slot::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-repeat: no-repeat;
+    background-size: 127px 71px;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.game-room-slot.team-a::after {
+    background-image: url('/assets/screens/game_room/ready_back/ready_back_frame_1.png');
+}
+
+.game-room-slot.team-b::after {
     background-image: url('/assets/screens/game_room/ready_back/ready_back_frame_2.png');
 }
 
@@ -112,8 +132,25 @@
     width: 60px;
     height: 60px;
     pointer-events: none;
-    z-index: 2;
+    z-index: 7;
     isolation: isolate;
+}
+
+.slot-avatar-fx-layer {
+    position: absolute;
+    left: 0px;
+    bottom: -16px;
+    width: 127px;
+    height: 108px;
+    pointer-events: none;
+}
+
+.slot-avatar-fx-backdrop {
+    z-index: 1;
+}
+
+.slot-avatar-fx-foreground {
+    z-index: 4;
 }
 
 .slot-avatar-container {
@@ -161,22 +198,75 @@
     transform: translateX(-50%) scaleX(1);
 }
 
-.slot-nickname {
+.slot-player-info {
     position: absolute;
-    bottom: 3px;
-    left: -7px;
-    width: 100%;
-    text-align: center;
-    font-family: var(--gbth-ui-font);
-    font-size: 9px;
-    font-weight: 700;
-    color: #ffffff;
-    text-shadow: 1px 1px 0 #000000, -1px -1px 0 #000000, 1px -1px 0 #000000, -1px 1px 0 #000000;
+    left: 5px;
+    bottom: 2px;
+    width: 117px;
+    height: 21px;
+    display: flex;
+    align-items: flex-start;
+    gap: 3px;
     pointer-events: none;
+    z-index: 6;
+}
+
+.slot-level-icon {
+    margin-top: -6px;
+    image-rendering: pixelated;
+    flex: 0 0 auto;
+}
+
+.slot-player-texts {
+    min-width: 0;
+    flex: 1 1 auto;
+    font-family: Tahoma, Verdana, Arial, sans-serif;
+    font-smooth: never;
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: auto;
+    text-rendering: geometricPrecision;
+}
+
+.slot-nickname {
+    width: 100%;
+    margin-top: var(--slot-nickname-offset-y);
+    line-height: 10px;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 400;
+    color: #000000;
+    text-shadow: none;
+    letter-spacing: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    z-index: 5;
+}
+
+.slot-guild {
+    width: 100%;
+    margin-top: -23px;
+    line-height: 10px;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 400;
+    color: #ff2d2d;
+    text-shadow: none;
+    letter-spacing: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.slot-master-key-icon {
+    margin-top: 3px;
+    margin-left: auto;
+    opacity: 0;
+    image-rendering: pixelated;
+    flex: 0 0 auto;
+}
+
+.slot-master-key-icon.visible {
+    opacity: 1;
 }
 
 #game-room-map-panel {

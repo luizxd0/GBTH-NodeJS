@@ -530,6 +530,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const roomId = Math.trunc(Number(data?.roomId || 0));
         isRoomMaster = Boolean(data?.isMaster);
         roomMemberCount = Math.max(1, Math.trunc(Number(data?.memberCount || 1)));
+        updateLocalSlotMasterKeyIcon();
         updateMapControlPermissions();
         if (roomNumberEl) {
             roomNumberEl.textContent = String(roomId > 0 ? roomId : 1);
@@ -791,6 +792,7 @@ document.addEventListener('DOMContentLoaded', () => {
             : []
     );
     const AVATAR_SEAT_ADJUST_BY_ASSET = AVATAR_SYNC_CONFIG.seatAdjustByAsset || mobilePoseConfig.avatarSeatAdjustByAsset || {};
+    const ROOM_MASTER_KEY_ICON_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABsAAAAQCAYAAADnEwSWAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAGOSURBVDhPvZQtj+MwEEDfngIGLAhYEHDAoKBgwcKAgwcCCxcWFuYHFBQeDCxccCCwsD8hMKCgoMCgwGCBQcGASHfA/YyrrtS92yeNrIwlP41n4ges/uGL+NZP/E8ePlWZkX7mhNV+5hMyI+QDIX82/R2alaXZaCS8T3YmKkdDMiOAAIqzSrVYXxXe3bOTKAXJjpGZlHI0JH825AO5uOrLym714Ix8INTTguy77CUpJAKdgnpQh9uGCqvF+lhd0j/I1znylPXTMZ2Gq0sIokR4e6uZVC3z8oVxEZ8RXeOs9ui7+zACGqSdB/VMqhashvUKkaxarCmmLbPaIwLyKMijMKs9xbQ97qG6Dwc7B+qYly9gJKxdPPqXMhump9kozcoC8Ov3Grrw3WxOe3YLuvOo9+guCMeFQZcF458pdntxMkQDco4RJqMh7cqSPaUsGncaYyOUoyHjHylZFnonCYiEHtqtMF/aaPxvyiLOZIf/7DVPMdk+nwh+J8yXLhJxU/YRX/aCHLhW/YF/+jbewV9OB++/gLbnhQAAAABJRU5ErkJggg==';
     const DEFAULT_JOIN_MOBILE_INDEX = 15;
     let selectedMobile = Math.trunc(Number(roomConfig?.mobileIndex));
     if (selectedMobile === 0) selectedMobile = DEFAULT_JOIN_MOBILE_INDEX;
@@ -804,6 +806,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let slotMobileIndex = 0;
     let slotMobileImgEl = null;
     let slotAvatarContainerEl = null;
+    let localPlayerKeyIconEl = null;
+    let slotFxBackdropHostEl = null;
+    let slotFxForegroundHostEl = null;
     let slotMobileBaseOffsetX = -35;
     let slotMobileBaseOffsetY = -30;
     let slotAvatarDynamicSeatX = 0;
@@ -960,6 +965,27 @@ document.addEventListener('DOMContentLoaded', () => {
         return `translateX(-50%) scaleX(${scaleX})`;
     }
 
+    function resolveRankIconPathByGrade(gradeValue) {
+        const parsedGrade = Math.trunc(Number(gradeValue));
+        const safeGrade = Number.isFinite(parsedGrade) && parsedGrade >= 0 ? parsedGrade : 24;
+        return `/assets/shared/rank1/rank1_frame_${safeGrade}.png`;
+    }
+
+    function resolveGuildSlotStats(user) {
+        const rank = Math.trunc(Number(user?.guildrank));
+        const total = Math.trunc(Number(user?.membercount));
+
+        return {
+            rank: Number.isFinite(rank) && rank > 0 ? rank : null,
+            total: Number.isFinite(total) && total > 0 ? total : null
+        };
+    }
+
+    function updateLocalSlotMasterKeyIcon() {
+        if (!localPlayerKeyIconEl) return;
+        localPlayerKeyIconEl.classList.toggle('visible', Boolean(isRoomMaster));
+    }
+
     function startMobileAnimation(mobileIndex) {
         stopMobileAnimation();
         slotMobileIndex = getRenderedMobileAssetIndex(mobileIndex);
@@ -1107,10 +1133,36 @@ document.addEventListener('DOMContentLoaded', () => {
         const wrapper = document.createElement('div');
         wrapper.className = 'slot-avatar-wrapper';
 
+        // Create fixed FX layers (do not follow mobile/avatar seat motion)
+        const fxBackdropHost = document.createElement('div');
+        fxBackdropHost.className = 'slot-avatar-fx-layer slot-avatar-fx-backdrop';
+        fxBackdropHost.style.setProperty('--avatar-preview-slot-left', '0px');
+        fxBackdropHost.style.setProperty('--avatar-preview-slot-top', '-37px');
+        fxBackdropHost.style.setProperty('--avatar-preview-slot-width', '127px');
+        fxBackdropHost.style.setProperty('--avatar-preview-slot-height', '108px');
+        fxBackdropHost.style.setProperty('--avatar-preview-slot-radius', '0px');
+        slotFxBackdropHostEl = fxBackdropHost;
+        slotElement.appendChild(fxBackdropHost);
+
+        const fxForegroundHost = document.createElement('div');
+        fxForegroundHost.className = 'slot-avatar-fx-layer slot-avatar-fx-foreground';
+        fxForegroundHost.style.setProperty('--avatar-preview-slot-left', '0px');
+        fxForegroundHost.style.setProperty('--avatar-preview-slot-top', '-37px');
+        fxForegroundHost.style.setProperty('--avatar-preview-slot-width', '127px');
+        fxForegroundHost.style.setProperty('--avatar-preview-slot-height', '108px');
+        fxForegroundHost.style.setProperty('--avatar-preview-slot-radius', '0px');
+        slotFxForegroundHostEl = fxForegroundHost;
+        slotElement.appendChild(fxForegroundHost);
+
         // Create avatar container
         const avatarContainer = document.createElement('div');
         avatarContainer.className = 'slot-avatar-container';
         avatarContainer.style.zIndex = '1';
+        avatarContainer.style.setProperty('--avatar-preview-slot-left', '-14px');
+        avatarContainer.style.setProperty('--avatar-preview-slot-top', '-3px');
+        avatarContainer.style.setProperty('--avatar-preview-slot-width', '127px');
+        avatarContainer.style.setProperty('--avatar-preview-slot-height', '71px');
+        avatarContainer.style.setProperty('--avatar-preview-slot-radius', '0px');
         slotAvatarContainerEl = avatarContainer;
         wrapper.appendChild(avatarContainer);
 
@@ -1129,11 +1181,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
         slotElement.appendChild(wrapper);
 
-        // Create nickname label
+        // Create player info HUD
+        const infoEl = document.createElement('div');
+        infoEl.className = 'slot-player-info';
+
+        const rankIconEl = document.createElement('img');
+        rankIconEl.className = 'slot-level-icon';
+        rankIconEl.alt = '';
+        rankIconEl.draggable = false;
+        rankIconEl.src = resolveRankIconPathByGrade(user.grade);
+        infoEl.appendChild(rankIconEl);
+
+        const textWrapEl = document.createElement('div');
+        textWrapEl.className = 'slot-player-texts';
+
         const nicknameEl = document.createElement('div');
         nicknameEl.className = 'slot-nickname';
         nicknameEl.textContent = String(user.nickname || '').trim();
-        slotElement.appendChild(nicknameEl);
+        textWrapEl.appendChild(nicknameEl);
+
+        const guildEl = document.createElement('div');
+        guildEl.className = 'slot-guild';
+        const guildName = String(user.guild || '').trim();
+        if (guildName) {
+            const guildStats = resolveGuildSlotStats(user);
+            const hasGuildStats = Number.isFinite(guildStats.rank) && Number.isFinite(guildStats.total);
+            guildEl.textContent = hasGuildStats
+                ? `${guildName} [${guildStats.rank}/${guildStats.total}]`
+                : guildName;
+        } else {
+            guildEl.textContent = '';
+        }
+        guildEl.style.visibility = guildEl.textContent ? 'visible' : 'hidden';
+        textWrapEl.appendChild(guildEl);
+
+        infoEl.appendChild(textWrapEl);
+
+        const keyIconEl = document.createElement('img');
+        keyIconEl.className = 'slot-master-key-icon';
+        keyIconEl.alt = '';
+        keyIconEl.draggable = false;
+        keyIconEl.src = ROOM_MASTER_KEY_ICON_DATA_URI;
+        infoEl.appendChild(keyIconEl);
+        localPlayerKeyIconEl = keyIconEl;
+        updateLocalSlotMasterKeyIcon();
+
+        slotElement.appendChild(infoEl);
 
         // Start animated avatar
         if (window.AvatarPreviewRuntime) {
@@ -1142,13 +1235,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 ahead: user.ahead,
                 abody: user.abody,
                 aeyes: user.aeyes,
-                aflag: user.aflag
+                aflag: user.aflag,
+                abackground: user.abackground,
+                aforeground: user.aforeground,
+                aexitem: user.aexitem
             }, {
                 rootId: 'avatar-shop-character-preview',
                 context: 'game_room',
                 effectVariant: 'legacy'
             }).then((animator) => {
                 slotAvatarAnimator = animator;
+                slotAvatarAnimator?.setEquip('background', user.abackground);
+                slotAvatarAnimator?.setEquip('foreground', user.aforeground);
+                const previewRoot = avatarContainer.querySelector('#avatar-shop-character-preview');
+                if (previewRoot && slotFxBackdropHostEl && slotFxForegroundHostEl) {
+                    const backdropNode = previewRoot.querySelector('.avatar-preview-backdrop');
+                    const foregroundNode = previewRoot.querySelector('.avatar-preview-foreground');
+                    if (backdropNode) {
+                        slotFxBackdropHostEl.appendChild(backdropNode);
+                    }
+                    if (foregroundNode) {
+                        slotFxForegroundHostEl.appendChild(foregroundNode);
+                    }
+                }
             }).catch((err) => {
                 console.warn('[GameRoom] Avatar animator error:', err);
             });
@@ -1167,14 +1276,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (localPlayerSlot) {
             const wrapper = localPlayerSlot.querySelector('.slot-avatar-wrapper');
             if (wrapper) wrapper.remove();
-            const nickname = localPlayerSlot.querySelector('.slot-nickname');
-            if (nickname) nickname.remove();
+            if (slotFxBackdropHostEl) slotFxBackdropHostEl.remove();
+            if (slotFxForegroundHostEl) slotFxForegroundHostEl.remove();
+            const info = localPlayerSlot.querySelector('.slot-player-info');
+            if (info) info.remove();
             localPlayerSlot.dataset.occupied = '';
             localPlayerSlot.dataset.userId = '';
             localPlayerSlot = null;
         }
         slotAvatarContainerEl = null;
         slotMobileImgEl = null;
+        localPlayerKeyIconEl = null;
+        slotFxBackdropHostEl = null;
+        slotFxForegroundHostEl = null;
     }
 
 
