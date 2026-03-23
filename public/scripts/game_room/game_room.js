@@ -201,7 +201,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const MAP_FRAME_COUNT = 22;
-    let selectedMapIndex = 0;
+    const MAP_SIDE_FRAME_COUNT = 11;
+    const MAP_SIDE_A_START = 0;
+    const MAP_SIDE_B_START = 11;
+    let selectedMapSide = String(roomConfig?.mapSide || 'A').trim().toUpperCase() === 'B' ? 'B' : 'A';
+    let selectedMapIndex = Math.trunc(Number(roomConfig?.mapIndex));
+    if (!Number.isFinite(selectedMapIndex) || selectedMapIndex < 0 || selectedMapIndex >= MAP_FRAME_COUNT) {
+        selectedMapIndex = selectedMapSide === 'B' ? MAP_SIDE_B_START : MAP_SIDE_A_START;
+    }
     const TEAM_SIZE_MIN = 1;
     const TEAM_SIZE_MAX = 4;
     const slotElementsByTeam = {
@@ -218,17 +225,49 @@ document.addEventListener('DOMContentLoaded', () => {
         return `/assets/screens/game_room/ready_selectmap/ready_selectmap_frame_${safeIndex}.png`;
     }
 
+    function persistRoomConfig() {
+        sessionStorage.setItem('gbth_pending_room', JSON.stringify(roomConfig));
+    }
+
+    function getMapStartForSide(mapSide) {
+        return mapSide === 'B' ? MAP_SIDE_B_START : MAP_SIDE_A_START;
+    }
+
+    function mapIndexForSide(index, mapSide) {
+        const start = getMapStartForSide(mapSide);
+        const raw = Math.trunc(Number(index));
+        const fallback = start;
+        if (!Number.isFinite(raw) || raw < 0 || raw >= MAP_FRAME_COUNT) {
+            return fallback;
+        }
+        if (mapSide === 'A') {
+            return raw >= MAP_SIDE_B_START ? raw - MAP_SIDE_FRAME_COUNT : raw;
+        }
+        return raw < MAP_SIDE_B_START ? raw + MAP_SIDE_FRAME_COUNT : raw;
+    }
+
+    function setMapSideButtonVisual(mapSide) {
+        const sideButton = document.getElementById('btn-game-room-aside');
+        if (!sideButton) return;
+        sideButton.dataset.mapSide = mapSide === 'B' ? 'B' : 'A';
+    }
+
     function renderMapCard() {
         if (!mapCardEl) return;
+        selectedMapIndex = mapIndexForSide(selectedMapIndex, selectedMapSide);
         mapCardEl.style.backgroundImage = `url('${getMapCardPath(selectedMapIndex)}')`;
+        roomConfig.mapSide = selectedMapSide;
+        roomConfig.mapIndex = selectedMapIndex;
+        setMapSideButtonVisual(selectedMapSide);
+        persistRoomConfig();
     }
 
     function cycleMapBy(delta) {
         if (!isRoomMaster) return;
-        const total = MAP_FRAME_COUNT;
-        if (total <= 0) return;
-        const next = (selectedMapIndex + delta + total) % total;
-        selectedMapIndex = next;
+        const start = getMapStartForSide(selectedMapSide);
+        const relative = selectedMapIndex - start;
+        const nextRelative = (relative + delta + MAP_SIDE_FRAME_COUNT) % MAP_SIDE_FRAME_COUNT;
+        selectedMapIndex = start + nextRelative;
         renderMapCard();
     }
 
@@ -240,6 +279,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (directionKey === 'ArrowRight' || directionKey === 'ArrowDown') {
             cycleMapBy(1);
         }
+    }
+
+    function toggleMapSide() {
+        if (!isRoomMaster) return;
+        selectedMapSide = selectedMapSide === 'A' ? 'B' : 'A';
+        selectedMapIndex = mapIndexForSide(selectedMapIndex, selectedMapSide);
+        renderMapCard();
     }
 
     function setTeamSizeButtonVisual(teamSize) {
@@ -286,22 +332,44 @@ document.addEventListener('DOMContentLoaded', () => {
         setTeamSizeButtonVisual(nextSize);
         roomConfig.teamSize = nextSize;
         roomConfig.slotLabel = `${nextSize}v${nextSize}`;
-        sessionStorage.setItem('gbth_pending_room', JSON.stringify(roomConfig));
+        persistRoomConfig();
+        updateMapControlPermissions();
+    }
+
+    function getNextTeamSize() {
+        return currentTeamSize >= TEAM_SIZE_MAX ? TEAM_SIZE_MIN : currentTeamSize + 1;
+    }
+
+    function validateTeamSizeChange(nextSize) {
+        const isDownsizing = nextSize < currentTeamSize;
+        const targetCapacity = nextSize * 2;
+
+        if (!isDownsizing) {
+            return { ok: true, message: '' };
+        }
+        if (roomMemberCount > targetCapacity) {
+            return {
+                ok: false,
+                message: `Cannot change to ${nextSize}:${nextSize}. Room has ${roomMemberCount} players.`
+            };
+        }
+        if (hasOccupiedSlotsBeyondSize(nextSize)) {
+            return {
+                ok: false,
+                message: `Cannot change to ${nextSize}:${nextSize} while removed slots have players.`
+            };
+        }
+
+        return { ok: true, message: '' };
     }
 
     function cycleTeamSize() {
         if (!isRoomMaster) return;
-        const nextSize = currentTeamSize >= TEAM_SIZE_MAX ? TEAM_SIZE_MIN : currentTeamSize + 1;
-        const isDownsizing = nextSize < currentTeamSize;
-        const targetCapacity = nextSize * 2;
-
-        if (isDownsizing && roomMemberCount > targetCapacity) {
-            showError('Room', `Cannot change to ${nextSize}:${nextSize}. Room has ${roomMemberCount} players.`);
-            return;
-        }
-
-        if (isDownsizing && hasOccupiedSlotsBeyondSize(nextSize)) {
-            showError('Room', `Cannot change to ${nextSize}:${nextSize} while removed slots have players.`);
+        const nextSize = getNextTeamSize();
+        const validation = validateTeamSizeChange(nextSize);
+        if (!validation.ok) {
+            showError('Room', validation.message);
+            updateMapControlPermissions();
             return;
         }
 
@@ -397,6 +465,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const prevButton = document.getElementById('btn-game-room-map-prev');
         const nextButton = document.getElementById('btn-game-room-map-next');
         const teamSizeButton = document.getElementById('btn-game-room-4v4');
+        const mapSideButton = document.getElementById('btn-game-room-aside');
         if (prevButton) {
             prevButton.disabled = disabled;
         }
@@ -404,7 +473,12 @@ document.addEventListener('DOMContentLoaded', () => {
             nextButton.disabled = disabled;
         }
         if (teamSizeButton) {
-            teamSizeButton.disabled = disabled;
+            const nextSize = getNextTeamSize();
+            const validation = validateTeamSizeChange(nextSize);
+            teamSizeButton.disabled = disabled || !validation.ok;
+        }
+        if (mapSideButton) {
+            mapSideButton.disabled = disabled;
         }
     }
 
@@ -442,6 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnMapPrev = document.getElementById('btn-game-room-map-prev');
     const btnMapNext = document.getElementById('btn-game-room-map-next');
     const btnTeamSize = document.getElementById('btn-game-room-4v4');
+    const btnMapSide = document.getElementById('btn-game-room-aside');
 
     if (btnMapPrev) {
         btnMapPrev.addEventListener('click', () => {
@@ -461,12 +536,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    if (btnMapSide) {
+        btnMapSide.addEventListener('click', () => {
+            toggleMapSide();
+        });
+    }
+
     applyTeamSizeLayout(currentTeamSize);
     updateMapControlPermissions();
 
     const ruleButtons = [
         'btn-game-room-solo',
-        'btn-game-room-aside',
         'btn-game-room-bigbomb',
         'btn-game-room-basic',
         'btn-game-room-death56'
