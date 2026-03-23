@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const roomTitleEl = document.getElementById('game-room-room-title');
     const roomNumberEl = document.getElementById('game-room-room-number');
+    const btnEditRoomTitle = document.getElementById('btn-game-room-edit-title');
     const serverTitleEl = document.getElementById('game-room-server-title');
     const gameRoomScreen = document.getElementById('game-room-screen');
     const mapPanelEl = document.getElementById('game-room-map-panel');
@@ -29,6 +30,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const buddyAlertTextBox = document.getElementById('buddy-alert-text-box');
     const btnBuddyAlertYes = document.getElementById('btn-buddy-alert-yes');
     const btnBuddyAlertNo = document.getElementById('btn-buddy-alert-no');
+    const gameRoomTitlePopup = document.getElementById('game-room-title-popup');
+    const gameRoomTitleInput = document.getElementById('game-room-title-input');
+    const gameRoomTitleCursor = document.getElementById('game-room-title-cursor');
+    const gameRoomTitleGhostSpan = document.getElementById('game-room-title-input-ghost');
+    const btnGameRoomTitleOk = document.getElementById('btn-game-room-title-ok');
+    const btnGameRoomTitleCancel = document.getElementById('btn-game-room-title-cancel');
     const buddyChatWindow = document.getElementById('buddy-chat-window');
     const buddyChatInput = document.getElementById('buddy-chat-input');
     const buddyChatCursor = document.getElementById('buddy-chat-cursor');
@@ -87,6 +94,15 @@ document.addEventListener('DOMContentLoaded', () => {
         baseLeft: 0
     });
 
+    const gameRoomTitleCursorController = ui?.setupInputCursor({
+        input: gameRoomTitleInput,
+        cursor: gameRoomTitleCursor,
+        ghost: gameRoomTitleGhostSpan,
+        baseLeft: 6,
+        baseTop: 2,
+        useInputOffset: true
+    });
+
     if (buddyPanel) {
         ui?.makeDraggable(buddyPanel);
     }
@@ -98,6 +114,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (buddyChatWindow) {
         ui?.makeDraggable(buddyChatWindow);
+    }
+    if (gameRoomTitlePopup) {
+        ui?.makeDraggable(gameRoomTitlePopup, { handleSelector: '.game-room-title-popup-header' });
     }
 
     function centerGameRoomPopup(element, offsetX = 0, offsetY = 0) {
@@ -121,6 +140,38 @@ document.addEventListener('DOMContentLoaded', () => {
             addBuddyInput.focus();
             addBuddyCursorController?.update();
         }
+    }
+
+    function hideRoomTitlePopup() {
+        if (!gameRoomTitlePopup) return;
+        gameRoomTitlePopup.classList.add('hidden');
+    }
+
+    function showRoomTitlePopup() {
+        if (!gameRoomTitlePopup || !gameRoomTitleInput) return;
+        if (!isRoomMaster) return;
+        gameRoomTitlePopup.classList.remove('hidden');
+        centerGameRoomPopup(gameRoomTitlePopup);
+        gameRoomTitleInput.placeholder = 'Title Name';
+        gameRoomTitleInput.value = String(roomConfig.title || roomTitleEl?.textContent || '').trim();
+        gameRoomTitleInput.focus();
+        gameRoomTitleInput.select();
+        gameRoomTitleCursorController?.update();
+    }
+
+    function submitRoomTitleChange() {
+        if (!isRoomMaster) return;
+        const nextTitle = String(gameRoomTitleInput?.value || '').trim();
+        if (!nextTitle) {
+            hideRoomTitlePopup();
+            return;
+        }
+        roomConfig.title = nextTitle;
+        persistRoomConfig();
+        if (roomTitleEl) {
+            roomTitleEl.textContent = nextTitle;
+        }
+        hideRoomTitlePopup();
     }
 
     let currentAlertCallbacks = { onYes: null, onNo: null };
@@ -595,6 +646,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const deathModeButton = document.getElementById('btn-game-room-death56');
         const teamSizeButton = document.getElementById('btn-game-room-4v4');
         const mapSideButton = document.getElementById('btn-game-room-aside');
+        const editTitleButton = document.getElementById('btn-game-room-edit-title');
         if (prevButton) {
             prevButton.disabled = disabled;
         }
@@ -620,6 +672,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (mapSideButton) {
             mapSideButton.disabled = disabled;
+        }
+        if (editTitleButton) {
+            editTitleButton.disabled = disabled;
+            editTitleButton.classList.toggle('hidden', disabled);
+        }
+        if (disabled && gameRoomTitlePopup && !gameRoomTitlePopup.classList.contains('hidden')) {
+            hideRoomTitlePopup();
         }
     }
 
@@ -711,6 +770,38 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    if (btnEditRoomTitle) {
+        btnEditRoomTitle.addEventListener('click', () => {
+            showRoomTitlePopup();
+        });
+    }
+
+    if (btnGameRoomTitleOk) {
+        btnGameRoomTitleOk.addEventListener('click', () => {
+            submitRoomTitleChange();
+        });
+    }
+
+    if (btnGameRoomTitleCancel) {
+        btnGameRoomTitleCancel.addEventListener('click', () => {
+            hideRoomTitlePopup();
+        });
+    }
+
+    if (gameRoomTitleInput) {
+        gameRoomTitleInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                submitRoomTitleChange();
+                return;
+            }
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                hideRoomTitlePopup();
+            }
+        });
+    }
+
     applyGameMode(currentGameMode);
     applyBigBombMode(currentBigBombMode);
     applyBombMode(currentBombMode);
@@ -793,6 +884,8 @@ document.addEventListener('DOMContentLoaded', () => {
     );
     const AVATAR_SEAT_ADJUST_BY_ASSET = AVATAR_SYNC_CONFIG.seatAdjustByAsset || mobilePoseConfig.avatarSeatAdjustByAsset || {};
     const ROOM_MASTER_KEY_ICON_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABsAAAAQCAYAAADnEwSWAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAGOSURBVDhPvZQtj+MwEEDfngIGLAhYEHDAoKBgwcKAgwcCCxcWFuYHFBQeDCxccCCwsD8hMKCgoMCgwGCBQcGASHfA/YyrrtS92yeNrIwlP41n4ges/uGL+NZP/E8ePlWZkX7mhNV+5hMyI+QDIX82/R2alaXZaCS8T3YmKkdDMiOAAIqzSrVYXxXe3bOTKAXJjpGZlHI0JH825AO5uOrLym714Ix8INTTguy77CUpJAKdgnpQh9uGCqvF+lhd0j/I1znylPXTMZ2Gq0sIokR4e6uZVC3z8oVxEZ8RXeOs9ui7+zACGqSdB/VMqhashvUKkaxarCmmLbPaIwLyKMijMKs9xbQ97qG6Dwc7B+qYly9gJKxdPPqXMhump9kozcoC8Ov3Grrw3WxOe3YLuvOo9+guCMeFQZcF458pdntxMkQDco4RJqMh7cqSPaUsGncaYyOUoyHjHylZFnonCYiEHtqtMF/aaPxvyiLOZIf/7DVPMdk+nwh+J8yXLhJxU/YRX/aCHLhW/YF/+jbewV9OB++/gLbnhQAAAABJRU5ErkJggg==';
+    const POWER_USER_EXITEM_IDS = new Set([204801, 204802, 204803, 204804, 204831, 204832, 204833, 204834, 204835]);
+    const POWER_USER_READY_BACKGROUND_FRAMES = [0, 1, 2, 3, 4, 5];
     const DEFAULT_JOIN_MOBILE_INDEX = 15;
     let selectedMobile = Math.trunc(Number(roomConfig?.mobileIndex));
     if (selectedMobile === 0) selectedMobile = DEFAULT_JOIN_MOBILE_INDEX;
@@ -809,6 +902,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let localPlayerKeyIconEl = null;
     let slotFxBackdropHostEl = null;
     let slotFxForegroundHostEl = null;
+    let slotPowerUserFallbackBgEl = null;
+    let slotPowerUserFallbackFrame = null;
     let slotLatencyLabelEl = null;
     let slotLatencyTimer = null;
     let slotLatencyProbeSeq = 0;
@@ -986,7 +1081,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateLocalSlotMasterKeyIcon() {
         if (!localPlayerKeyIconEl) return;
-        localPlayerKeyIconEl.classList.toggle('visible', Boolean(isRoomMaster));
+        localPlayerKeyIconEl.classList.toggle('hidden', !isRoomMaster);
+    }
+
+    function hasEquippedAvatarBackground(user) {
+        const backgroundId = Math.trunc(Number(user?.abackground));
+        return Number.isFinite(backgroundId) && backgroundId > 0;
+    }
+
+    function hasPowerUserEquipped(user) {
+        if (user?.poweruser === true) return true;
+        const exitemId = Math.trunc(Number(user?.aexitem));
+        if (Number.isFinite(exitemId) && POWER_USER_EXITEM_IDS.has(exitemId)) return true;
+        return false;
+    }
+
+    function getRandomPowerUserReadyBackgroundFrame() {
+        if (!Array.isArray(POWER_USER_READY_BACKGROUND_FRAMES) || POWER_USER_READY_BACKGROUND_FRAMES.length <= 0) {
+            return 0;
+        }
+        const index = Math.floor(Math.random() * POWER_USER_READY_BACKGROUND_FRAMES.length);
+        const frame = Math.trunc(Number(POWER_USER_READY_BACKGROUND_FRAMES[index]));
+        return Number.isFinite(frame) && frame >= 0 ? frame : 0;
+    }
+
+    function updatePowerUserFallbackBackground(user) {
+        if (!slotPowerUserFallbackBgEl) return;
+        const shouldShow = hasPowerUserEquipped(user) && !hasEquippedAvatarBackground(user);
+        if (!shouldShow) {
+            slotPowerUserFallbackBgEl.classList.add('hidden');
+            slotPowerUserFallbackBgEl.style.backgroundImage = 'none';
+            return;
+        }
+        if (!Number.isFinite(slotPowerUserFallbackFrame)) {
+            slotPowerUserFallbackFrame = getRandomPowerUserReadyBackgroundFrame();
+        }
+        const frame = Math.trunc(Number(slotPowerUserFallbackFrame));
+        slotPowerUserFallbackBgEl.style.backgroundImage = `url('/assets/screens/game_room/ready_backimgae/ready_backimgae_frame_${frame}.png')`;
+        slotPowerUserFallbackBgEl.classList.remove('hidden');
     }
 
     function setSlotLatencyLabelText(text) {
@@ -1192,6 +1324,14 @@ document.addEventListener('DOMContentLoaded', () => {
         slotFxBackdropHostEl = fxBackdropHost;
         slotElement.appendChild(fxBackdropHost);
 
+        // Power User fallback backdrop (same container/positioning as equipped backgrounds)
+        const powerBgEl = document.createElement('div');
+        powerBgEl.className = 'slot-poweruser-fallback-bg hidden';
+        slotPowerUserFallbackBgEl = powerBgEl;
+        slotFxBackdropHostEl.appendChild(powerBgEl);
+        slotPowerUserFallbackFrame = getRandomPowerUserReadyBackgroundFrame();
+        updatePowerUserFallbackBackground(user);
+
         const fxForegroundHost = document.createElement('div');
         fxForegroundHost.className = 'slot-avatar-fx-layer slot-avatar-fx-foreground';
         fxForegroundHost.style.setProperty('--avatar-preview-slot-left', '0px');
@@ -1334,6 +1474,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (wrapper) wrapper.remove();
             if (slotFxBackdropHostEl) slotFxBackdropHostEl.remove();
             if (slotFxForegroundHostEl) slotFxForegroundHostEl.remove();
+            if (slotPowerUserFallbackBgEl) slotPowerUserFallbackBgEl.remove();
             const info = localPlayerSlot.querySelector('.slot-player-info');
             if (info) info.remove();
             const latency = localPlayerSlot.querySelector('.slot-latency-ms');
@@ -1347,6 +1488,8 @@ document.addEventListener('DOMContentLoaded', () => {
         localPlayerKeyIconEl = null;
         slotFxBackdropHostEl = null;
         slotFxForegroundHostEl = null;
+        slotPowerUserFallbackBgEl = null;
+        slotPowerUserFallbackFrame = null;
         slotLatencyLabelEl = null;
     }
 
@@ -1825,6 +1968,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isTyping = activeTag === 'INPUT' || activeTag === 'TEXTAREA';
         const isAddBuddyVisible = addBuddyPopup && !addBuddyPopup.classList.contains('hidden');
         const isBuddyChatVisible = buddyChatWindow && !buddyChatWindow.classList.contains('hidden');
+        const isRoomTitlePopupVisible = gameRoomTitlePopup && !gameRoomTitlePopup.classList.contains('hidden');
 
         if (!isTyping && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
             if (event.ctrlKey) {
@@ -1842,7 +1986,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (event.key === 'Enter' && !isTyping) {
             event.preventDefault();
-            if (isBuddyChatVisible && buddyChatInput) {
+            if (isRoomTitlePopupVisible && gameRoomTitleInput) {
+                gameRoomTitleInput.focus();
+                gameRoomTitleCursorController?.update();
+            } else if (isBuddyChatVisible && buddyChatInput) {
                 buddyChatInput.focus();
             } else if (isAddBuddyVisible && addBuddyInput) {
                 addBuddyInput.focus();
@@ -1852,10 +1999,19 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        if (event.key === 'Escape' && !isTyping && isRoomTitlePopupVisible) {
+            event.preventDefault();
+            hideRoomTitlePopup();
+            return;
+        }
+
         if (isTyping) return;
 
         if (event.key.length === 1 || event.key === 'Backspace' || event.key === 'Delete') {
-            if (isBuddyChatVisible && buddyChatInput) {
+            if (isRoomTitlePopupVisible && gameRoomTitleInput) {
+                gameRoomTitleInput.focus();
+                gameRoomTitleCursorController?.update();
+            } else if (isBuddyChatVisible && buddyChatInput) {
                 buddyChatInput.focus();
             } else if (isAddBuddyVisible && addBuddyInput) {
                 addBuddyInput.focus();

@@ -35,6 +35,7 @@
         <div id="game-room-screen">
             <div id="game-room-room-number"></div>
             <div id="game-room-room-title"></div>
+            <button id="btn-game-room-edit-title" type="button" aria-label="Edit room title"></button>
             <div id="game-room-server-title">Server name - Gunbound Classic</div>
 
             <div id="game-room-slot-a1" class="game-room-slot team-a"></div>
@@ -95,6 +96,18 @@
             <button id="btn-game-room-buddy" class="game-room-action-btn"></button>
             <button id="btn-game-room-change" class="game-room-action-btn"></button>
             <button id="btn-game-room-start" class="game-room-action-btn"></button>
+        </div>
+
+        <div id="game-room-title-popup" class="hidden">
+            <div class="game-room-title-popup-header"></div>
+            <div class="game-room-title-popup-body">
+                <input type="text" id="game-room-title-input" maxlength="30" autocomplete="off">
+                <div id="game-room-title-cursor"></div>
+                <span id="game-room-title-input-ghost"
+                    style="visibility: hidden; white-space: pre; position: absolute; font-family: var(--gbth-ui-font); font-size: 11px;"></span>
+                <button id="btn-game-room-title-ok" type="button"></button>
+                <button id="btn-game-room-title-cancel" type="button"></button>
+            </div>
         </div>
 
         <div id="buddy-list-panel" class="lobby-panel hidden">

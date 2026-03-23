@@ -331,6 +331,7 @@ function buildUserPayload(row) {
         abackground,
         aforeground,
         aexitem,
+        poweruser: Boolean(row?.poweruser),
         gold: row.Gold,
         cash: row.Cash,
         score: row.TotalScore,
@@ -416,7 +417,8 @@ function createEmptyUserEquipState() {
         aflag: null,
         abackground: null,
         aforeground: null,
-        aexitem: null
+        aexitem: null,
+        poweruser: false
     };
 }
 
@@ -444,9 +446,18 @@ function assignEquipSlotValue(target, slot, itemId) {
 
 async function loadUserEquipState(ownerId, executor = pool) {
     const [rows] = await executor.execute(
-        `SELECT slot, item_id
-         FROM chest
-         WHERE owner_id = ? AND wearing = 1`,
+        `SELECT
+            c.slot,
+            c.item_id,
+            c.avatar_id,
+            c.item_code,
+            a.source_avatar_id,
+            a.source_ref_id,
+            a.avatar_code,
+            a.name
+         FROM chest c
+         LEFT JOIN avatars a ON a.id = c.avatar_id
+         WHERE c.owner_id = ? AND c.wearing = 1`,
         [ownerId]
     );
 
@@ -457,6 +468,9 @@ async function loadUserEquipState(ownerId, executor = pool) {
             return;
         }
         assignEquipSlotValue(equipState, slot, row?.item_id);
+        if (isPowerUserChestRow(row)) {
+            equipState.poweruser = true;
+        }
     });
     return equipState;
 }
