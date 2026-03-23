@@ -38,23 +38,23 @@
             15: 0   // Random selection -> Rider
         },
         assets: {
-            0: { mobileOffset: { x: -19, y: -13 }, avatarOffset: { left: 2, bottom: 19 }, seatAdjust: { left: 0, bottom: 0 } },   // rider.img frame0 anchor
-            1: { mobileOffset: { x: -21, y: -37 }, avatarOffset: { left: 1, bottom: 20 }, seatAdjust: { left: 0, bottom: 0 } },   // tank1.img frame0 anchor
-            2: { mobileOffset: { x: -25, y: -34 }, avatarOffset: { left: 0, bottom: 20 }, seatAdjust: { left: 0, bottom: -10 } }, // tank2.img frame0 anchor
-            3: { mobileOffset: { x: -23, y: -37 }, avatarOffset: { left: 0, bottom: 23 }, seatAdjust: { left: 15, bottom: -10 } },   // tank3.img frame0 anchor
-            4: { mobileOffset: { x: -30, y: -49 }, avatarOffset: { left: -1, bottom: 17 }, seatAdjust: { left: 0, bottom: 0 } },  // tank4.img frame0 anchor
-            5: { mobileOffset: { x: -24, y: -41 }, avatarOffset: { left: 0, bottom: 19 }, seatAdjust: { left: 0, bottom: 0 } },   // tank5.img frame0 anchor
-            6: { mobileOffset: { x: -20, y: -35 }, avatarOffset: { left: 1, bottom: 21 }, seatAdjust: { left: 0, bottom: 0 } },   // tank6.img frame0 anchor
-            7: { mobileOffset: { x: -21, y: -39 }, avatarOffset: { left: 0, bottom: 20 }, seatAdjust: { left: 0, bottom: 0 } },   // tank7.img frame0 anchor
-            8: { mobileOffset: { x: -19, y: -35 }, avatarOffset: { left: 0, bottom: 21 }, seatAdjust: { left: 0, bottom: 0 } },   // tank8.img frame0 anchor
-            9: { mobileOffset: { x: -17, y: -43 }, avatarOffset: { left: 1, bottom: 19 }, seatAdjust: { left: 0, bottom: 0 } },   // tank9.img frame0 anchor
-            10: { mobileOffset: { x: -25, y: -32 }, avatarOffset: { left: 0, bottom: 24 }, seatAdjust: { left: 5, bottom: -10 } }, // tank10.img frame0 anchor
-            11: { mobileOffset: { x: -25, y: -35 }, avatarOffset: { left: -1, bottom: 15 }, seatAdjust: { left: 10, bottom: 0 } }, // tank11.img frame0 anchor
-            12: { mobileOffset: { x: -26, y: -46 }, avatarOffset: { left: 0, bottom: 18 }, seatAdjust: { left: 0, bottom: 0 } },  // tank12.img frame0 anchor
-            13: { mobileOffset: { x: -25, y: -41 }, avatarOffset: { left: 0, bottom: 19 }, seatAdjust: { left: 0, bottom: 0 } },  // tank13.img frame0 anchor
-            14: { mobileOffset: { x: -33, y: -61 }, avatarOffset: { left: -2, bottom: 13 }, seatAdjust: { left: 0, bottom: 0 } }, // tank14.img frame0 anchor
-            15: { mobileOffset: { x: -35, y: -49 }, avatarOffset: { left: -1, bottom: 16 }, seatAdjust: { left: 0, bottom: 0 } }, // tank15.img frame0 anchor
-            16: { mobileOffset: { x: -23, y: -34 }, avatarOffset: { left: -1, bottom: 21 }, seatAdjust: { left: 0, bottom: 0 } }  // tank16.img frame0 anchor (Aduka)
+            0: { mobileOffset: { x: -19, y: -23 }, seatAdjust: { left: 0, bottom: -10 }, avatarOffset: { left: 2, bottom: 19 } },   // rider.img frame0 anchor
+            1: { mobileOffset: { x: -21, y: -37 }, seatAdjust: { left: -8, bottom: -10 }, avatarOffset: { left: 1, bottom: 20 } },   // tank1.img frame0 anchor
+            2: { mobileOffset: { x: -25, y: -34 }, seatAdjust: { left: 0, bottom: -10 }, avatarOffset: { left: 0, bottom: 20 } }, // tank2.img frame0 anchor
+            3: { mobileOffset: { x: -23, y: -37 }, seatAdjust: { left: 15, bottom: -10 }, avatarOffset: { left: 0, bottom: 23 } },   // tank3.img frame0 anchor
+            4: { mobileOffset: { x: -23, y: -38 }, seatAdjust: { left: 10, bottom: 0 }, avatarOffset: { left: -1, bottom: 17 } },  // tank4.img frame0 anchor
+            5: { mobileOffset: { x: -24, y: -38 }, seatAdjust: { left: 10, bottom: -5 }, avatarOffset: { left: 0, bottom: 19 } },   // tank5.img frame0 anchor
+            6: { mobileOffset: { x: -20, y: -35 }, seatAdjust: { left: -7, bottom: -13 }, avatarOffset: { left: 1, bottom: 21 } },   // tank6.img frame0 anchor
+            7: { mobileOffset: { x: -21, y: -39 }, seatAdjust: { left: -7, bottom: -5 }, avatarOffset: { left: 0, bottom: 20 } },   // tank7.img frame0 anchor
+            8: { mobileOffset: { x: -19, y: -35 }, seatAdjust: { left: -7, bottom: -10 }, avatarOffset: { left: 0, bottom: 21 } },   // tank8.img frame0 anchor
+            9: { mobileOffset: { x: -25, y: -38 }, seatAdjust: { left: -6, bottom: -5 }, avatarOffset: { left: 1, bottom: 19 } },   // tank9.img frame0 anchor
+            10: { mobileOffset: { x: -25, y: -32 }, seatAdjust: { left: 5, bottom: -10 }, avatarOffset: { left: 0, bottom: 24 } }, // tank10.img frame0 anchor
+            11: { mobileOffset: { x: -25, y: -35 }, seatAdjust: { left: 10, bottom: 0 }, avatarOffset: { left: -1, bottom: 15 } }, // tank11.img frame0 anchor
+            12: { mobileOffset: { x: -26, y: -36 }, seatAdjust: { left: 10, bottom: 0 }, avatarOffset: { left: 0, bottom: 18 } },  // tank12.img frame0 anchor
+            13: { mobileOffset: { x: -25, y: -41 }, seatAdjust: { left: 0, bottom: 0 }, avatarOffset: { left: 0, bottom: 19 } },  // tank13.img frame0 anchor
+            14: { mobileOffset: { x: -33, y: -61 }, seatAdjust: { left: 0, bottom: 0 }, avatarOffset: { left: -2, bottom: 13 } }, // tank14.img frame0 anchor
+            15: { mobileOffset: { x: -35, y: -49 }, seatAdjust: { left: 0, bottom: 0 }, avatarOffset: { left: -1, bottom: 16 } }, // tank15.img frame0 anchor
+            16: { mobileOffset: { x: -23, y: -34 }, seatAdjust: { left: 20, bottom: -10 }, avatarOffset: { left: -1, bottom: 21 } }  // tank16.img frame0 anchor (Aduka)
         },
         // Per-frame deltas extracted from original IMG anchor metadata.
         // Values are [dx, dy] relative to each mobile frame 0 anchor.
