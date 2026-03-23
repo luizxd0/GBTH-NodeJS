@@ -2785,6 +2785,7 @@ async function createAvatarPreviewAnimator(hostElement, userData) {
     }
     return window.AvatarPreviewRuntime.createAnimator(hostElement, userData, {
         rootId: 'avatar-shop-character-preview',
+        context: 'avatar_shop',
         effectVariant: 'shop'
     });
 }

@@ -719,7 +719,218 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const mobileGrid = document.getElementById('game-room-mobile-grid');
     const mobileButtons = [];
-    let selectedMobile = 15;
+
+    /* ── Slot Avatar + Animated Mobile State ── */
+    const MOBILE_FRAME_COUNT = 20;
+    const RIDER_FRAME_COUNT = 12;
+    const MOBILE_ANIMATION_FPS = 8;
+    const MOBILE_ANIMATION_INTERVAL = Math.floor(1000 / MOBILE_ANIMATION_FPS);
+    const MOBILE_SELECTION_MIN = 1;
+    const MOBILE_BUTTON_COUNT = 15;
+    const DEFAULT_SELECTION_TO_ASSET = {
+        1: 1,
+        2: 2,
+        3: 3,
+        4: 4,
+        5: 5,
+        6: 6,
+        7: 7,
+        8: 8,
+        9: 9,
+        10: 10,
+        11: 11,
+        12: 12,
+        13: 13,
+        14: 16, // Aduka
+        15: 0   // Random -> Rider
+    };
+    const RIDER_ASSET_INDEX = 0;
+    const mobilePoseConfig = window.GBTH_MOBILE_POSE_CONFIG || {};
+    const SELECTION_TO_ASSET = Object.assign({}, DEFAULT_SELECTION_TO_ASSET, mobilePoseConfig.selectionToAsset || {});
+    const MOBILE_SELECTION_MAX = Math.max(
+        MOBILE_SELECTION_MIN,
+        ...Object.keys(SELECTION_TO_ASSET).map((key) => Math.trunc(Number(key))).filter(Number.isFinite)
+    );
+    const MOBILE_ASSET_POSE = mobilePoseConfig.assets || {};
+    const MOBILE_FRAME_ANCHOR_DELTAS = mobilePoseConfig.frameAnchorDeltas || {};
+    const USE_MOBILE_FRAME_ANCHOR_DELTAS = mobilePoseConfig.useFrameAnchorDeltas === true;
+    const AVATAR_SYNC_CONFIG = mobilePoseConfig.avatarSync || {};
+    const AVATAR_SYNC_ENABLED = AVATAR_SYNC_CONFIG.enabled !== false;
+    const AVATAR_SYNC_REFERENCE_OFFSET = {
+        x: Number.isFinite(Number(AVATAR_SYNC_CONFIG?.referenceMobileOffset?.x))
+            ? Math.trunc(Number(AVATAR_SYNC_CONFIG.referenceMobileOffset.x))
+            : -35,
+        y: Number.isFinite(Number(AVATAR_SYNC_CONFIG?.referenceMobileOffset?.y))
+            ? Math.trunc(Number(AVATAR_SYNC_CONFIG.referenceMobileOffset.y))
+            : -30
+    };
+    const AVATAR_SYNC_X_FACTOR = Number.isFinite(Number(AVATAR_SYNC_CONFIG.xFactor))
+        ? Number(AVATAR_SYNC_CONFIG.xFactor)
+        : 1;
+    const AVATAR_SYNC_Y_FACTOR = Number.isFinite(Number(AVATAR_SYNC_CONFIG.yFactor))
+        ? Number(AVATAR_SYNC_CONFIG.yFactor)
+        : 1;
+    const AVATAR_SYNC_MAX_DELTA_X = Number.isFinite(Number(AVATAR_SYNC_CONFIG.maxDeltaX))
+        ? Math.max(0, Math.trunc(Number(AVATAR_SYNC_CONFIG.maxDeltaX)))
+        : 999;
+    const AVATAR_SYNC_MAX_DELTA_Y = Number.isFinite(Number(AVATAR_SYNC_CONFIG.maxDeltaY))
+        ? Math.max(0, Math.trunc(Number(AVATAR_SYNC_CONFIG.maxDeltaY)))
+        : 999;
+    const AVATAR_SYNC_DISABLED_ASSETS = new Set(
+        Array.isArray(AVATAR_SYNC_CONFIG.disabledAssets)
+            ? AVATAR_SYNC_CONFIG.disabledAssets
+                .map((value) => Math.trunc(Number(value)))
+                .filter(Number.isFinite)
+            : []
+    );
+    const DEFAULT_JOIN_MOBILE_INDEX = 15;
+    let selectedMobile = Math.trunc(Number(roomConfig?.mobileIndex));
+    if (selectedMobile === 0) selectedMobile = DEFAULT_JOIN_MOBILE_INDEX;
+    if (!Number.isFinite(selectedMobile) || selectedMobile < MOBILE_SELECTION_MIN || selectedMobile > MOBILE_SELECTION_MAX) {
+        selectedMobile = DEFAULT_JOIN_MOBILE_INDEX;
+    }
+
+    let slotAvatarAnimator = null;
+    let slotMobileAnimationTimer = null;
+    let slotMobileCurrentFrame = 0;
+    let slotMobileIndex = 0;
+    let slotMobileImgEl = null;
+    let slotAvatarContainerEl = null;
+    let slotMobileBaseOffsetX = -35;
+    let slotMobileBaseOffsetY = -30;
+    let localPlayerSlot = null;
+
+    function normalizeMobileSelectionIndex(mobileIndex) {
+        const normalized = Math.trunc(Number(mobileIndex));
+        if (normalized === 0) return DEFAULT_JOIN_MOBILE_INDEX;
+        if (!Number.isFinite(normalized) || normalized < MOBILE_SELECTION_MIN || normalized > MOBILE_SELECTION_MAX) {
+            return DEFAULT_JOIN_MOBILE_INDEX;
+        }
+        return normalized;
+    }
+
+    function getRenderedMobileAssetIndex(selectionIndex) {
+        const selectedIndex = normalizeMobileSelectionIndex(selectionIndex);
+        const mappedAsset = Math.trunc(Number(SELECTION_TO_ASSET[selectedIndex]));
+        if (Number.isFinite(mappedAsset) && mappedAsset >= 0) {
+            return mappedAsset;
+        }
+        return selectedIndex;
+    }
+
+    function getButtonIndexFromSelection(selectionIndex) {
+        const normalizedSelection = normalizeMobileSelectionIndex(selectionIndex);
+        return Math.max(MOBILE_SELECTION_MIN, Math.min(MOBILE_BUTTON_COUNT, normalizedSelection));
+    }
+
+    function getMobileFramePathForAsset(assetIndex, frame) {
+        const normalizedAsset = Math.trunc(Number(assetIndex));
+        if (normalizedAsset === RIDER_ASSET_INDEX) {
+            return `/assets/screens/game_room/mobiles/rider/frame_${frame}.png`;
+        }
+        return `/assets/screens/game_room/mobiles/tank${normalizedAsset}/frame_${frame}.png`;
+    }
+
+    function getMobileFrameCountForAsset(assetIndex) {
+        return Math.trunc(Number(assetIndex)) === RIDER_ASSET_INDEX
+            ? RIDER_FRAME_COUNT
+            : MOBILE_FRAME_COUNT;
+    }
+
+    function getMobileBaseOffsetForAsset(assetIndex) {
+        const pose = MOBILE_ASSET_POSE[Math.trunc(Number(assetIndex))] || {};
+        const mobileOffset = pose.mobileOffset || {};
+        return {
+            x: Number.isFinite(Number(mobileOffset.x)) ? Math.trunc(Number(mobileOffset.x)) : -35,
+            y: Number.isFinite(Number(mobileOffset.y)) ? Math.trunc(Number(mobileOffset.y)) : -30
+        };
+    }
+
+    function applyAvatarPlacementForMobile(assetIndex) {
+        if (!slotAvatarContainerEl) return;
+        const normalizedAssetIndex = Math.trunc(Number(assetIndex));
+        const pose = MOBILE_ASSET_POSE[normalizedAssetIndex] || {};
+        const avatarOffset = pose.avatarOffset || {};
+        let avatarBottom = Number.isFinite(Number(avatarOffset.bottom)) ? Math.trunc(Number(avatarOffset.bottom)) : 20;
+        let avatarLeft = Number.isFinite(Number(avatarOffset.left)) ? Math.trunc(Number(avatarOffset.left)) : 0;
+        if (AVATAR_SYNC_ENABLED && !AVATAR_SYNC_DISABLED_ASSETS.has(normalizedAssetIndex)) {
+            const mobileOffset = getMobileBaseOffsetForAsset(normalizedAssetIndex);
+            const syncX = (mobileOffset.x - AVATAR_SYNC_REFERENCE_OFFSET.x) * AVATAR_SYNC_X_FACTOR;
+            const syncY = (mobileOffset.y - AVATAR_SYNC_REFERENCE_OFFSET.y) * AVATAR_SYNC_Y_FACTOR;
+            const clampedSyncX = Math.max(-AVATAR_SYNC_MAX_DELTA_X, Math.min(AVATAR_SYNC_MAX_DELTA_X, Math.trunc(syncX)));
+            const clampedSyncY = Math.max(-AVATAR_SYNC_MAX_DELTA_Y, Math.min(AVATAR_SYNC_MAX_DELTA_Y, Math.trunc(syncY)));
+            avatarLeft += clampedSyncX;
+            avatarBottom += clampedSyncY;
+        }
+        slotAvatarContainerEl.style.bottom = `${avatarBottom}px`;
+        slotAvatarContainerEl.style.left = `calc(50% + ${avatarLeft}px)`;
+    }
+
+    function getMobileFrameAnchorDelta(assetIndex, frame) {
+        if (!USE_MOBILE_FRAME_ANCHOR_DELTAS) {
+            return { x: 0, y: 0 };
+        }
+        const assetKey = Math.trunc(Number(assetIndex));
+        const deltas = MOBILE_FRAME_ANCHOR_DELTAS[assetKey];
+        if (!Array.isArray(deltas) || deltas.length === 0) {
+            return { x: 0, y: 0 };
+        }
+        const index = Math.max(0, Math.trunc(Number(frame))) % deltas.length;
+        const pair = deltas[index];
+        if (!Array.isArray(pair) || pair.length < 2) {
+            return { x: 0, y: 0 };
+        }
+        const dx = Number(pair[0]);
+        const dy = Number(pair[1]);
+        return {
+            x: Number.isFinite(dx) ? Math.trunc(dx) : 0,
+            y: Number.isFinite(dy) ? Math.trunc(dy) : 0
+        };
+    }
+
+    function applyMobileFramePose() {
+        if (!slotMobileImgEl) return;
+        slotMobileImgEl.src = getMobileFramePathForAsset(slotMobileIndex, slotMobileCurrentFrame);
+        const delta = getMobileFrameAnchorDelta(slotMobileIndex, slotMobileCurrentFrame);
+        slotMobileImgEl.style.marginLeft = `${slotMobileBaseOffsetX + delta.x}px`;
+        slotMobileImgEl.style.marginBottom = `${slotMobileBaseOffsetY + delta.y}px`;
+    }
+
+    function getMobileTransformForAsset() {
+        const isTeamA = !!localPlayerSlot?.classList?.contains('team-a');
+        const scaleX = isTeamA ? -1 : 1;
+        return `translateX(-50%) scaleX(${scaleX})`;
+    }
+
+    function startMobileAnimation(mobileIndex) {
+        stopMobileAnimation();
+        slotMobileIndex = getRenderedMobileAssetIndex(mobileIndex);
+        slotMobileCurrentFrame = 0;
+
+        if (slotMobileImgEl) {
+            const offset = getMobileBaseOffsetForAsset(slotMobileIndex);
+            slotMobileBaseOffsetX = offset.x;
+            slotMobileBaseOffsetY = offset.y;
+            slotMobileImgEl.style.width = '';
+            slotMobileImgEl.style.height = '';
+            slotMobileImgEl.style.transform = getMobileTransformForAsset();
+            slotMobileImgEl.style.transformOrigin = 'center bottom';
+            applyMobileFramePose();
+        }
+        applyAvatarPlacementForMobile(slotMobileIndex);
+
+        slotMobileAnimationTimer = window.setInterval(() => {
+            slotMobileCurrentFrame = (slotMobileCurrentFrame + 1) % getMobileFrameCountForAsset(slotMobileIndex);
+            applyMobileFramePose();
+        }, MOBILE_ANIMATION_INTERVAL);
+    }
+
+    function stopMobileAnimation() {
+        if (slotMobileAnimationTimer) {
+            window.clearInterval(slotMobileAnimationTimer);
+            slotMobileAnimationTimer = null;
+        }
+    }
 
     function getMobileButtonPath(index, frame) {
         const slot = String(index).padStart(2, '0');
@@ -733,9 +944,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getMobilePreviewFrame(index) {
-        if (index === 14) return 16; // Aduka preview card
-        if (index === 15) return 15; // Random preview card
-        return index;
+        const normalized = getRenderedMobileAssetIndex(index);
+        return normalized;
     }
 
     function updateMobilePreview(index) {
@@ -745,19 +955,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setSelectedMobile(index) {
-        selectedMobile = index;
+        selectedMobile = normalizeMobileSelectionIndex(index);
+        roomConfig.mobileIndex = selectedMobile;
+        persistRoomConfig();
+        const selectedButtonIndex = getButtonIndexFromSelection(selectedMobile);
         for (let i = 1; i <= mobileButtons.length; i++) {
             const button = mobileButtons[i - 1];
             if (!button) continue;
-            const isSelected = i === index;
+            const isSelected = i === selectedButtonIndex;
             button.classList.toggle('selected', isSelected);
             applyMobileButtonFrame(i, isSelected ? 4 : 0);
         }
-        updateMobilePreview(index);
+        updateMobilePreview(selectedMobile);
+        // Update slot mobile animation when selection changes
+        if (localPlayerSlot && slotMobileImgEl) {
+            startMobileAnimation(selectedMobile);
+        }
     }
 
     if (mobileGrid) {
-        for (let i = 1; i <= 15; i++) {
+        for (let i = 1; i <= MOBILE_BUTTON_COUNT; i++) {
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'game-room-mobile-btn';
@@ -765,22 +982,26 @@ document.addEventListener('DOMContentLoaded', () => {
             button.style.backgroundImage = `url('${getMobileButtonPath(i, 0)}')`;
 
             button.addEventListener('mouseenter', () => {
-                if (selectedMobile === i) return;
+                const selectedButtonIndex = getButtonIndexFromSelection(selectedMobile);
+                if (selectedButtonIndex === i) return;
                 applyMobileButtonFrame(i, 1);
             });
 
             button.addEventListener('mouseleave', () => {
-                if (selectedMobile === i) return;
+                const selectedButtonIndex = getButtonIndexFromSelection(selectedMobile);
+                if (selectedButtonIndex === i) return;
                 applyMobileButtonFrame(i, 0);
             });
 
             button.addEventListener('mousedown', () => {
-                if (selectedMobile === i) return;
+                const selectedButtonIndex = getButtonIndexFromSelection(selectedMobile);
+                if (selectedButtonIndex === i) return;
                 applyMobileButtonFrame(i, 2);
             });
 
             button.addEventListener('mouseup', () => {
-                if (selectedMobile === i) return;
+                const selectedButtonIndex = getButtonIndexFromSelection(selectedMobile);
+                if (selectedButtonIndex === i) return;
                 applyMobileButtonFrame(i, 1);
             });
 
@@ -793,7 +1014,118 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    setSelectedMobile(15);
+    setSelectedMobile(selectedMobile);
+
+
+
+    function findPlayerSlot() {
+        // Place local player in first available Team A slot by default
+        const teamASlots = slotElementsByTeam.A || [];
+        for (const slot of teamASlots) {
+            if (slot && !isSlotOccupied(slot)) {
+                return slot;
+            }
+        }
+        // Fallback: try Team B
+        const teamBSlots = slotElementsByTeam.B || [];
+        for (const slot of teamBSlots) {
+            if (slot && !isSlotOccupied(slot)) {
+                return slot;
+            }
+        }
+        // Last fallback: first Team A slot
+        return teamASlots[0] || null;
+    }
+
+    function renderSlotAvatar(slotElement, user) {
+        if (!slotElement || !user) return;
+        localPlayerSlot = slotElement;
+        slotElement.dataset.occupied = '1';
+        slotElement.dataset.userId = String(user.id || '');
+
+        // Create wrapper
+        const wrapper = document.createElement('div');
+        wrapper.className = 'slot-avatar-wrapper';
+
+        // Create avatar container
+        const avatarContainer = document.createElement('div');
+        avatarContainer.className = 'slot-avatar-container';
+        avatarContainer.style.zIndex = '1';
+        slotAvatarContainerEl = avatarContainer;
+        wrapper.appendChild(avatarContainer);
+
+        // Create mobile image element
+        slotMobileImgEl = document.createElement('img');
+        slotMobileImgEl.className = 'slot-mobile-img';
+        slotMobileImgEl.alt = '';
+        slotMobileImgEl.draggable = false;
+        slotMobileImgEl.style.zIndex = '3';
+        wrapper.appendChild(slotMobileImgEl);
+        const isTeamA = slotElement.classList.contains('team-a');
+        avatarContainer.style.transform = isTeamA
+            ? 'translateX(-50%) scaleX(-1)'
+            : 'translateX(-50%) scaleX(1)';
+        slotMobileImgEl.style.transform = getMobileTransformForAsset();
+
+        slotElement.appendChild(wrapper);
+
+        // Create nickname label
+        const nicknameEl = document.createElement('div');
+        nicknameEl.className = 'slot-nickname';
+        nicknameEl.textContent = String(user.nickname || '').trim();
+        slotElement.appendChild(nicknameEl);
+
+        // Start animated avatar
+        if (window.AvatarPreviewRuntime) {
+            window.AvatarPreviewRuntime.createAnimator(avatarContainer, {
+                gender: user.gender,
+                ahead: user.ahead,
+                abody: user.abody,
+                aeyes: user.aeyes,
+                aflag: user.aflag
+            }, {
+                rootId: 'avatar-shop-character-preview',
+                context: 'game_room',
+                effectVariant: 'legacy'
+            }).then((animator) => {
+                slotAvatarAnimator = animator;
+            }).catch((err) => {
+                console.warn('[GameRoom] Avatar animator error:', err);
+            });
+        }
+
+        // Start mobile animation with random mobile (default)
+        startMobileAnimation(selectedMobile);
+    }
+
+    function destroySlotAvatar() {
+        stopMobileAnimation();
+        if (slotAvatarAnimator) {
+            slotAvatarAnimator.destroy();
+            slotAvatarAnimator = null;
+        }
+        if (localPlayerSlot) {
+            const wrapper = localPlayerSlot.querySelector('.slot-avatar-wrapper');
+            if (wrapper) wrapper.remove();
+            const nickname = localPlayerSlot.querySelector('.slot-nickname');
+            if (nickname) nickname.remove();
+            localPlayerSlot.dataset.occupied = '';
+            localPlayerSlot.dataset.userId = '';
+            localPlayerSlot = null;
+        }
+        slotAvatarContainerEl = null;
+        slotMobileImgEl = null;
+    }
+
+
+
+    // Render local player's avatar on room join
+    if (userData) {
+        const slot = findPlayerSlot();
+        if (slot) {
+            renderSlotAvatar(slot, userData);
+        }
+    }
 
     const btnExit = document.getElementById('btn-game-room-exit');
     const btnBuddy = document.getElementById('btn-game-room-buddy');
@@ -811,6 +1143,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnExit) {
         btnExit.addEventListener('click', () => {
+            destroySlotAvatar();
             if (userData) {
                 socket.emit('set_user_data', {
                     nickname: userData.nickname,
@@ -943,7 +1276,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnChange) {
         btnChange.addEventListener('click', () => {
-            const next = selectedMobile >= 15 ? 1 : selectedMobile + 1;
+            const next = selectedMobile >= MOBILE_SELECTION_MAX ? MOBILE_SELECTION_MIN : selectedMobile + 1;
             setSelectedMobile(next);
         });
     }

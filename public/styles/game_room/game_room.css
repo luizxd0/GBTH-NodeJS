@@ -103,6 +103,82 @@
     left: 636px;
 }
 
+/* ── Slot Avatar + Mobile ── */
+.slot-avatar-wrapper {
+    position: absolute;
+    bottom: 47px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 60px;
+    pointer-events: none;
+    z-index: 2;
+    isolation: isolate;
+}
+
+.slot-avatar-container {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    /* Team A should face right */
+    transform: translateX(-50%) scaleX(-1);
+    transform-origin: center bottom;
+    width: 100px;
+    height: 100px;
+    z-index: 1;
+    image-rendering: pixelated;
+}
+
+.game-room-slot.team-b .slot-avatar-container {
+    /* Team B should face left */
+    transform: translateX(-50%) scaleX(1);
+}
+
+.slot-avatar-container #avatar-shop-character-preview {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+.slot-mobile-img {
+    position: absolute;
+    bottom: 35px;
+    left: 73px;
+    transform-origin: center bottom;
+    /* Team A should face right */
+    transform: translateX(-50%) scaleX(-1);
+    width: auto;
+    height: auto;
+    image-rendering: pixelated;
+    z-index: 3;
+}
+
+.game-room-slot.team-b .slot-mobile-img {
+    /* Team B should face left */
+    transform: translateX(-50%) scaleX(1);
+}
+
+.slot-nickname {
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    font-family: var(--gbth-ui-font);
+    font-size: 9px;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 1px 1px 0 #000000, -1px -1px 0 #000000, 1px -1px 0 #000000, -1px 1px 0 #000000;
+    pointer-events: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    z-index: 5;
+}
+
 #game-room-map-panel {
     position: absolute;
     top: 51px;

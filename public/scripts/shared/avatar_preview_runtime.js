@@ -1,13 +1,12 @@
-﻿(function () {
+(function () {
 const AVATAR_ANIMATION_FPS = 10;
 const AVATAR_ANIMATION_TICK_MS = Math.floor(1000 / AVATAR_ANIMATION_FPS);
 // Fine-tuning knob for shop preview parity (1.0 = base tick speed).
 const PREVIEW_ANIMATION_SPEED_MULTIPLIER = 1.0;
-// Locked visual calibration for Avatar Shop preview (position/size confirmed in QA).
-const PREVIEW_ANCHOR_X = 31;
-const PREVIEW_ANCHOR_Y = 58;
-const PREVIEW_OFFSET_X = 15;
-const PREVIEW_OFFSET_Y = 20;
+const DEFAULT_PREVIEW_POSE_BY_CONTEXT = {
+    avatar_shop: { anchorX: 31, anchorY: 58, offsetX: 15, offsetY: 20 },
+    game_room: { anchorX: 31, anchorY: 58, offsetX: 15, offsetY: 20 }
+};
 // GBTH client parity: EX layers are advanced from the same master avatar tick.
 const PREVIEW_EX_BACKGROUND_TICK_DIVISOR = 1;
 const PREVIEW_EX_FOREGROUND_TICK_DIVISOR = 1;
@@ -53,12 +52,33 @@ const SLOT_ORDER = [
     { key: 'eyes', back: false, z: 8 }
 ];
 
-function getPreviewBaseX() {
-    return PREVIEW_ANCHOR_X + PREVIEW_OFFSET_X;
+function resolvePreviewPose(contextName) {
+    const contextKey = String(contextName || 'avatar_shop').trim().toLowerCase();
+    const normalizedContext = contextKey || 'avatar_shop';
+    const defaultPose = DEFAULT_PREVIEW_POSE_BY_CONTEXT[normalizedContext]
+        || DEFAULT_PREVIEW_POSE_BY_CONTEXT.avatar_shop;
+    const config = window.GBTH_AVATAR_POSE_CONFIG || {};
+    const contextOverrides = (config.contexts && config.contexts[normalizedContext]) || {};
+    const anchorX = Number(contextOverrides.anchorX);
+    const anchorY = Number(contextOverrides.anchorY);
+    const offsetX = Number(contextOverrides.offsetX);
+    const offsetY = Number(contextOverrides.offsetY);
+    return {
+        anchorX: Number.isFinite(anchorX) ? anchorX : defaultPose.anchorX,
+        anchorY: Number.isFinite(anchorY) ? anchorY : defaultPose.anchorY,
+        offsetX: Number.isFinite(offsetX) ? offsetX : defaultPose.offsetX,
+        offsetY: Number.isFinite(offsetY) ? offsetY : defaultPose.offsetY
+    };
 }
 
-function getPreviewBaseY() {
-    return PREVIEW_ANCHOR_Y + PREVIEW_OFFSET_Y;
+function getPreviewBaseX(previewPose) {
+    const pose = previewPose || DEFAULT_PREVIEW_POSE_BY_CONTEXT.avatar_shop;
+    return Number(pose.anchorX || 0) + Number(pose.offsetX || 0);
+}
+
+function getPreviewBaseY(previewPose) {
+    const pose = previewPose || DEFAULT_PREVIEW_POSE_BY_CONTEXT.avatar_shop;
+    return Number(pose.anchorY || 0) + Number(pose.offsetY || 0);
 }
 
 function getNowMs() {
@@ -195,11 +215,13 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
     const isFemale = Number(userData?.gender) === 1;
     const requestedEffectVariant = String(options?.effectVariant || '').trim().toLowerCase();
     const effectVariant = requestedEffectVariant === 'legacy' ? 'legacy' : 'shop';
+    const previewContext = String(options?.context || 'avatar_shop').trim().toLowerCase() || 'avatar_shop';
     const state = {
         tick: 0,
         timer: null,
         rafId: null,
         layerState: {},
+        previewPose: resolvePreviewPose(previewContext),
         effectVariant,
         previewBackgroundItemId: null,
         previewForegroundItemId: null,
@@ -602,8 +624,8 @@ async function createAvatarPreviewAnimator(hostElement, userData, options = {}) 
             const anchor = (Array.isArray(folderInfo.anchors) && folderInfo.anchors[frameIndex])
                 ? folderInfo.anchors[frameIndex]
                 : { x: 0, y: 0 };
-            const left = getPreviewBaseX() + Number(anchor.x || 0);
-            const top = getPreviewBaseY() + Number(anchor.y || 0);
+            const left = getPreviewBaseX(state.previewPose) + Number(anchor.x || 0);
+            const top = getPreviewBaseY(state.previewPose) + Number(anchor.y || 0);
 
             if (layerSlotState.currentLeft !== left) {
                 img.style.left = `${left}px`;
@@ -1247,8 +1269,8 @@ async function tryCreateAtlasAvatarRuntime(root, state) {
                         return;
                     }
 
-                    const left = getPreviewBaseX() + Number(frame.ox || 0) - Number(frame.cx || 0);
-                    const top = getPreviewBaseY() + Number(frame.oy || 0) - Number(frame.cy || 0);
+                    const left = getPreviewBaseX(state.previewPose) + Number(frame.ox || 0) - Number(frame.cx || 0);
+                    const top = getPreviewBaseY(state.previewPose) + Number(frame.oy || 0) - Number(frame.cy || 0);
                     layer.el.style.left = `${left}px`;
                     layer.el.style.top = `${top}px`;
                     layer.el.style.width = `${frame.w}px`;
@@ -1317,8 +1339,8 @@ async function tryCreateDefaultMaleSheetRuntime(root, state) {
         sprite.style.backgroundRepeat = 'no-repeat';
         root.appendChild(sprite);
 
-        const fixedLeft = getPreviewBaseX() + Number(sheetDef.bounds?.min_x || 0);
-        const fixedTop = getPreviewBaseY() + Number(sheetDef.bounds?.min_y || 0);
+        const fixedLeft = getPreviewBaseX(state.previewPose) + Number(sheetDef.bounds?.min_x || 0);
+        const fixedTop = getPreviewBaseY(state.previewPose) + Number(sheetDef.bounds?.min_y || 0);
         sprite.style.left = `${fixedLeft}px`;
         sprite.style.top = `${fixedTop}px`;
 
