@@ -551,6 +551,40 @@
     gap: 3px;
 }
 
+#game-room-item-slots {
+    position: absolute;
+    top: 364px;
+    left: 523px;
+    width: 198px;
+    height: 36px;
+    display: grid;
+    grid-template-columns: repeat(6, 31px);
+    gap: 5px;
+}
+
+.game-room-item-slot {
+    position: relative;
+    width: 33px;
+    height: 31px;
+    border: none;
+    padding: 0;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-position: 0 0;
+    cursor: inherit;
+    outline: none;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.game-room-item-slot.item-present {
+    z-index: 2;
+}
+
+.game-room-item-slot.item-double {
+    width: 71px;
+}
+
 .game-room-item-btn {
     width: 64px;
     height: 43px;

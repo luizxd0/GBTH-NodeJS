@@ -805,6 +805,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnStart = document.getElementById('btn-game-room-start');
     const btnItemUp = document.getElementById('btn-game-room-item-up');
     const btnItemDown = document.getElementById('btn-game-room-item-down');
+    const itemSlotButtons = Array.from(document.querySelectorAll('#game-room-item-slots .game-room-item-slot'));
     const itemButtons = Array.from(document.querySelectorAll('#game-room-item-grid .game-room-item-btn'));
 
     if (btnExit) {
@@ -968,6 +969,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function resolveSelectedItemIconPath(shopIconPath) {
+        const normalizedPath = String(shopIconPath || '');
+        const shop1Match = normalizedPath.match(/\/ready_itemshop1\/ready_itemshop1_frame_(\d+)\.png$/);
+        if (shop1Match) {
+            return `/assets/screens/game_room/ready_item1/ready_item1_frame_${shop1Match[1]}.png`;
+        }
+        const shop2Match = normalizedPath.match(/\/ready_itemshop2\/ready_itemshop2_frame_(\d+)\.png$/);
+        if (shop2Match) {
+            return `/assets/screens/game_room/ready_item2/ready_item2_frame_${shop2Match[1]}.png`;
+        }
+        return normalizedPath;
+    }
+
+    function createRoomItem(iconPath) {
+        const gridIconPath = String(iconPath || '');
+        const selectedIconPath = resolveSelectedItemIconPath(gridIconPath);
+        return {
+            gridIconPath,
+            selectedIconPath,
+            slotCost: String(selectedIconPath).includes('/ready_item2/') ? 2 : 1
+        };
+    }
+
     const itemPages = [
         [
             '/assets/screens/game_room/ready_itemshop2/ready_itemshop2_frame_0.png',
@@ -979,19 +1003,104 @@ document.addEventListener('DOMContentLoaded', () => {
             '/assets/screens/game_room/ready_itemshop2/ready_itemshop2_frame_20.png',
             '/assets/screens/game_room/ready_itemshop1/ready_itemshop1_frame_0.png',
             '/assets/screens/game_room/ready_itemshop1/ready_itemshop1_frame_2.png'
-        ],
+        ].map(createRoomItem),
         [
             '/assets/screens/game_room/ready_itemshop2/ready_itemshop2_frame_10.png',
             '/assets/screens/game_room/ready_itemshop2/ready_itemshop2_frame_18.png'
-        ]
+        ].map(createRoomItem)
     ];
 
+    const ITEM_SLOT_COUNT = Math.max(1, itemSlotButtons.length || 6);
+    const selectedItemSlots = Array.from({ length: ITEM_SLOT_COUNT }, () => null);
+    let nextSelectedItemEntryId = 1;
+
     let currentItemPage = 0;
+
+    function renderSelectedItemSlots() {
+        itemSlotButtons.forEach((button, index) => {
+            const entry = selectedItemSlots[index];
+            button.classList.remove('item-present', 'item-double');
+            button.style.backgroundImage = 'none';
+
+            if (!entry) return;
+
+            button.classList.add('item-present');
+            if (entry.startIndex === index) {
+                button.style.backgroundImage = `url('${entry.iconPath}')`;
+                if (entry.slotCost === 2) {
+                    button.classList.add('item-double');
+                }
+            }
+        });
+    }
+
+    function findNextAvailableItemStart(slotCost) {
+        const size = slotCost === 2 ? 2 : 1;
+        for (let start = 0; start <= ITEM_SLOT_COUNT - size; start += 1) {
+            let allFree = true;
+            for (let i = 0; i < size; i += 1) {
+                if (selectedItemSlots[start + i]) {
+                    allFree = false;
+                    break;
+                }
+            }
+            if (allFree) return start;
+        }
+        return -1;
+    }
+
+    function addItemToSlots(item) {
+        const slotCost = item?.slotCost === 2 ? 2 : 1;
+        const startIndex = findNextAvailableItemStart(slotCost);
+        if (startIndex < 0) {
+            return;
+        }
+
+        const entry = {
+            id: nextSelectedItemEntryId++,
+            iconPath: String(item.selectedIconPath || item.gridIconPath || ''),
+            slotCost,
+            startIndex
+        };
+
+        for (let i = 0; i < slotCost; i += 1) {
+            selectedItemSlots[startIndex + i] = entry;
+        }
+        renderSelectedItemSlots();
+    }
+
+    function removeItemFromSlots(slotIndex) {
+        const entry = selectedItemSlots[slotIndex];
+        if (!entry) return;
+
+        for (let i = 0; i < ITEM_SLOT_COUNT; i += 1) {
+            if (selectedItemSlots[i] && selectedItemSlots[i].id === entry.id) {
+                selectedItemSlots[i] = null;
+            }
+        }
+        renderSelectedItemSlots();
+    }
+
+    itemSlotButtons.forEach((button, index) => {
+        button.addEventListener('click', () => {
+            removeItemFromSlots(index);
+        });
+    });
+
+    itemButtons.forEach((button, index) => {
+        button.addEventListener('click', () => {
+            const page = itemPages[currentItemPage] || [];
+            const item = page[index];
+            if (!item) return;
+            addItemToSlots(item);
+        });
+    });
 
     function renderItemPage() {
         const page = itemPages[currentItemPage] || [];
         itemButtons.forEach((button, index) => {
-            const iconPath = page[index];
+            const item = page[index];
+            const iconPath = String(item?.gridIconPath || '');
             const hasItem = Boolean(iconPath);
             button.style.backgroundImage = hasItem ? `url('${iconPath}')` : 'none';
             button.style.visibility = hasItem ? 'visible' : 'hidden';
@@ -1069,4 +1178,5 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     renderItemPage();
+    renderSelectedItemSlots();
 });
