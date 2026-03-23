@@ -18,6 +18,7 @@ const lastKnownPresence = new Map(); // userId -> { location, serverId, channelI
 const activeGameRooms = new Map(); // roomKey -> Set(userId)
 const userGameRoomMembership = new Map(); // userId -> roomKey
 const gameRoomNumbers = new Map(); // roomKey -> room number
+const gameRoomDisabledItems = new Map(); // roomKey -> Set("page:index")
 const RECONNECT_GRACE_MS = 2500;
 const WORLD_LIST_DISCONNECT_GRACE_MS = 150;
 
@@ -90,6 +91,27 @@ function getGameRoomMemberCount(roomKey) {
     return members ? members.size : 0;
 }
 
+function getGameRoomDisabledItemSet(roomKey) {
+    const normalizedRoomKey = String(roomKey || '').trim();
+    if (!normalizedRoomKey) {
+        return null;
+    }
+    let set = gameRoomDisabledItems.get(normalizedRoomKey);
+    if (!set) {
+        set = new Set();
+        gameRoomDisabledItems.set(normalizedRoomKey, set);
+    }
+    return set;
+}
+
+function getSerializedGameRoomDisabledItems(roomKey) {
+    const normalizedRoomKey = String(roomKey || '').trim();
+    if (!normalizedRoomKey) return [];
+    const set = gameRoomDisabledItems.get(normalizedRoomKey);
+    if (!set) return [];
+    return Array.from(set);
+}
+
 function syncSocketGameRoomNumbers(notifyClients = false) {
     for (const [socketId, presence] of socketData.entries()) {
         if (!presence) continue;
@@ -129,6 +151,7 @@ function removeUserFromGameRoom(userId) {
         if (members.size <= 0) {
             activeGameRooms.delete(previousRoomKey);
             gameRoomNumbers.delete(previousRoomKey);
+            gameRoomDisabledItems.delete(previousRoomKey);
         }
     }
 
@@ -153,6 +176,8 @@ function assignUserToGameRoom(userId, roomKey) {
             previousMembers.delete(normalizedUserId);
             if (previousMembers.size <= 0) {
                 activeGameRooms.delete(previousRoomKey);
+                gameRoomNumbers.delete(previousRoomKey);
+                gameRoomDisabledItems.delete(previousRoomKey);
             }
         }
         topologyChanged = true;
@@ -2169,6 +2194,9 @@ io.on('connection', (socket) => {
                         isMaster: isUserGameRoomMaster(currentData.id, currentData.roomKey),
                         memberCount: getGameRoomMemberCount(currentData.roomKey)
                     });
+                    socket.emit('game_room_item_state', {
+                        disabledItems: getSerializedGameRoomDisabledItems(currentData.roomKey)
+                    });
                 }
                 const shouldRefreshAllBuddyLists = Boolean(currentData.__hasGameRoomTopologyChanged);
                 if (shouldRefreshAllBuddyLists) {
@@ -2333,6 +2361,49 @@ io.on('connection', (socket) => {
                 message: trimmedMessage,
                 authority: user.authority || 0,
                 type: 'user'
+            });
+        }
+    });
+
+    socket.on('game_room_toggle_item_disabled', (payload) => {
+        const user = socketData.get(socket.id);
+        if (!user || String(user.location || '').toLowerCase() !== 'game_room') {
+            return;
+        }
+
+        const roomKey = String(user.roomKey || '').trim();
+        if (!roomKey) {
+            return;
+        }
+
+        if (!isUserGameRoomMaster(user.id, roomKey)) {
+            return;
+        }
+
+        const pageIndex = Math.trunc(Number(payload?.pageIndex));
+        const itemIndex = Math.trunc(Number(payload?.itemIndex));
+        if (!Number.isFinite(pageIndex) || pageIndex < 0) return;
+        if (!Number.isFinite(itemIndex) || itemIndex < 0) return;
+        if (pageIndex > 20 || itemIndex > 20) return;
+
+        const key = `${pageIndex}:${itemIndex}`;
+        const disabled = Boolean(payload?.disabled);
+        const disabledItems = getGameRoomDisabledItemSet(roomKey);
+        if (!disabledItems) return;
+
+        if (disabled) {
+            disabledItems.add(key);
+        } else {
+            disabledItems.delete(key);
+        }
+
+        for (const [socketId, data] of socketData.entries()) {
+            if (String(data?.location || '').toLowerCase() !== 'game_room') continue;
+            if (String(data?.roomKey || '') !== roomKey) continue;
+            io.to(socketId).emit('game_room_item_disabled_changed', {
+                pageIndex,
+                itemIndex,
+                disabled
             });
         }
     });

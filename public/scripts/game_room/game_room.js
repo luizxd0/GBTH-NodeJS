@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const roomTitleEl = document.getElementById('game-room-room-title');
     const roomNumberEl = document.getElementById('game-room-room-number');
     const serverTitleEl = document.getElementById('game-room-server-title');
+    const gameRoomScreen = document.getElementById('game-room-screen');
     const mapPanelEl = document.getElementById('game-room-map-panel');
     const mapCardEl = document.getElementById('game-room-map-card');
     const mobilePreviewEl = document.getElementById('game-room-mobile-preview');
@@ -982,11 +983,27 @@ document.addEventListener('DOMContentLoaded', () => {
         return normalizedPath;
     }
 
+    function resolveDisabledGridItemIconPath(shopIconPath) {
+        const normalizedPath = String(shopIconPath || '');
+        const match = normalizedPath.match(/\/(ready_itemshop[12])\/\1_frame_(\d+)\.png$/);
+        if (!match) {
+            return normalizedPath;
+        }
+        const folder = match[1];
+        const frame = Math.trunc(Number(match[2]));
+        if (!Number.isFinite(frame) || frame < 0) {
+            return normalizedPath;
+        }
+        return `/assets/screens/game_room/${folder}/${folder}_frame_${frame + 1}.png`;
+    }
+
     function createRoomItem(iconPath) {
         const gridIconPath = String(iconPath || '');
         const selectedIconPath = resolveSelectedItemIconPath(gridIconPath);
+        const disabledGridIconPath = resolveDisabledGridItemIconPath(gridIconPath);
         return {
             gridIconPath,
+            disabledGridIconPath,
             selectedIconPath,
             slotCost: String(selectedIconPath).includes('/ready_item2/') ? 2 : 1
         };
@@ -1012,9 +1029,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const ITEM_SLOT_COUNT = Math.max(1, itemSlotButtons.length || 6);
     const selectedItemSlots = Array.from({ length: ITEM_SLOT_COUNT }, () => null);
+    const disabledRoomItemKeys = new Set();
     let nextSelectedItemEntryId = 1;
 
     let currentItemPage = 0;
+
+    function getRoomItemKey(pageIndex, itemIndex) {
+        return `${Math.trunc(Number(pageIndex) || 0)}:${Math.trunc(Number(itemIndex) || 0)}`;
+    }
+
+    function isRoomItemDisabled(pageIndex, itemIndex) {
+        return disabledRoomItemKeys.has(getRoomItemKey(pageIndex, itemIndex));
+    }
+
+    function setRoomItemDisabled(pageIndex, itemIndex, disabled) {
+        const key = getRoomItemKey(pageIndex, itemIndex);
+        if (disabled) {
+            disabledRoomItemKeys.add(key);
+        } else {
+            disabledRoomItemKeys.delete(key);
+        }
+    }
+
+    function applyRoomDisabledItemState(disabledKeys) {
+        disabledRoomItemKeys.clear();
+        if (Array.isArray(disabledKeys)) {
+            disabledKeys.forEach((value) => {
+                const key = String(value || '').trim();
+                if (!/^\d+:\d+$/.test(key)) return;
+                disabledRoomItemKeys.add(key);
+            });
+        }
+    }
+
+    socket.on('game_room_item_state', (data) => {
+        applyRoomDisabledItemState(data?.disabledItems || []);
+        removeDisabledItemsFromSlots();
+        renderItemPage();
+    });
+
+    socket.on('game_room_item_disabled_changed', (data) => {
+        const pageIndex = Math.trunc(Number(data?.pageIndex));
+        const itemIndex = Math.trunc(Number(data?.itemIndex));
+        if (!Number.isFinite(pageIndex) || pageIndex < 0) return;
+        if (!Number.isFinite(itemIndex) || itemIndex < 0) return;
+        setRoomItemDisabled(pageIndex, itemIndex, Boolean(data?.disabled));
+        removeDisabledItemsFromSlots();
+        renderItemPage();
+    });
 
     function renderSelectedItemSlots() {
         itemSlotButtons.forEach((button, index) => {
@@ -1049,7 +1111,27 @@ document.addEventListener('DOMContentLoaded', () => {
         return -1;
     }
 
-    function addItemToSlots(item) {
+    function removeDisabledItemsFromSlots() {
+        const blockedEntryIds = new Set();
+        selectedItemSlots.forEach((entry) => {
+            if (!entry) return;
+            if (entry.itemKey && disabledRoomItemKeys.has(entry.itemKey)) {
+                blockedEntryIds.add(entry.id);
+            }
+        });
+        if (blockedEntryIds.size <= 0) return;
+
+        for (let i = 0; i < ITEM_SLOT_COUNT; i += 1) {
+            const entry = selectedItemSlots[i];
+            if (!entry) continue;
+            if (blockedEntryIds.has(entry.id)) {
+                selectedItemSlots[i] = null;
+            }
+        }
+        renderSelectedItemSlots();
+    }
+
+    function addItemToSlots(item, pageIndex, itemIndex) {
         const slotCost = item?.slotCost === 2 ? 2 : 1;
         const startIndex = findNextAvailableItemStart(slotCost);
         if (startIndex < 0) {
@@ -1059,6 +1141,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const entry = {
             id: nextSelectedItemEntryId++,
             iconPath: String(item.selectedIconPath || item.gridIconPath || ''),
+            itemKey: getRoomItemKey(pageIndex, itemIndex),
             slotCost,
             startIndex
         };
@@ -1092,7 +1175,28 @@ document.addEventListener('DOMContentLoaded', () => {
             const page = itemPages[currentItemPage] || [];
             const item = page[index];
             if (!item) return;
-            addItemToSlots(item);
+            if (isRoomItemDisabled(currentItemPage, index)) return;
+            addItemToSlots(item, currentItemPage, index);
+        });
+
+        button.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            const page = itemPages[currentItemPage] || [];
+            const item = page[index];
+            if (!item) return;
+            if (!isRoomMaster) return;
+
+            const nextDisabled = !isRoomItemDisabled(currentItemPage, index);
+            setRoomItemDisabled(currentItemPage, index, nextDisabled);
+            if (nextDisabled) {
+                removeDisabledItemsFromSlots();
+            }
+            renderItemPage();
+            socket.emit('game_room_toggle_item_disabled', {
+                pageIndex: currentItemPage,
+                itemIndex: index,
+                disabled: nextDisabled
+            });
         });
     });
 
@@ -1100,12 +1204,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const page = itemPages[currentItemPage] || [];
         itemButtons.forEach((button, index) => {
             const item = page[index];
-            const iconPath = String(item?.gridIconPath || '');
-            const hasItem = Boolean(iconPath);
-            button.style.backgroundImage = hasItem ? `url('${iconPath}')` : 'none';
-            button.style.visibility = hasItem ? 'visible' : 'hidden';
-            button.style.pointerEvents = hasItem ? 'auto' : 'none';
-            button.disabled = !hasItem;
+            const normalIconPath = String(item?.gridIconPath || '');
+            const hasItem = Boolean(normalIconPath);
+            const itemDisabled = hasItem && isRoomItemDisabled(currentItemPage, index);
+
+            let isVisible = hasItem;
+            let iconPath = normalIconPath;
+            if (itemDisabled) {
+                if (isRoomMaster) {
+                    iconPath = String(item?.disabledGridIconPath || normalIconPath);
+                } else {
+                    isVisible = false;
+                }
+            }
+
+            button.style.backgroundImage = isVisible ? `url('${iconPath}')` : 'none';
+            button.style.visibility = isVisible ? 'visible' : 'hidden';
+            button.style.pointerEvents = isVisible ? 'auto' : 'none';
+            button.disabled = !isVisible;
         });
 
         if (btnItemUp) {
@@ -1129,6 +1245,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (currentItemPage >= itemPages.length - 1) return;
             currentItemPage += 1;
             renderItemPage();
+        });
+    }
+
+    if (gameRoomScreen) {
+        gameRoomScreen.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
         });
     }
 
