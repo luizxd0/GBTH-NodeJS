@@ -2370,6 +2370,12 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('latency_probe', (_clientSentAt, ack) => {
+        if (typeof ack === 'function') {
+            ack(Date.now());
+        }
+    });
+
     socket.on('game_room_toggle_item_disabled', (payload) => {
         const user = socketData.get(socket.id);
         if (!user || String(user.location || '').toLowerCase() !== 'game_room') {

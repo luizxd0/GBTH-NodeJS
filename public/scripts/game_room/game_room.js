@@ -809,6 +809,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let localPlayerKeyIconEl = null;
     let slotFxBackdropHostEl = null;
     let slotFxForegroundHostEl = null;
+    let slotLatencyLabelEl = null;
+    let slotLatencyTimer = null;
+    let slotLatencyProbeSeq = 0;
     let slotMobileBaseOffsetX = -35;
     let slotMobileBaseOffsetY = -30;
     let slotAvatarDynamicSeatX = 0;
@@ -984,6 +987,51 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateLocalSlotMasterKeyIcon() {
         if (!localPlayerKeyIconEl) return;
         localPlayerKeyIconEl.classList.toggle('visible', Boolean(isRoomMaster));
+    }
+
+    function setSlotLatencyLabelText(text) {
+        if (!slotLatencyLabelEl) return;
+        slotLatencyLabelEl.textContent = String(text || '');
+    }
+
+    function stopSlotLatencyMonitor() {
+        if (slotLatencyTimer) {
+            window.clearInterval(slotLatencyTimer);
+            slotLatencyTimer = null;
+        }
+        slotLatencyProbeSeq += 1;
+    }
+
+    function startSlotLatencyMonitor() {
+        stopSlotLatencyMonitor();
+        if (!socket || !slotLatencyLabelEl) return;
+
+        const sampleLatency = () => {
+            const probeId = ++slotLatencyProbeSeq;
+            const startedAt = (typeof performance !== 'undefined' && typeof performance.now === 'function')
+                ? performance.now()
+                : Date.now();
+            let settled = false;
+            const timeoutId = window.setTimeout(() => {
+                if (settled || probeId !== slotLatencyProbeSeq) return;
+                settled = true;
+                setSlotLatencyLabelText('-- ms');
+            }, 3000);
+
+            socket.emit('latency_probe', Date.now(), () => {
+                if (settled || probeId !== slotLatencyProbeSeq) return;
+                settled = true;
+                window.clearTimeout(timeoutId);
+                const endedAt = (typeof performance !== 'undefined' && typeof performance.now === 'function')
+                    ? performance.now()
+                    : Date.now();
+                const rttMs = Math.max(0, Math.round(endedAt - startedAt));
+                setSlotLatencyLabelText(`${rttMs} ms`);
+            });
+        };
+
+        sampleLatency();
+        slotLatencyTimer = window.setInterval(sampleLatency, 2000);
     }
 
     function startMobileAnimation(mobileIndex) {
@@ -1228,6 +1276,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         slotElement.appendChild(infoEl);
 
+        const latencyEl = document.createElement('div');
+        latencyEl.className = 'slot-latency-ms';
+        latencyEl.textContent = '0 ms';
+        slotLatencyLabelEl = latencyEl;
+        slotElement.appendChild(latencyEl);
+        startSlotLatencyMonitor();
+
         // Start animated avatar
         if (window.AvatarPreviewRuntime) {
             window.AvatarPreviewRuntime.createAnimator(avatarContainer, {
@@ -1268,6 +1323,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function destroySlotAvatar() {
+        stopSlotLatencyMonitor();
         stopMobileAnimation();
         if (slotAvatarAnimator) {
             slotAvatarAnimator.destroy();
@@ -1280,6 +1336,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (slotFxForegroundHostEl) slotFxForegroundHostEl.remove();
             const info = localPlayerSlot.querySelector('.slot-player-info');
             if (info) info.remove();
+            const latency = localPlayerSlot.querySelector('.slot-latency-ms');
+            if (latency) latency.remove();
             localPlayerSlot.dataset.occupied = '';
             localPlayerSlot.dataset.userId = '';
             localPlayerSlot = null;
@@ -1289,6 +1347,7 @@ document.addEventListener('DOMContentLoaded', () => {
         localPlayerKeyIconEl = null;
         slotFxBackdropHostEl = null;
         slotFxForegroundHostEl = null;
+        slotLatencyLabelEl = null;
     }
 
 

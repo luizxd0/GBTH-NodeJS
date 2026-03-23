@@ -269,6 +269,23 @@
     opacity: 1;
 }
 
+.slot-latency-ms {
+    position: absolute;
+    top: -73px;
+    right: 4px;
+    min-width: 26px;
+    text-align: right;
+    font-family: Tahoma, Verdana, Arial, sans-serif;
+    font-size: 9px;
+    font-weight: 400;
+    color: #f0f8ff;
+    line-height: 9px;
+    letter-spacing: 0;
+    text-shadow: 1px 1px 0 #003850;
+    pointer-events: none;
+    z-index: 9;
+}
+
 #game-room-map-panel {
     position: absolute;
     top: 51px;
