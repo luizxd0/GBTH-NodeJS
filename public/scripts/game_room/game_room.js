@@ -219,6 +219,29 @@ document.addEventListener('DOMContentLoaded', () => {
         TEAM_SIZE_MIN,
         Math.min(TEAM_SIZE_MAX, Math.trunc(Number(roomConfig?.teamSize || 4)))
     );
+    const GAME_MODE_ORDER = ['solo', 'score', 'tag', 'jewel'];
+    let currentGameMode = String(roomConfig?.mode || 'solo').trim().toLowerCase();
+    if (!GAME_MODE_ORDER.includes(currentGameMode)) {
+        currentGameMode = 'solo';
+    }
+    const BOMB_MODE_ORDER = ['basic', 'attack'];
+    let currentBombMode = String(roomConfig?.bombMode || 'basic').trim().toLowerCase();
+    if (!BOMB_MODE_ORDER.includes(currentBombMode)) {
+        currentBombMode = 'basic';
+    }
+    const BIGBOMB_MODE_ORDER = ['bigbomb', 'ssdeath', 'nodeath'];
+    let currentBigBombMode = String(roomConfig?.bigbombMode || roomConfig?.bigBombMode || 'bigbomb').trim().toLowerCase();
+    if (currentBigBombMode === 'bigbombdeath') {
+        currentBigBombMode = 'bigbomb';
+    }
+    if (!BIGBOMB_MODE_ORDER.includes(currentBigBombMode)) {
+        currentBigBombMode = 'bigbomb';
+    }
+    const DEATH_MODE_ORDER = ['death56', 'death72', 'death40'];
+    let currentDeathMode = String(roomConfig?.deathMode || 'death56').trim().toLowerCase();
+    if (!DEATH_MODE_ORDER.includes(currentDeathMode)) {
+        currentDeathMode = 'death56';
+    }
 
     function getMapCardPath(index) {
         const safeIndex = Math.max(0, Math.min(MAP_FRAME_COUNT - 1, Math.trunc(Number(index) || 0)));
@@ -292,6 +315,30 @@ document.addEventListener('DOMContentLoaded', () => {
         const teamButton = document.getElementById('btn-game-room-4v4');
         if (!teamButton) return;
         teamButton.dataset.teamSize = String(teamSize);
+    }
+
+    function setGameModeButtonVisual(mode) {
+        const modeButton = document.getElementById('btn-game-room-solo');
+        if (!modeButton) return;
+        modeButton.dataset.gameMode = GAME_MODE_ORDER.includes(mode) ? mode : 'solo';
+    }
+
+    function setBombModeButtonVisual(mode) {
+        const bombButton = document.getElementById('btn-game-room-basic');
+        if (!bombButton) return;
+        bombButton.dataset.bombMode = BOMB_MODE_ORDER.includes(mode) ? mode : 'basic';
+    }
+
+    function setBigBombModeButtonVisual(mode) {
+        const bigBombButton = document.getElementById('btn-game-room-bigbomb');
+        if (!bigBombButton) return;
+        bigBombButton.dataset.bigbombMode = BIGBOMB_MODE_ORDER.includes(mode) ? mode : 'bigbomb';
+    }
+
+    function setDeathModeButtonVisual(mode) {
+        const deathButton = document.getElementById('btn-game-room-death56');
+        if (!deathButton) return;
+        deathButton.dataset.deathMode = DEATH_MODE_ORDER.includes(mode) ? mode : 'death56';
     }
 
     function isSlotOccupied(slotElement) {
@@ -374,6 +421,82 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         applyTeamSizeLayout(nextSize);
+    }
+
+    function applyGameMode(mode) {
+        currentGameMode = GAME_MODE_ORDER.includes(mode) ? mode : 'solo';
+        setGameModeButtonVisual(currentGameMode);
+        roomConfig.mode = currentGameMode;
+        persistRoomConfig();
+        updateMapControlPermissions();
+    }
+
+    function getNextGameMode(mode) {
+        const normalized = GAME_MODE_ORDER.includes(mode) ? mode : 'solo';
+        const index = GAME_MODE_ORDER.indexOf(normalized);
+        return GAME_MODE_ORDER[(index + 1) % GAME_MODE_ORDER.length];
+    }
+
+    function cycleGameMode() {
+        if (!isRoomMaster) return;
+        applyGameMode(getNextGameMode(currentGameMode));
+    }
+
+    function applyBigBombMode(mode) {
+        currentBigBombMode = BIGBOMB_MODE_ORDER.includes(mode) ? mode : 'bigbomb';
+        setBigBombModeButtonVisual(currentBigBombMode);
+        roomConfig.bigbombMode = currentBigBombMode;
+        persistRoomConfig();
+        updateMapControlPermissions();
+    }
+
+    function getNextBigBombMode(mode) {
+        const normalized = BIGBOMB_MODE_ORDER.includes(mode) ? mode : 'bigbomb';
+        const index = BIGBOMB_MODE_ORDER.indexOf(normalized);
+        return BIGBOMB_MODE_ORDER[(index + 1) % BIGBOMB_MODE_ORDER.length];
+    }
+
+    function cycleBigBombMode() {
+        if (!isRoomMaster) return;
+        applyBigBombMode(getNextBigBombMode(currentBigBombMode));
+    }
+
+    function applyBombMode(mode) {
+        currentBombMode = BOMB_MODE_ORDER.includes(mode) ? mode : 'basic';
+        setBombModeButtonVisual(currentBombMode);
+        roomConfig.bombMode = currentBombMode;
+        persistRoomConfig();
+        updateMapControlPermissions();
+    }
+
+    function getNextBombMode(mode) {
+        const normalized = BOMB_MODE_ORDER.includes(mode) ? mode : 'basic';
+        const index = BOMB_MODE_ORDER.indexOf(normalized);
+        return BOMB_MODE_ORDER[(index + 1) % BOMB_MODE_ORDER.length];
+    }
+
+    function cycleBombMode() {
+        if (!isRoomMaster) return;
+        applyBombMode(getNextBombMode(currentBombMode));
+    }
+
+    function applyDeathMode(mode) {
+        currentDeathMode = DEATH_MODE_ORDER.includes(mode) ? mode : 'death56';
+        setDeathModeButtonVisual(currentDeathMode);
+        roomConfig.deathMode = currentDeathMode;
+        persistRoomConfig();
+        updateMapControlPermissions();
+    }
+
+    function getNextDeathMode(mode) {
+        const normalized = DEATH_MODE_ORDER.includes(mode) ? mode : 'death56';
+        const index = DEATH_MODE_ORDER.indexOf(normalized);
+        return DEATH_MODE_ORDER[(index + 1) % DEATH_MODE_ORDER.length];
+    }
+
+    function cycleDeathMode() {
+        if (!isRoomMaster) return;
+        applyDeathMode(getNextDeathMode(currentDeathMode));
     }
 
     renderMapCard();
@@ -464,6 +587,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const disabled = !isRoomMaster;
         const prevButton = document.getElementById('btn-game-room-map-prev');
         const nextButton = document.getElementById('btn-game-room-map-next');
+        const modeButton = document.getElementById('btn-game-room-solo');
+        const bigBombModeButton = document.getElementById('btn-game-room-bigbomb');
+        const bombModeButton = document.getElementById('btn-game-room-basic');
+        const deathModeButton = document.getElementById('btn-game-room-death56');
         const teamSizeButton = document.getElementById('btn-game-room-4v4');
         const mapSideButton = document.getElementById('btn-game-room-aside');
         if (prevButton) {
@@ -471,6 +598,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (nextButton) {
             nextButton.disabled = disabled;
+        }
+        if (modeButton) {
+            modeButton.disabled = disabled;
+        }
+        if (bigBombModeButton) {
+            bigBombModeButton.disabled = disabled;
+        }
+        if (bombModeButton) {
+            bombModeButton.disabled = disabled;
+        }
+        if (deathModeButton) {
+            deathModeButton.disabled = disabled || currentBigBombMode === 'nodeath';
         }
         if (teamSizeButton) {
             const nextSize = getNextTeamSize();
@@ -515,8 +654,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const btnMapPrev = document.getElementById('btn-game-room-map-prev');
     const btnMapNext = document.getElementById('btn-game-room-map-next');
+    const btnGameMode = document.getElementById('btn-game-room-solo');
+    const btnBigBombMode = document.getElementById('btn-game-room-bigbomb');
     const btnTeamSize = document.getElementById('btn-game-room-4v4');
     const btnMapSide = document.getElementById('btn-game-room-aside');
+    const btnBombMode = document.getElementById('btn-game-room-basic');
+    const btnDeathMode = document.getElementById('btn-game-room-death56');
 
     if (btnMapPrev) {
         btnMapPrev.addEventListener('click', () => {
@@ -527,6 +670,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnMapNext) {
         btnMapNext.addEventListener('click', () => {
             cycleMapBy(1);
+        });
+    }
+
+    if (btnGameMode) {
+        btnGameMode.addEventListener('click', () => {
+            cycleGameMode();
+        });
+    }
+
+    if (btnBigBombMode) {
+        btnBigBombMode.addEventListener('click', () => {
+            cycleBigBombMode();
         });
     }
 
@@ -542,23 +697,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    if (btnBombMode) {
+        btnBombMode.addEventListener('click', () => {
+            cycleBombMode();
+        });
+    }
+
+    if (btnDeathMode) {
+        btnDeathMode.addEventListener('click', () => {
+            cycleDeathMode();
+        });
+    }
+
+    applyGameMode(currentGameMode);
+    applyBigBombMode(currentBigBombMode);
+    applyBombMode(currentBombMode);
+    applyDeathMode(currentDeathMode);
     applyTeamSizeLayout(currentTeamSize);
     updateMapControlPermissions();
-
-    const ruleButtons = [
-        'btn-game-room-solo',
-        'btn-game-room-bigbomb',
-        'btn-game-room-basic',
-        'btn-game-room-death56'
-    ];
-
-    ruleButtons.forEach((id) => {
-        const button = document.getElementById(id);
-        if (!button) return;
-        button.addEventListener('click', () => {
-            button.classList.toggle('active');
-        });
-    });
 
     const mobileGrid = document.getElementById('game-room-mobile-grid');
     const mobileButtons = [];
