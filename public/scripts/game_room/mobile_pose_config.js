@@ -9,12 +9,36 @@
         // Link avatar seat position to the rendered mobile offset so both move together.
         avatarSync: {
             enabled: true,
+            // Keep avatar seat anchored to Rider baseline, then apply mobile delta.
+            useReferenceAvatarOffset: true,
             referenceMobileOffset: { x: -19, y: -13 },
             xFactor: 1,
             yFactor: 1,
             maxDeltaX: 40,
             maxDeltaY: 56,
-            disabledAssets: [0]
+            disabledAssets: [0],
+            // Fine-tune avatar seat per mobile without moving the mobile itself.
+            // left:  +right / -left
+            // bottom:+up    / -down
+            seatAdjustByAsset: {
+                0: { left: 0, bottom: 0 },   // Rider
+                1: { left: 0, bottom: 0 },   // tank1
+                2: { left: 0, bottom: 0 },   // tank2
+                3: { left: 0, bottom: 0 },   // tank3
+                4: { left: 0, bottom: 0 },   // tank4
+                5: { left: 0, bottom: 0 },   // tank5
+                6: { left: 0, bottom: 0 },   // tank6
+                7: { left: 0, bottom: 0 },   // tank7
+                8: { left: 0, bottom: 0 },   // tank8
+                9: { left: 0, bottom: 0 },   // tank9
+                10: { left: 5, bottom: -10 },  // tank10
+                11: { left: 10, bottom: 0 },  // tank11
+                12: { left: 0, bottom: 0 },  // tank12
+                13: { left: 0, bottom: 0 },  // tank13
+                14: { left: 0, bottom: 0 },  // tank14
+                15: { left: 0, bottom: 0 },  // tank15
+                16: { left: 0, bottom: 0 }   // tank16 (Aduka)
+            }
         },
         selectionToAsset: {
             1: 1,

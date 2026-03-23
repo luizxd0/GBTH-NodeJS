@@ -783,6 +783,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .filter(Number.isFinite)
             : []
     );
+    const AVATAR_SEAT_ADJUST_BY_ASSET = AVATAR_SYNC_CONFIG.seatAdjustByAsset || mobilePoseConfig.avatarSeatAdjustByAsset || {};
     const DEFAULT_JOIN_MOBILE_INDEX = 15;
     let selectedMobile = Math.trunc(Number(roomConfig?.mobileIndex));
     if (selectedMobile === 0) selectedMobile = DEFAULT_JOIN_MOBILE_INDEX;
@@ -798,6 +799,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let slotAvatarContainerEl = null;
     let slotMobileBaseOffsetX = -35;
     let slotMobileBaseOffsetY = -30;
+    let slotAvatarDynamicSeatX = 0;
+    let slotAvatarDynamicSeatY = 0;
     let localPlayerSlot = null;
 
     function normalizeMobileSelectionIndex(mobileIndex) {
@@ -846,11 +849,24 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    function getAvatarSeatAdjustForAsset(assetIndex) {
+        const normalizedAssetIndex = Math.trunc(Number(assetIndex));
+        const adjust = AVATAR_SEAT_ADJUST_BY_ASSET[normalizedAssetIndex] || {};
+        return {
+            left: Number.isFinite(Number(adjust.left)) ? Math.trunc(Number(adjust.left)) : 0,
+            bottom: Number.isFinite(Number(adjust.bottom)) ? Math.trunc(Number(adjust.bottom)) : 0
+        };
+    }
+
     function applyAvatarPlacementForMobile(assetIndex) {
         if (!slotAvatarContainerEl) return;
         const normalizedAssetIndex = Math.trunc(Number(assetIndex));
         const pose = MOBILE_ASSET_POSE[normalizedAssetIndex] || {};
-        const avatarOffset = pose.avatarOffset || {};
+        const useReferenceAvatarOffset = AVATAR_SYNC_CONFIG.useReferenceAvatarOffset === true;
+        const referencePose = MOBILE_ASSET_POSE[RIDER_ASSET_INDEX] || {};
+        const avatarOffset = useReferenceAvatarOffset
+            ? (referencePose.avatarOffset || {})
+            : (pose.avatarOffset || {});
         let avatarBottom = Number.isFinite(Number(avatarOffset.bottom)) ? Math.trunc(Number(avatarOffset.bottom)) : 20;
         let avatarLeft = Number.isFinite(Number(avatarOffset.left)) ? Math.trunc(Number(avatarOffset.left)) : 0;
         if (AVATAR_SYNC_ENABLED && !AVATAR_SYNC_DISABLED_ASSETS.has(normalizedAssetIndex)) {
@@ -862,6 +878,11 @@ document.addEventListener('DOMContentLoaded', () => {
             avatarLeft += clampedSyncX;
             avatarBottom += clampedSyncY;
         }
+        const seatAdjust = getAvatarSeatAdjustForAsset(normalizedAssetIndex);
+        avatarLeft += seatAdjust.left;
+        avatarBottom += seatAdjust.bottom;
+        avatarLeft += slotAvatarDynamicSeatX;
+        avatarBottom += slotAvatarDynamicSeatY;
         slotAvatarContainerEl.style.bottom = `${avatarBottom}px`;
         slotAvatarContainerEl.style.left = `calc(50% + ${avatarLeft}px)`;
     }
@@ -888,12 +909,37 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
+    function getMobileFrameSeatDelta(assetIndex, frame) {
+        const assetKey = Math.trunc(Number(assetIndex));
+        const deltas = MOBILE_FRAME_ANCHOR_DELTAS[assetKey];
+        if (!Array.isArray(deltas) || deltas.length === 0) {
+            return { x: 0, y: 0 };
+        }
+        const index = Math.max(0, Math.trunc(Number(frame))) % deltas.length;
+        const pair = deltas[index];
+        if (!Array.isArray(pair) || pair.length < 2) {
+            return { x: 0, y: 0 };
+        }
+        const dx = Number(pair[0]);
+        const dy = Number(pair[1]);
+        return {
+            x: Number.isFinite(dx) ? Math.trunc(dx) : 0,
+            y: Number.isFinite(dy) ? Math.trunc(dy) : 0
+        };
+    }
+
     function applyMobileFramePose() {
         if (!slotMobileImgEl) return;
         slotMobileImgEl.src = getMobileFramePathForAsset(slotMobileIndex, slotMobileCurrentFrame);
-        const delta = getMobileFrameAnchorDelta(slotMobileIndex, slotMobileCurrentFrame);
-        slotMobileImgEl.style.marginLeft = `${slotMobileBaseOffsetX + delta.x}px`;
-        slotMobileImgEl.style.marginBottom = `${slotMobileBaseOffsetY + delta.y}px`;
+        const mobileDelta = getMobileFrameAnchorDelta(slotMobileIndex, slotMobileCurrentFrame);
+        slotMobileImgEl.style.marginLeft = `${slotMobileBaseOffsetX + mobileDelta.x}px`;
+        slotMobileImgEl.style.marginBottom = `${slotMobileBaseOffsetY + mobileDelta.y}px`;
+        // Client behavior couples avatar seat to mobile frame hold spot.
+        // We only apply dynamic X to avoid reintroducing prior Y wobble regressions.
+        const seatDelta = getMobileFrameSeatDelta(slotMobileIndex, slotMobileCurrentFrame);
+        slotAvatarDynamicSeatX = seatDelta.x;
+        slotAvatarDynamicSeatY = 0;
+        applyAvatarPlacementForMobile(slotMobileIndex);
     }
 
     function getMobileTransformForAsset() {
@@ -906,6 +952,8 @@ document.addEventListener('DOMContentLoaded', () => {
         stopMobileAnimation();
         slotMobileIndex = getRenderedMobileAssetIndex(mobileIndex);
         slotMobileCurrentFrame = 0;
+        slotAvatarDynamicSeatX = 0;
+        slotAvatarDynamicSeatY = 0;
 
         if (slotMobileImgEl) {
             const offset = getMobileBaseOffsetForAsset(slotMobileIndex);
