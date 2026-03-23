@@ -106,8 +106,8 @@
 /* ── Slot Avatar + Mobile ── */
 .slot-avatar-wrapper {
     position: absolute;
-    bottom: 47px;
-    left: 50%;
+    bottom: 35px;
+    left: 40%;
     transform: translateX(-50%);
     width: 60px;
     height: 60px;

@@ -851,7 +851,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getAvatarSeatAdjustForAsset(assetIndex) {
         const normalizedAssetIndex = Math.trunc(Number(assetIndex));
-        const adjust = AVATAR_SEAT_ADJUST_BY_ASSET[normalizedAssetIndex] || {};
+        const pose = MOBILE_ASSET_POSE[normalizedAssetIndex] || {};
+        // Prefer per-asset seatAdjust in the same list as mobile/avatar offsets.
+        const adjust = pose.seatAdjust || AVATAR_SEAT_ADJUST_BY_ASSET[normalizedAssetIndex] || {};
         return {
             left: Number.isFinite(Number(adjust.left)) ? Math.trunc(Number(adjust.left)) : 0,
             bottom: Number.isFinite(Number(adjust.bottom)) ? Math.trunc(Number(adjust.bottom)) : 0
