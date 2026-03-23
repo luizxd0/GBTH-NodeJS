@@ -783,6 +783,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 .filter(Number.isFinite)
             : []
     );
+    const AVATAR_FRAME_SEAT_DELTA_DISABLED_ASSETS = new Set(
+        Array.isArray(AVATAR_SYNC_CONFIG.frameSeatDeltaDisabledAssets)
+            ? AVATAR_SYNC_CONFIG.frameSeatDeltaDisabledAssets
+                .map((value) => Math.trunc(Number(value)))
+                .filter(Number.isFinite)
+            : []
+    );
     const AVATAR_SEAT_ADJUST_BY_ASSET = AVATAR_SYNC_CONFIG.seatAdjustByAsset || mobilePoseConfig.avatarSeatAdjustByAsset || {};
     const DEFAULT_JOIN_MOBILE_INDEX = 15;
     let selectedMobile = Math.trunc(Number(roomConfig?.mobileIndex));
@@ -913,6 +920,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getMobileFrameSeatDelta(assetIndex, frame) {
         const assetKey = Math.trunc(Number(assetIndex));
+        if (AVATAR_FRAME_SEAT_DELTA_DISABLED_ASSETS.has(assetKey)) {
+            return { x: 0, y: 0 };
+        }
         const deltas = MOBILE_FRAME_ANCHOR_DELTAS[assetKey];
         if (!Array.isArray(deltas) || deltas.length === 0) {
             return { x: 0, y: 0 };

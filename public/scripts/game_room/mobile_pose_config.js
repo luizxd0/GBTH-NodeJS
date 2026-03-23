@@ -17,6 +17,8 @@
             maxDeltaX: 40,
             maxDeltaY: 56,
             disabledAssets: [0],
+            // Disable per-frame seat wobble for mobiles where holdspot deltas look wrong in room preview.
+            frameSeatDeltaDisabledAssets: [3, 4, 5, 6, 9, 11, 12, 13, 16],
             // Legacy fallback only. Prefer assets[*].seatAdjust below.
             seatAdjustByAsset: {}
         },
