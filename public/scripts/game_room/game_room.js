@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mapCardEl = document.getElementById('game-room-map-card');
     const mobilePreviewEl = document.getElementById('game-room-mobile-preview');
     const roomChatFeedEl = document.getElementById('game-room-chat-feed');
+    const btnGameRoomChatting = document.getElementById('btn-game-room-chatting');
     const roomChatInput = document.getElementById('game-room-chat-input');
     const buddyPanel = document.getElementById('buddy-list-panel');
     const buddyListContent = document.querySelector('#buddy-list-panel .buddy-list-content');
@@ -1760,6 +1761,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             socket.emit('game_room_message', message);
             roomChatInput.value = '';
+        });
+    }
+
+    if (btnGameRoomChatting) {
+        btnGameRoomChatting.addEventListener('click', () => {
+            roomChatInput?.focus();
         });
     }
 

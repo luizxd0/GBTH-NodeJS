@@ -806,8 +806,8 @@
 #game-room-chat-input {
     position: absolute;
     top: 364px;
-    left: 47px;
-    width: 446px;
+    left: 77px;
+    width: 404px;
     height: 17px;
     border: none;
     background: transparent;
@@ -815,6 +815,31 @@
     color: #ff2c2c;
     font-family: var(--gbth-ui-font);
     font-size: 11px;
+}
+
+#btn-game-room-chatting {
+    position: absolute;
+    top: 364px;
+    left: 37px;
+    width: 25px;
+    height: 20px;
+    border: none;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-image: url('/assets/screens/game_room/b_ready_chatting/b_ready_chatting_frame_0.png');
+    outline: none;
+}
+
+#btn-game-room-chatting:hover:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_chatting/b_ready_chatting_frame_1.png');
+}
+
+#btn-game-room-chatting:active:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_chatting/b_ready_chatting_frame_2.png');
+}
+
+#btn-game-room-chatting:disabled {
+    background-image: url('/assets/screens/game_room/b_ready_chatting/b_ready_chatting_frame_3.png');
 }
 
 #game-room-chat-feed {
