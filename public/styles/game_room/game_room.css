@@ -433,18 +433,11 @@
 
 .slot-ready-badge {
     position: absolute;
-    bottom: 31px;
+    right: 3px;
+    bottom: 33px;
     pointer-events: none;
     z-index: 8;
     image-rendering: pixelated;
-}
-
-.slot-ready-badge.team-a {
-    left: 8px;
-}
-
-.slot-ready-badge.team-b {
-    right: 9px;
 }
 
 #game-room-map-panel {

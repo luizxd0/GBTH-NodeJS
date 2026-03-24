@@ -758,11 +758,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function applySlotReadyBadge(slot, isMasterUser, isReadyUser) {
-        if (!slot || isMasterUser) return;
+        if (!slot) return;
         const badge = document.createElement('img');
-        const teamClass = slot.classList.contains('team-b') ? 'team-b' : 'team-a';
-        badge.className = `slot-ready-badge ${teamClass}`;
-        const frame = isReadyUser ? 6 : (slot.classList.contains('team-b') ? 4 : 3);
+        badge.className = 'slot-ready-badge';
+        const teamDefaultFrame = slot.classList.contains('team-b') ? 4 : 3;
+        const frame = (!isMasterUser && isReadyUser) ? 6 : teamDefaultFrame;
         badge.alt = '';
         badge.draggable = false;
         badge.src = `/assets/screens/game_room/ready_back/ready_back_frame_${frame}.png`;
