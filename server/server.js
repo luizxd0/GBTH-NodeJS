@@ -308,6 +308,77 @@ function releaseUserRoomSlot(roomKey, userId) {
     }
 }
 
+function compactGameRoomTeamSlots(roomKey) {
+    const normalizedRoomKey = String(roomKey || '').trim();
+    if (!normalizedRoomKey) return;
+
+    const members = activeGameRooms.get(normalizedRoomKey);
+    if (!members || members.size <= 0) return;
+
+    const assignments = ensureGameRoomSlotAssignmentMap(normalizedRoomKey);
+    if (!assignments) return;
+
+    const normalizedMemberIds = Array.from(members)
+        .map((memberId) => String(memberId || '').trim())
+        .filter(Boolean);
+
+    // Remove stale users from assignment map.
+    const activeSet = new Set(normalizedMemberIds);
+    for (const assignedUserId of Array.from(assignments.keys())) {
+        const normalizedAssignedUserId = String(assignedUserId || '').trim();
+        if (!activeSet.has(normalizedAssignedUserId)) {
+            assignments.delete(assignedUserId);
+        }
+    }
+
+    const teamA = [];
+    const teamB = [];
+    const unassigned = [];
+
+    normalizedMemberIds.forEach((memberId) => {
+        const slot = Math.trunc(Number(assignments.get(memberId)));
+        if (!Number.isFinite(slot) || slot < 0) {
+            unassigned.push(memberId);
+            return;
+        }
+        if (slot % 2 === 0) {
+            teamA.push({ memberId, slot });
+        } else {
+            teamB.push({ memberId, slot });
+        }
+    });
+
+    teamA.sort((a, b) => a.slot - b.slot || String(a.memberId).localeCompare(String(b.memberId)));
+    teamB.sort((a, b) => a.slot - b.slot || String(a.memberId).localeCompare(String(b.memberId)));
+    unassigned.sort((a, b) => String(a).localeCompare(String(b)));
+
+    assignments.clear();
+
+    teamA.forEach((entry, index) => {
+        assignments.set(entry.memberId, index * 2);
+    });
+    teamB.forEach((entry, index) => {
+        assignments.set(entry.memberId, index * 2 + 1);
+    });
+
+    if (unassigned.length > 0) {
+        const occupied = new Set();
+        for (const value of assignments.values()) {
+            const numeric = Math.trunc(Number(value));
+            if (Number.isFinite(numeric) && numeric >= 0) {
+                occupied.add(numeric);
+            }
+        }
+        const fallbackOrder = getPreferredSlotOrder(4);
+        unassigned.forEach((memberId) => {
+            const nextSlot = fallbackOrder.find((candidate) => !occupied.has(candidate));
+            if (!Number.isFinite(nextSlot)) return;
+            assignments.set(memberId, nextSlot);
+            occupied.add(nextSlot);
+        });
+    }
+}
+
 function getNextAvailableOppositeTeamSlot(roomKey, userId) {
     const normalizedRoomKey = String(roomKey || '').trim();
     const normalizedUserId = String(userId || '').trim();
@@ -316,7 +387,7 @@ function getNextAvailableOppositeTeamSlot(roomKey, userId) {
     const currentSlot = getUserAssignedRoomSlot(normalizedRoomKey, normalizedUserId);
     if (currentSlot < 0) return -1;
 
-    const teamSize = getGameRoomTeamSize(normalizedRoomKey);
+    const TEAM_SEAT_LIMIT = 4;
     const isCurrentTeamA = currentSlot % 2 === 0;
     const targetParity = isCurrentTeamA ? 1 : 0;
     const assignments = ensureGameRoomSlotAssignmentMap(normalizedRoomKey);
@@ -335,7 +406,7 @@ function getNextAvailableOppositeTeamSlot(roomKey, userId) {
         }
     }
 
-    for (let seat = 0; seat < teamSize; seat += 1) {
+    for (let seat = 0; seat < TEAM_SEAT_LIMIT; seat += 1) {
         const candidate = seat * 2 + targetParity;
         if (!occupied.has(candidate)) {
             return candidate;
@@ -477,6 +548,7 @@ function removeUserFromGameRoom(userId) {
     if (members) {
         members.delete(normalizedUserId);
         releaseUserRoomSlot(previousRoomKey, normalizedUserId);
+        compactGameRoomTeamSlots(previousRoomKey);
         clearUserReadyState(previousRoomKey, normalizedUserId);
         if (members.size <= 0) {
             activeGameRooms.delete(previousRoomKey);
@@ -526,6 +598,7 @@ function assignUserToGameRoom(userId, roomKey) {
         if (previousMembers) {
             previousMembers.delete(normalizedUserId);
             releaseUserRoomSlot(previousRoomKey, normalizedUserId);
+            compactGameRoomTeamSlots(previousRoomKey);
             clearUserReadyState(previousRoomKey, normalizedUserId);
             if (previousMembers.size <= 0) {
                 activeGameRooms.delete(previousRoomKey);
@@ -2897,20 +2970,17 @@ io.on('connection', (socket) => {
         const assignments = ensureGameRoomSlotAssignmentMap(roomKey);
         if (!assignments) return;
 
-        const currentSlot = getUserAssignedRoomSlot(roomKey, userId);
+        let currentSlot = getUserAssignedRoomSlot(roomKey, userId);
         if (currentSlot < 0) {
-            allocateUserRoomSlot(roomKey, userId);
+            currentSlot = allocateUserRoomSlot(roomKey, userId);
         }
+        if (currentSlot < 0) return;
 
         const nextSlot = getNextAvailableOppositeTeamSlot(roomKey, userId);
-        if (nextSlot < 0) {
-            io.to(socket.id).emit('game_room_error', {
-                message: 'No available slot on the opposite team.'
-            });
-            return;
-        }
+        if (nextSlot < 0) return;
 
         assignments.set(userId, nextSlot);
+        compactGameRoomTeamSlots(roomKey);
         syncSocketGameRoomNumbers(true);
         broadcastGameRoomRoster(roomKey);
     });

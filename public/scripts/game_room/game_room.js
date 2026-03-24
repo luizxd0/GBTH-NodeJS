@@ -670,7 +670,11 @@ document.addEventListener('DOMContentLoaded', () => {
             applyTeamSizeLayout(teamSizeFromServer);
         }
         const preferredSlot = getSlotByAssignedIndex(preferredJoinSlotIndex);
-        if (preferredSlot && localPlayerSlot && preferredSlot !== localPlayerSlot && !isSlotOccupied(preferredSlot)) {
+        if (preferredSlot) {
+            preferredSlot.style.display = '';
+        }
+        if (preferredSlot && localPlayerSlot && preferredSlot !== localPlayerSlot) {
+            clearRemotePlayerFromSlot(preferredSlot);
             if (!moveLocalPlayerToSlot(preferredSlot)) {
                 destroySlotAvatar();
                 renderSlotAvatar(preferredSlot, userData);
@@ -1480,10 +1484,68 @@ document.addEventListener('DOMContentLoaded', () => {
         const seat = Math.floor(normalized / 2);
         const teamKey = normalized % 2 === 0 ? 'A' : 'B';
         const teamSlots = slotElementsByTeam[teamKey] || [];
-        if (seat < 0 || seat >= currentTeamSize) return null;
-        const slot = teamSlots[seat] || null;
-        if (!slot || slot.style.display === 'none') return null;
-        return slot;
+        if (seat < 0 || seat >= teamSlots.length) return null;
+        return teamSlots[seat] || null;
+    }
+
+    function syncSlotVisibilityFromRoster(players) {
+        const safePlayers = Array.isArray(players) ? players : [];
+        const totalPlayers = safePlayers.length;
+        const teamAPlayers = safePlayers.filter((player) => Math.trunc(Number(player?.slotIndex)) % 2 === 0).length;
+        const teamBPlayers = safePlayers.filter((player) => Math.trunc(Number(player?.slotIndex)) % 2 === 1).length;
+        const occupiedSlots = new Set(
+            safePlayers
+                .map((player) => Math.trunc(Number(player?.slotIndex)))
+                .filter((slotIndex) => Number.isFinite(slotIndex) && slotIndex >= 0)
+        );
+
+        ['A', 'B'].forEach((teamKey) => {
+            const teamSlots = slotElementsByTeam[teamKey] || [];
+            teamSlots.forEach((slot, index) => {
+                if (!slot) return;
+                slot.style.display = index < currentTeamSize ? '' : 'none';
+            });
+        });
+
+        safePlayers.forEach((player) => {
+            const slot = getSlotByAssignedIndex(player?.slotIndex);
+            if (slot) {
+                slot.style.display = '';
+            }
+        });
+
+        const roomCapacity = Math.max(1, currentTeamSize * 2);
+        const remainingOpenSeats = Math.max(0, roomCapacity - totalPlayers);
+
+        // If one team is empty, only keep as many free slots visible as can still be filled.
+        // Example: 2v2 with 3 players on Team A => show only one Team B free slot.
+        if (teamAPlayers === 0 && teamBPlayers > 0) {
+            const freeSlotsToShow = Math.min(currentTeamSize, remainingOpenSeats);
+            (slotElementsByTeam.A || []).forEach((slot, index) => {
+                if (!slot) return;
+                slot.style.display = index < freeSlotsToShow ? '' : 'none';
+            });
+        } else if (teamBPlayers === 0 && teamAPlayers > 0) {
+            const freeSlotsToShow = Math.min(currentTeamSize, remainingOpenSeats);
+            (slotElementsByTeam.B || []).forEach((slot, index) => {
+                if (!slot) return;
+                slot.style.display = index < freeSlotsToShow ? '' : 'none';
+            });
+        }
+
+        // Once room is full, hide any unoccupied configured slots.
+        if (remainingOpenSeats === 0) {
+            ['A', 'B'].forEach((teamKey) => {
+                const teamSlots = slotElementsByTeam[teamKey] || [];
+                teamSlots.forEach((slot, index) => {
+                    if (!slot) return;
+                    const slotIndex = index * 2 + (teamKey === 'A' ? 0 : 1);
+                    if (!occupiedSlots.has(slotIndex)) {
+                        slot.style.display = 'none';
+                    }
+                });
+            });
+        }
     }
 
     function removeRemotePlayersFromSlots() {
@@ -1519,6 +1581,37 @@ document.addEventListener('DOMContentLoaded', () => {
             slot.dataset.userId = '';
         });
         remotePlayerIdsBySlot.clear();
+    }
+
+    function clearRemotePlayerFromSlot(slot) {
+        if (!slot || slot === localPlayerSlot) return;
+
+        const remoteAnimator = remoteAvatarAnimatorsBySlot.get(slot);
+        if (remoteAnimator) {
+            try { remoteAnimator.destroy(); } catch (error) { /* ignore */ }
+            remoteAvatarAnimatorsBySlot.delete(slot);
+        }
+
+        const remoteFxBackdrop = slot.querySelector('.slot-avatar-fx-backdrop-remote');
+        if (remoteFxBackdrop) {
+            remoteFxBackdrop.remove();
+        }
+        const remoteFxForeground = slot.querySelector('.slot-avatar-fx-foreground-remote');
+        if (remoteFxForeground) {
+            remoteFxForeground.remove();
+        }
+        const remoteWrapper = slot.querySelector('.slot-avatar-wrapper-remote');
+        if (remoteWrapper) {
+            remoteWrapper.remove();
+        }
+        const remoteInfo = slot.querySelector('.slot-player-info-remote');
+        if (remoteInfo) {
+            remoteInfo.remove();
+        }
+
+        remotePlayerIdsBySlot.delete(slot);
+        slot.dataset.occupied = '';
+        slot.dataset.userId = '';
     }
 
     function renderRemotePlayerVisual(slot, player) {
@@ -1680,6 +1773,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const localUserId = String(userData?.id || '').trim();
         const localNickname = String(userData?.nickname || '').trim().toLowerCase();
         removeRemotePlayersFromSlots();
+        syncSlotVisibilityFromRoster(players);
         let localReadyFromRoster = false;
         let localSlotFromRoster = -1;
 
@@ -1705,7 +1799,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (localSlotFromRoster >= 0) {
             preferredJoinSlotIndex = localSlotFromRoster;
             const targetLocalSlot = getSlotByAssignedIndex(localSlotFromRoster);
-            if (targetLocalSlot && localPlayerSlot && targetLocalSlot !== localPlayerSlot && !isSlotOccupied(targetLocalSlot)) {
+            if (targetLocalSlot && localPlayerSlot && targetLocalSlot !== localPlayerSlot) {
+                clearRemotePlayerFromSlot(targetLocalSlot);
                 if (!moveLocalPlayerToSlot(targetLocalSlot)) {
                     destroySlotAvatar();
                     renderSlotAvatar(targetLocalSlot, userData);
