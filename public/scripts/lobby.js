@@ -632,8 +632,18 @@ document.addEventListener('DOMContentLoaded', () => {
         joinRoomPasswordCursorController?.update();
     }
 
+    function updateDirectGoCaretFocusState() {
+        if (!lobbyDirectGoPopup) return;
+        const ae = document.activeElement;
+        const onRoom = ae === directGoRoomInput;
+        const onPwd = ae === directGoPasswordInput;
+        lobbyDirectGoPopup.classList.toggle('lobby-direct-go--focus-room', onRoom);
+        lobbyDirectGoPopup.classList.toggle('lobby-direct-go--focus-password', onPwd);
+    }
+
     function hideDirectGoPopup() {
         lobbyDirectGoPopup?.classList.add('hidden');
+        lobbyDirectGoPopup?.classList.remove('lobby-direct-go--focus-room', 'lobby-direct-go--focus-password');
         if (directGoRoomInput) {
             directGoRoomInput.value = '';
         }
@@ -648,6 +658,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!lobbyDirectGoPopup) return;
         hideJoinRoomPasswordPopup();
         lobbyDirectGoPopup.classList.remove('hidden');
+        lobbyDirectGoPopup.classList.remove('lobby-direct-go--focus-room', 'lobby-direct-go--focus-password');
         centerLobbyPopup(lobbyDirectGoPopup);
         socket.emit('get_lobby_rooms');
         if (directGoRoomInput) {
@@ -659,6 +670,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         directGoRoomCursorController?.update();
         directGoPasswordCursorController?.update();
+        updateDirectGoCaretFocusState();
     }
 
     function submitDirectGo() {
@@ -965,15 +977,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (directGoRoomInput) {
+        directGoRoomInput.addEventListener('focus', updateDirectGoCaretFocusState);
+        directGoRoomInput.addEventListener('blur', () => {
+            window.requestAnimationFrame(() => updateDirectGoCaretFocusState());
+        });
         directGoRoomInput.addEventListener('keydown', (event) => {
             if (event.key !== 'Enter') return;
             event.preventDefault();
             directGoPasswordInput?.focus();
             directGoPasswordCursorController?.update();
+            updateDirectGoCaretFocusState();
         });
     }
 
     if (directGoPasswordInput) {
+        directGoPasswordInput.addEventListener('focus', updateDirectGoCaretFocusState);
+        directGoPasswordInput.addEventListener('blur', () => {
+            window.requestAnimationFrame(() => updateDirectGoCaretFocusState());
+        });
         directGoPasswordInput.addEventListener('keydown', (event) => {
             if (event.key !== 'Enter') return;
             event.preventDefault();

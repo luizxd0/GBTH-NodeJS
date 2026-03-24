@@ -4400,8 +4400,18 @@ body {
     height: 14px;
     background-color: #e02020;
     pointer-events: none;
-    animation: cursor-blink 0.8s infinite;
+    opacity: 0;
     z-index: 1;
+}
+
+#lobby-direct-go-popup.lobby-direct-go--focus-room #direct-go-room-cursor {
+    opacity: 1;
+    animation: cursor-blink 0.8s infinite;
+}
+
+#lobby-direct-go-popup.lobby-direct-go--focus-password #direct-go-password-cursor {
+    opacity: 1;
+    animation: cursor-blink 0.8s infinite;
 }
 
 #lobby-direct-go-popup .lobby-direct-go-actions {
