@@ -79,7 +79,9 @@ document.addEventListener('DOMContentLoaded', () => {
             msgDiv.textContent = message;
         } else {
             if (!nickname) return;
-            msgDiv.innerHTML = `<span class="nickname">${nickname}]</span> ${message}`;
+            const guild = String(data?.guild || '').trim();
+            const guildHtml = guild ? `<span class="chat-guild">${guild}</span>` : '';
+            msgDiv.innerHTML = `${guildHtml}<span class="nickname">${nickname}]</span> ${message}`;
         }
 
         const isAtBottom = roomChatFeedEl.scrollHeight - roomChatFeedEl.scrollTop <= roomChatFeedEl.clientHeight + 40;
