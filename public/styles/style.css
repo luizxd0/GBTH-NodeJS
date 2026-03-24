@@ -615,16 +615,131 @@ body {
 
 /* Gold and cash moved to user-info-bottom with absolute positioning */
 
-#rooms-container {
+#lobby-room-list {
+    --slot-container-offset-x: 0px;
+    --slot-container-offset-y: 0px;
+    --slot-width: 260px;
+    --slot-height: 52px;
+    --slot-column-gap: 14px;
+    --slot-row-gap: 2px;
     position: absolute;
-    top: 133px;
+    top: 61px;
     left: 22px;
-    width: 536px;
-    height: 228px;
-    background-color: #0b1f3d;
-    border: 1px solid #1a3a6a;
-    z-index: 5;
-    overflow-y: auto;
+    width: 550px;
+    height: 162px;
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-columns: repeat(2, var(--slot-width));
+    grid-template-rows: repeat(3, var(--slot-height));
+    column-gap: var(--slot-column-gap);
+    row-gap: var(--slot-row-gap);
+    justify-content: start;
+    align-content: start;
+    padding-left: var(--slot-container-offset-x);
+    padding-top: var(--slot-container-offset-y);
+    box-sizing: border-box;
+    z-index: 14;
+}
+
+.lobby-room-slot {
+    --frame-static: url('/assets/screens/lobby/gamelist_back/gamelist_back_frame_1.png');
+    --frame-hover: url('/assets/screens/lobby/gamelist_back/gamelist_back_frame_2.png');
+    --frame-active: url('/assets/screens/lobby/gamelist_back/gamelist_back_frame_3.png');
+    position: relative;
+    width: var(--slot-width);
+    height: var(--slot-height);
+    border: none;
+    background-color: transparent;
+    background-image: var(--frame-static);
+    background-repeat: no-repeat;
+    background-size: var(--slot-width) var(--slot-height);
+    color: #ffffff;
+    font-family: var(--gbth-ui-font);
+    text-align: left;
+    cursor: inherit;
+    padding: 0;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.lobby-room-slot.left {
+    --frame-static: url('/assets/screens/lobby/gamelist_back/gamelist_back_frame_1.png');
+    --frame-hover: url('/assets/screens/lobby/gamelist_back/gamelist_back_frame_2.png');
+    --frame-active: url('/assets/screens/lobby/gamelist_back/gamelist_back_frame_3.png');
+}
+
+.lobby-room-slot.right {
+    --frame-static: url('/assets/screens/lobby/gamelist_back/gamelist_back_frame_4.png');
+    --frame-hover: url('/assets/screens/lobby/gamelist_back/gamelist_back_frame_5.png');
+    --frame-active: url('/assets/screens/lobby/gamelist_back/gamelist_back_frame_6.png');
+}
+
+.lobby-room-slot.power-user.left {
+    --frame-static: url('/assets/screens/lobby/gamelist_back/gamelist_back_frame_19.png');
+    --frame-hover: url('/assets/screens/lobby/gamelist_back/gamelist_back_frame_20.png');
+    --frame-active: url('/assets/screens/lobby/gamelist_back/gamelist_back_frame_21.png');
+}
+
+.lobby-room-slot.power-user.right {
+    --frame-static: url('/assets/screens/lobby/gamelist_back/gamelist_back_frame_22.png');
+    --frame-hover: url('/assets/screens/lobby/gamelist_back/gamelist_back_frame_23.png');
+    --frame-active: url('/assets/screens/lobby/gamelist_back/gamelist_back_frame_24.png');
+}
+
+.lobby-room-slot:hover:not(:disabled) {
+    background-image: var(--frame-hover);
+}
+
+.lobby-room-slot:active:not(:disabled),
+.lobby-room-slot.selected {
+    background-image: var(--frame-active);
+}
+
+.lobby-room-number {
+    position: absolute;
+    top: 7px;
+    left: 11px;
+    width: 22px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #ffffff;
+    text-align: center;
+}
+
+.lobby-room-slot.power-user .lobby-room-number {
+    color: #ffe066;
+}
+
+.lobby-room-title {
+    position: absolute;
+    top: 8px;
+    left: 33px;
+    width: 215px;
+    line-height: 14px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lobby-room-meta {
+    position: absolute;
+    top: 31px;
+    left: 8px;
+    width: 215px;
+    line-height: 13px;
+    font-size: 10px;
+    color: #cde7ff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lobby-room-slot.power-user .lobby-room-title,
+.lobby-room-slot.power-user .lobby-room-meta {
+    color: #fff5c4;
 }
 
 #buddy-list-panel {

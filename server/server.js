@@ -19,6 +19,7 @@ const activeGameRooms = new Map(); // roomKey -> Set(userId)
 const userGameRoomMembership = new Map(); // userId -> roomKey
 const gameRoomNumbers = new Map(); // roomKey -> room number
 const gameRoomDisabledItems = new Map(); // roomKey -> Set("page:index")
+const gameRoomMetadata = new Map(); // roomKey -> room metadata
 const RECONNECT_GRACE_MS = 2500;
 const WORLD_LIST_DISCONNECT_GRACE_MS = 150;
 
@@ -112,6 +113,81 @@ function getSerializedGameRoomDisabledItems(roomKey) {
     return Array.from(set);
 }
 
+function upsertGameRoomMetadata(roomKey, payload = {}) {
+    const normalizedRoomKey = String(roomKey || '').trim();
+    if (!normalizedRoomKey) return false;
+
+    const existing = gameRoomMetadata.get(normalizedRoomKey) || {};
+    const next = { ...existing };
+    let changed = !gameRoomMetadata.has(normalizedRoomKey);
+
+    const title = String(payload?.title || '').trim();
+    if (title && next.title !== title) {
+        next.title = title;
+        changed = true;
+    }
+
+    const mode = String(payload?.mode || '').trim().toLowerCase();
+    if (mode && next.mode !== mode) {
+        next.mode = mode;
+        changed = true;
+    }
+
+    const slotLabel = String(payload?.slotLabel || '').trim();
+    if (slotLabel && next.slotLabel !== slotLabel) {
+        next.slotLabel = slotLabel;
+        changed = true;
+    }
+
+    const teamSize = Math.trunc(Number(payload?.teamSize));
+    if (Number.isFinite(teamSize) && teamSize > 0 && next.teamSize !== teamSize) {
+        next.teamSize = teamSize;
+        changed = true;
+    }
+
+    const ownerUserId = String(payload?.ownerUserId || '').trim();
+    if (ownerUserId && next.ownerUserId !== ownerUserId) {
+        next.ownerUserId = ownerUserId;
+        changed = true;
+    }
+
+    const ownerNickname = String(payload?.ownerNickname || '').trim();
+    if (ownerNickname && next.ownerNickname !== ownerNickname) {
+        next.ownerNickname = ownerNickname;
+        changed = true;
+    }
+
+    const ownerGuild = String(payload?.ownerGuild || '').trim();
+    if (ownerGuild !== '' && next.ownerGuild !== ownerGuild) {
+        next.ownerGuild = ownerGuild;
+        changed = true;
+    }
+
+    const hasPassword = Boolean(payload?.hasPassword);
+    if (next.hasPassword !== hasPassword) {
+        next.hasPassword = hasPassword;
+        changed = true;
+    }
+
+    const powerUser = Boolean(payload?.powerUser);
+    if (next.powerUser !== powerUser) {
+        next.powerUser = powerUser;
+        changed = true;
+    }
+
+    if (!Number.isFinite(Number(next.createdAt))) {
+        const createdAt = Math.trunc(Number(payload?.createdAt));
+        next.createdAt = Number.isFinite(createdAt) && createdAt > 0 ? createdAt : Date.now();
+        changed = true;
+    }
+
+    if (changed) {
+        gameRoomMetadata.set(normalizedRoomKey, next);
+    }
+
+    return changed;
+}
+
 function syncSocketGameRoomNumbers(notifyClients = false) {
     for (const [socketId, presence] of socketData.entries()) {
         if (!presence) continue;
@@ -152,6 +228,7 @@ function removeUserFromGameRoom(userId) {
             activeGameRooms.delete(previousRoomKey);
             gameRoomNumbers.delete(previousRoomKey);
             gameRoomDisabledItems.delete(previousRoomKey);
+            gameRoomMetadata.delete(previousRoomKey);
         }
     }
 
@@ -178,6 +255,7 @@ function assignUserToGameRoom(userId, roomKey) {
                 activeGameRooms.delete(previousRoomKey);
                 gameRoomNumbers.delete(previousRoomKey);
                 gameRoomDisabledItems.delete(previousRoomKey);
+                gameRoomMetadata.delete(previousRoomKey);
             }
         }
         topologyChanged = true;
@@ -2115,6 +2193,7 @@ io.on('connection', (socket) => {
                     const dbUser = rows[0];
                     const userId = dbUser.UserId;
                     const nicknameKey = dbUser.Nickname.toLowerCase();
+                    const equipState = await loadUserEquipState(dbUser.UserId);
                     let hasGameRoomTopologyChanged = false;
                     const hadPendingDisconnect = pendingDisconnects.has(userId);
                     if (hadPendingDisconnect) {
@@ -2150,6 +2229,20 @@ io.on('connection', (socket) => {
                         roomId = roomAssignment.roomId || 1;
                         roomKey = roomAssignment.roomKey;
                         hasGameRoomTopologyChanged = roomAssignment.topologyChanged;
+                        if (isUserGameRoomMaster(dbUser.UserId, roomKey)) {
+                            upsertGameRoomMetadata(roomKey, {
+                                title: data.roomTitle || data.title,
+                                mode: data.mode,
+                                slotLabel: data.slotLabel,
+                                teamSize: data.teamSize,
+                                ownerUserId: dbUser.UserId,
+                                ownerNickname: dbUser.Nickname,
+                                ownerGuild: dbUser.Guild || '',
+                                hasPassword: String(data.password || '').trim() !== '',
+                                powerUser: Boolean(equipState?.poweruser),
+                                createdAt: data.createdAt
+                            });
+                        }
                     } else {
                         hasGameRoomTopologyChanged = removeUserFromGameRoom(dbUser.UserId);
                     }
@@ -2161,6 +2254,7 @@ io.on('connection', (socket) => {
                         grade: dbUser.TotalGrade,
                         guild: dbUser.Guild,
                         authority: dbUser.Authority,
+                        poweruser: Boolean(equipState?.poweruser),
                         location: normalizedLocation,
                         serverId: normalizedLocation === 'world_list' ? 0 : 1,
                         channelId: normalizedLocation === 'channel' ? 1 : 0,
@@ -2170,7 +2264,6 @@ io.on('connection', (socket) => {
                     socketData.set(socket.id, nextPresence);
 
                     // Send updated user info back to client
-                    const equipState = await loadUserEquipState(dbUser.UserId);
                     socket.emit('user_info_update', buildUserPayload({
                         ...dbUser,
                         ...equipState
@@ -2227,6 +2320,7 @@ io.on('connection', (socket) => {
                     }
                 }
                 broadcastChannelUsers(currentData.channelId);
+                broadcastLobbyRooms();
                 deliverOfflinePacketsToSocket(socket, currentData).catch((error) => {
                     console.error('[Packet] Failed to deliver offline packets:', error);
                 });
@@ -2287,6 +2381,10 @@ io.on('connection', (socket) => {
                 }
             }
         }
+    });
+
+    socket.on('get_lobby_rooms', () => {
+        broadcastLobbyRooms();
     });
 
     socket.on('switch_channel', (newChannelId) => {
@@ -2468,6 +2566,69 @@ io.on('connection', (socket) => {
         }
     }
 
+    function broadcastLobbyRooms() {
+        const linkedPresenceByUserId = new Map();
+        for (const [socketId, data] of socketData.entries()) {
+            const nicknameKey = String(data?.nickname || '').toLowerCase();
+            const linkedSocketId = userSockets.get(nicknameKey);
+            const isLinkedPresence = Boolean(linkedSocketId) && linkedSocketId === socketId;
+            if (!isLinkedPresence) continue;
+            linkedPresenceByUserId.set(String(data?.id || ''), data);
+        }
+
+        const rooms = [];
+        for (const [roomKey, members] of activeGameRooms.entries()) {
+            if (!members || members.size <= 0) continue;
+            const roomId = getGameRoomNumberForKey(roomKey);
+            if (!Number.isFinite(roomId) || roomId <= 0) continue;
+
+            const memberIds = Array.from(members).map((value) => String(value || '').trim()).filter(Boolean);
+            const masterId = memberIds[0] || '';
+            const masterPresence = linkedPresenceByUserId.get(masterId);
+            const meta = gameRoomMetadata.get(String(roomKey || '').trim()) || {};
+
+            const ownerNickname = String(meta.ownerNickname || masterPresence?.nickname || '').trim();
+            const ownerGuild = String(meta.ownerGuild || masterPresence?.guild || '').trim();
+            const resolvedTeamSize = Math.trunc(Number(meta.teamSize || 4));
+            const teamSize = Number.isFinite(resolvedTeamSize) && resolvedTeamSize > 0
+                ? Math.min(Math.max(resolvedTeamSize, 1), 4)
+                : 4;
+            const maxPlayers = teamSize * 2;
+            const slotLabel = String(meta.slotLabel || `${teamSize}v${teamSize}`).trim();
+
+            rooms.push({
+                roomKey: String(roomKey || ''),
+                roomId,
+                title: String(meta.title || (ownerNickname ? `${ownerNickname}'s Room` : `Room ${roomId}`)).trim(),
+                mode: String(meta.mode || 'solo').trim().toLowerCase(),
+                slotLabel,
+                teamSize,
+                memberCount: memberIds.length,
+                maxPlayers,
+                ownerNickname,
+                ownerGuild,
+                powerUser: Boolean(meta.powerUser || masterPresence?.poweruser),
+                hasPassword: Boolean(meta.hasPassword),
+                createdAt: Math.trunc(Number(meta.createdAt || 0)) || 0
+            });
+        }
+
+        rooms.sort((a, b) => {
+            if (a.powerUser !== b.powerUser) return a.powerUser ? -1 : 1;
+            if (a.roomId !== b.roomId) return a.roomId - b.roomId;
+            return a.createdAt - b.createdAt;
+        });
+
+        for (const [socketId, data] of socketData.entries()) {
+            const nicknameKey = String(data?.nickname || '').toLowerCase();
+            const linkedSocketId = userSockets.get(nicknameKey);
+            const isLinkedPresence = Boolean(linkedSocketId) && linkedSocketId === socketId;
+            if (!isLinkedPresence) continue;
+            if (String(data?.location || '').toLowerCase() !== 'channel') continue;
+            io.to(socketId).emit('lobby_rooms', rooms);
+        }
+    }
+
     async function sendBuddyList(socket, userId) {
         try {
             const connection = await pool.getConnection();
@@ -2595,6 +2756,7 @@ io.on('connection', (socket) => {
             io.emit('playerCountUpdate', getActivePlayerCount());
 
             broadcastChannelUsers(data.channelId);
+            broadcastLobbyRooms();
             if (hasGameRoomTopologyChanged) {
                 refreshBuddyListsForAllOnlineUsers();
             }
@@ -2860,6 +3022,7 @@ io.on('connection', (socket) => {
             }
             io.emit('playerCountUpdate', getActivePlayerCount());
             broadcastChannelUsers(disconnectedChannelId);
+            broadcastLobbyRooms();
         }
     });
 });

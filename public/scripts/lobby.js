@@ -56,6 +56,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatViewport = document.getElementById('chat-messages-content');
 
     const channelListContent = document.getElementById('channel-list-content');
+    const lobbyRoomList = document.getElementById('lobby-room-list');
+    const LOBBY_ROOMS_PAGE_SIZE = 6;
+    let lobbyRoomsCache = [];
+    let lobbyRoomsPageIndex = 0;
 
     const buddyScroll = ui?.setupScrollControls({
         viewport: buddyListContent,
@@ -235,6 +239,114 @@ document.addEventListener('DOMContentLoaded', () => {
         updateCreateRoomModeDescription(mode);
     }
 
+    function normalizeLobbyRoomsPayload(rooms) {
+        if (!Array.isArray(rooms)) return [];
+
+        return rooms.map((room) => {
+            const roomId = Math.trunc(Number(room?.roomId || 0));
+            const memberCount = Math.max(0, Math.trunc(Number(room?.memberCount || 0)));
+            const maxPlayers = Math.max(1, Math.trunc(Number(room?.maxPlayers || 1)));
+            return {
+                roomId: Number.isFinite(roomId) && roomId > 0 ? roomId : 0,
+                title: String(room?.title || '').trim(),
+                mode: String(room?.mode || 'solo').trim().toLowerCase(),
+                memberCount,
+                maxPlayers,
+                powerUser: Boolean(room?.powerUser),
+                hasPassword: Boolean(room?.hasPassword),
+                ownerNickname: String(room?.ownerNickname || '').trim()
+            };
+        }).filter((room) => room.roomId > 0)
+            .sort((a, b) => {
+                if (a.powerUser !== b.powerUser) return a.powerUser ? -1 : 1;
+                return a.roomId - b.roomId;
+            });
+    }
+
+    function getLobbyRoomsTotalPages() {
+        if (!Array.isArray(lobbyRoomsCache) || lobbyRoomsCache.length <= 0) return 0;
+        return Math.ceil(lobbyRoomsCache.length / LOBBY_ROOMS_PAGE_SIZE);
+    }
+
+    function clampLobbyRoomsPageIndex(pageIndex) {
+        const totalPages = getLobbyRoomsTotalPages();
+        if (totalPages <= 0) return 0;
+        const parsed = Math.trunc(Number(pageIndex || 0));
+        if (!Number.isFinite(parsed)) return 0;
+        return Math.max(0, Math.min(totalPages - 1, parsed));
+    }
+
+    function updateLobbyRoomPagerButtons() {
+        const totalPages = getLobbyRoomsTotalPages();
+        if (btnPrev) {
+            btnPrev.disabled = totalPages <= 1 || lobbyRoomsPageIndex <= 0;
+        }
+        if (btnNext) {
+            btnNext.disabled = totalPages <= 1 || lobbyRoomsPageIndex >= totalPages - 1;
+        }
+    }
+
+    function renderLobbyRoomsPage() {
+        if (!lobbyRoomList) return;
+
+        lobbyRoomsPageIndex = clampLobbyRoomsPageIndex(lobbyRoomsPageIndex);
+        const startIndex = lobbyRoomsPageIndex * LOBBY_ROOMS_PAGE_SIZE;
+        const normalizedRooms = lobbyRoomsCache.slice(startIndex, startIndex + LOBBY_ROOMS_PAGE_SIZE);
+        const fragment = document.createDocumentFragment();
+
+        normalizedRooms.forEach((room, index) => {
+            const slot = document.createElement('button');
+            const isLeftColumn = index < 3;
+            slot.type = 'button';
+            slot.className = `lobby-room-slot ${isLeftColumn ? 'left' : 'right'}${room.powerUser ? ' power-user' : ''}`;
+
+            const numberEl = document.createElement('div');
+            numberEl.className = 'lobby-room-number';
+            numberEl.textContent = String(room.roomId);
+
+            const titleEl = document.createElement('div');
+            titleEl.className = 'lobby-room-title';
+            titleEl.textContent = room.title || (room.ownerNickname ? `${room.ownerNickname}'s Room` : `Room ${room.roomId}`);
+
+            const metaEl = document.createElement('div');
+            metaEl.className = 'lobby-room-meta';
+            const modeLabel = room.mode ? room.mode.toUpperCase() : 'SOLO';
+            const lockLabel = room.hasPassword ? ' LOCK' : '';
+            metaEl.textContent = `${room.memberCount}/${room.maxPlayers} ${modeLabel}${lockLabel}`;
+
+            slot.appendChild(numberEl);
+            slot.appendChild(titleEl);
+            slot.appendChild(metaEl);
+            fragment.appendChild(slot);
+        });
+
+        lobbyRoomList.innerHTML = '';
+        lobbyRoomList.appendChild(fragment);
+        updateLobbyRoomPagerButtons();
+    }
+
+    function setLobbyRooms(rooms) {
+        lobbyRoomsCache = normalizeLobbyRoomsPayload(rooms);
+        lobbyRoomsPageIndex = clampLobbyRoomsPageIndex(lobbyRoomsPageIndex);
+        renderLobbyRoomsPage();
+    }
+
+    function shiftLobbyRoomsPage(delta) {
+        const totalPages = getLobbyRoomsTotalPages();
+        if (totalPages <= 1) {
+            lobbyRoomsPageIndex = 0;
+            updateLobbyRoomPagerButtons();
+            return;
+        }
+        const targetPage = clampLobbyRoomsPageIndex(lobbyRoomsPageIndex + Math.trunc(Number(delta || 0)));
+        if (targetPage === lobbyRoomsPageIndex) {
+            updateLobbyRoomPagerButtons();
+            return;
+        }
+        lobbyRoomsPageIndex = targetPage;
+        renderLobbyRoomsPage();
+    }
+
     function hideCreateRoomPopup() {
         createRoomPopup?.classList.add('hidden');
         setCreateRoomCursorTarget(null);
@@ -321,7 +433,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 guild: userData.guild || '',
                 authority: userData.authority || 0,
                 location: 'game_room',
-                roomKey: String(roomConfig.createdAt)
+                roomKey: String(roomConfig.createdAt),
+                roomTitle: roomConfig.title,
+                mode: roomConfig.mode,
+                teamSize: roomConfig.teamSize,
+                slotLabel: roomConfig.slotLabel,
+                password: roomConfig.password,
+                createdAt: roomConfig.createdAt
             });
         }
 
@@ -421,10 +539,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnRanking = document.getElementById('btn-lobby-ranking');
     const btnJoin = document.getElementById('btn-lobby-join');
     const btnPrev = document.getElementById('btn-nav-prev');
+    const btnNext = document.getElementById('btn-nav-next');
 
     if (btnRanking) btnRanking.disabled = true;
     if (btnJoin) btnJoin.disabled = true;
-    if (btnPrev) btnPrev.disabled = true;
+    updateLobbyRoomPagerButtons();
+
+    if (btnPrev) {
+        btnPrev.addEventListener('click', () => {
+            shiftLobbyRoomsPage(-1);
+        });
+    }
+
+    if (btnNext) {
+        btnNext.addEventListener('click', () => {
+            shiftLobbyRoomsPage(1);
+        });
+    }
 
     const btnBuddyExit = document.getElementById('btn-buddy-exit');
     if (btnBuddyExit) {
@@ -797,6 +928,11 @@ document.addEventListener('DOMContentLoaded', () => {
         channelListContent.appendChild(fragment);
         window.setTimeout(() => channelScroll?.update(), 50);
     });
+
+    socket.on('lobby_rooms', (rooms) => {
+        setLobbyRooms(rooms);
+    });
+    socket.emit('get_lobby_rooms');
 
     function sendSystemWelcome(chId = 1) {
         if (!chatViewport) return;
