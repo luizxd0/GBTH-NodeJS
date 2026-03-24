@@ -657,6 +657,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     socket.on('game_room_message', (data) => {
         appendRoomChatMessage(data);
+        const nickname = String(data?.nickname || '').trim();
+        const message = String(data?.message || '').trim();
+        if (!nickname || !message) return;
+        showSlotSpeechBubbleByNickname(nickname, message, data?.poweruser === true);
     });
 
     socket.on('game_room_presence', (data) => {
@@ -1042,6 +1046,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const ROOM_MASTER_KEY_ICON_PATH = '/assets/screens/game_room/ready_back/ready_back_frame_7.png';
     const POWER_USER_EXITEM_IDS = new Set([204801, 204802, 204803, 204804, 204831, 204832, 204833, 204834, 204835]);
     const POWER_USER_READY_BACKGROUND_FRAMES = [0, 1, 2, 3, 4, 5];
+    const SLOT_BUBBLE_MIN_DURATION_MS = 2600;
+    const SLOT_BUBBLE_MAX_DURATION_MS = 6200;
+    const SLOT_BUBBLE_MS_PER_CHAR = 45;
     const DEFAULT_JOIN_MOBILE_INDEX = 15;
     let selectedMobile = Math.trunc(Number(roomConfig?.mobileIndex));
     if (selectedMobile === 0) selectedMobile = DEFAULT_JOIN_MOBILE_INDEX;
@@ -1071,6 +1078,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let preferredJoinSlotIndex = -1;
     const remotePlayerIdsBySlot = new Map();
     const remoteAvatarAnimatorsBySlot = new Map();
+    const slotSpeechBubbleHideTimers = new WeakMap();
 
     function isLocalPlayerInTeamB() {
         return !!localPlayerSlot?.classList?.contains('team-b');
@@ -1270,6 +1278,137 @@ document.addEventListener('DOMContentLoaded', () => {
         const exitemId = Math.trunc(Number(user?.aexitem));
         if (Number.isFinite(exitemId) && POWER_USER_EXITEM_IDS.has(exitemId)) return true;
         return false;
+    }
+
+    function sanitizeSlotBubbleMessage(message) {
+        return String(message || '')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 140);
+    }
+
+    function getAllRoomSlots() {
+        return [
+            ...(slotElementsByTeam.A || []),
+            ...(slotElementsByTeam.B || [])
+        ];
+    }
+
+    function clearSlotSpeechBubbleTimer(slot) {
+        if (!slot) return;
+        const prevTimer = slotSpeechBubbleHideTimers.get(slot);
+        if (prevTimer) {
+            window.clearTimeout(prevTimer);
+            slotSpeechBubbleHideTimers.delete(slot);
+        }
+    }
+
+    function hideSlotSpeechBubble(slot) {
+        if (!slot) return;
+        clearSlotSpeechBubbleTimer(slot);
+        const bubbleEl = slot.querySelector('.slot-textballoon');
+        if (!bubbleEl) return;
+        bubbleEl.classList.remove('visible');
+    }
+
+    function getSlotSpeechBubbleElement(slot) {
+        if (!slot) return null;
+        let bubbleEl = slot.querySelector('.slot-textballoon');
+        if (bubbleEl) return bubbleEl;
+
+        bubbleEl = document.createElement('div');
+        bubbleEl.className = 'slot-textballoon';
+
+        const bodyEl = document.createElement('div');
+        bodyEl.className = 'slot-textballoon-body';
+        bubbleEl.appendChild(bodyEl);
+
+        const textEl = document.createElement('div');
+        textEl.className = 'slot-textballoon-text';
+        bodyEl.appendChild(textEl);
+
+        const tailEl = document.createElement('div');
+        tailEl.className = 'slot-textballoon-tail';
+        bubbleEl.appendChild(tailEl);
+
+        slot.appendChild(bubbleEl);
+        return bubbleEl;
+    }
+
+    function applySlotSpeechBubbleTheme(bubbleEl, isPowerUser) {
+        if (!bubbleEl) return;
+        bubbleEl.classList.toggle('power-user', Boolean(isPowerUser));
+    }
+
+    function resolveSlotByNickname(nickname) {
+        const normalizedNickname = String(nickname || '').trim().toLowerCase();
+        if (!normalizedNickname) return null;
+        const allSlots = getAllRoomSlots();
+        for (let index = 0; index < allSlots.length; index += 1) {
+            const slot = allSlots[index];
+            if (!slot) continue;
+            const slotNickname = String(slot.dataset.nickname || '').trim().toLowerCase();
+            if (slotNickname && slotNickname === normalizedNickname) {
+                return slot;
+            }
+        }
+        return null;
+    }
+
+    function setSlotOccupantDataset(slot, user) {
+        if (!slot || !user) return;
+        const userId = String(user.id || '').trim();
+        const nickname = String(user.nickname || '').trim();
+        const isPowerUser = hasPowerUserEquipped(user);
+        slot.dataset.occupied = '1';
+        slot.dataset.userId = userId;
+        slot.dataset.nickname = nickname;
+        slot.dataset.poweruser = isPowerUser ? '1' : '';
+    }
+
+    function clearSlotOccupantDataset(slot) {
+        if (!slot) return;
+        hideSlotSpeechBubble(slot);
+        slot.dataset.occupied = '';
+        slot.dataset.userId = '';
+        slot.dataset.nickname = '';
+        slot.dataset.poweruser = '';
+    }
+
+    function getSlotBubbleDurationMs(message) {
+        const safeMessage = sanitizeSlotBubbleMessage(message);
+        return Math.max(
+            SLOT_BUBBLE_MIN_DURATION_MS,
+            Math.min(SLOT_BUBBLE_MAX_DURATION_MS, safeMessage.length * SLOT_BUBBLE_MS_PER_CHAR)
+        );
+    }
+
+    function showSlotSpeechBubbleForSlot(slot, message, isPowerUser = false) {
+        if (!slot) return;
+        const safeMessage = sanitizeSlotBubbleMessage(message);
+        if (!safeMessage) return;
+        const bubbleEl = getSlotSpeechBubbleElement(slot);
+        if (!bubbleEl) return;
+        const textEl = bubbleEl.querySelector('.slot-textballoon-text');
+        if (!textEl) return;
+
+        applySlotSpeechBubbleTheme(bubbleEl, isPowerUser);
+        textEl.textContent = safeMessage;
+        bubbleEl.classList.add('visible');
+
+        clearSlotSpeechBubbleTimer(slot);
+        const hideTimer = window.setTimeout(() => {
+            bubbleEl.classList.remove('visible');
+            slotSpeechBubbleHideTimers.delete(slot);
+        }, getSlotBubbleDurationMs(safeMessage));
+        slotSpeechBubbleHideTimers.set(slot, hideTimer);
+    }
+
+    function showSlotSpeechBubbleByNickname(nickname, message, isPowerUser = false) {
+        const slot = resolveSlotByNickname(nickname);
+        if (!slot) return;
+        const slotPowerUser = String(slot.dataset.poweruser || '').trim() === '1';
+        showSlotSpeechBubbleForSlot(slot, message, Boolean(isPowerUser) || slotPowerUser);
     }
 
     function getRandomPowerUserReadyBackgroundFrame() {
@@ -1549,10 +1688,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function removeRemotePlayersFromSlots() {
-        const allSlots = [
-            ...(slotElementsByTeam.A || []),
-            ...(slotElementsByTeam.B || [])
-        ];
+        const allSlots = getAllRoomSlots();
         allSlots.forEach((slot) => {
             if (!slot) return;
             const remoteAnimator = remoteAvatarAnimatorsBySlot.get(slot);
@@ -1577,8 +1713,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 remoteInfo.remove();
             }
             if (slot === localPlayerSlot) return;
-            slot.dataset.occupied = '';
-            slot.dataset.userId = '';
+            clearSlotOccupantDataset(slot);
         });
         remotePlayerIdsBySlot.clear();
     }
@@ -1610,8 +1745,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         remotePlayerIdsBySlot.delete(slot);
-        slot.dataset.occupied = '';
-        slot.dataset.userId = '';
+        clearSlotOccupantDataset(slot);
     }
 
     function renderRemotePlayerVisual(slot, player) {
@@ -1763,8 +1897,7 @@ document.addEventListener('DOMContentLoaded', () => {
         infoEl.appendChild(keyIconEl);
 
         slot.appendChild(infoEl);
-        slot.dataset.occupied = '1';
-        slot.dataset.userId = remoteUserId;
+        setSlotOccupantDataset(slot, player);
         remotePlayerIdsBySlot.set(slot, remoteUserId);
     }
 
@@ -1889,12 +2022,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const userId = String(sourceSlot.dataset.userId || userData?.id || '');
+        const sourceNickname = String(sourceSlot.dataset.nickname || userData?.nickname || '').trim();
+        const sourcePowerUser = String(sourceSlot.dataset.poweruser || '').trim() === '1';
         sourceSlot.dataset.occupied = '';
         sourceSlot.dataset.userId = '';
+        sourceSlot.dataset.nickname = '';
+        sourceSlot.dataset.poweruser = '';
+        hideSlotSpeechBubble(sourceSlot);
 
         localPlayerSlot = targetSlot;
         targetSlot.dataset.occupied = '1';
         targetSlot.dataset.userId = userId;
+        targetSlot.dataset.nickname = sourceNickname;
+        targetSlot.dataset.poweruser = sourcePowerUser ? '1' : '';
 
         targetSlot.appendChild(slotFxBackdropHostEl);
         targetSlot.appendChild(slotFxForegroundHostEl);
@@ -1910,8 +2050,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderSlotAvatar(slotElement, user) {
         if (!slotElement || !user) return;
         localPlayerSlot = slotElement;
-        slotElement.dataset.occupied = '1';
-        slotElement.dataset.userId = String(user.id || '');
+        setSlotOccupantDataset(slotElement, user);
 
         // Create wrapper
         const wrapper = document.createElement('div');
@@ -2079,8 +2218,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (info) info.remove();
             const latency = localPlayerSlot.querySelector('.slot-latency-ms');
             if (latency) latency.remove();
-            localPlayerSlot.dataset.occupied = '';
-            localPlayerSlot.dataset.userId = '';
+            clearSlotOccupantDataset(localPlayerSlot);
             localPlayerSlot = null;
         }
         slotAvatarContainerEl = null;
