@@ -18,6 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const mobilePreviewEl = document.getElementById('game-room-mobile-preview');
     const gameRoomChattingPanel = document.getElementById('game-room-chatting-panel');
     const roomChatFeedEl = document.getElementById('game-room-chat-feed');
+    const btnGameRoomChatScrollUp = document.getElementById('btn-game-room-chat-scroll-up');
+    const btnGameRoomChatScrollDown = document.getElementById('btn-game-room-chat-scroll-down');
     const btnGameRoomChatting = document.getElementById('btn-game-room-chatting');
     const roomChatInput = document.getElementById('game-room-chat-input');
     const roomChatCursor = document.getElementById('game-room-chat-cursor');
@@ -62,14 +64,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function appendRoomChatMessage(data) {
         if (!roomChatFeedEl) return;
-        const nickname = String(data?.nickname || '').trim();
-        const message = String(data?.message || '').trim();
-        if (!nickname || !message) return;
-        const msgDiv = document.createElement('div');
         const typeClass = String(data?.type || 'user').trim() || 'user';
         const colorClass = String(data?.color || '').trim();
+        const nickname = String(data?.nickname || '').trim();
+        const message = String(data?.message || '').trim();
+        if (!message) return;
+        const msgDiv = document.createElement('div');
         msgDiv.className = `chat-message ${typeClass}${colorClass ? ` ${colorClass}` : ''}`;
-        msgDiv.innerHTML = `<span class="nickname">${nickname}]</span> ${message}`;
+        if (typeClass === 'broadcast') {
+            const icon = String(data?.icon || '').trim();
+            const iconHtml = icon ? `<img src="/assets/shared/icon/${icon}.png" class="gm-chat-icon">` : '';
+            msgDiv.innerHTML = `${iconHtml}${message}`;
+        } else if (typeClass === 'system') {
+            msgDiv.textContent = message;
+        } else {
+            if (!nickname) return;
+            msgDiv.innerHTML = `<span class="nickname">${nickname}]</span> ${message}`;
+        }
 
         const isAtBottom = roomChatFeedEl.scrollHeight - roomChatFeedEl.scrollTop <= roomChatFeedEl.clientHeight + 40;
         roomChatFeedEl.appendChild(msgDiv);
@@ -79,6 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isAtBottom) {
             roomChatFeedEl.scrollTop = roomChatFeedEl.scrollHeight;
         }
+        window.setTimeout(() => roomChatScroll?.update(), 20);
     }
 
     function appendRoomSystemMessage(message, color = 'yellow') {
@@ -90,6 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
         msgDiv.textContent = text;
         roomChatFeedEl.appendChild(msgDiv);
         roomChatFeedEl.scrollTop = roomChatFeedEl.scrollHeight;
+        window.setTimeout(() => roomChatScroll?.update(), 20);
     }
 
     const buddyScroll = ui?.setupScrollControls({
@@ -104,6 +117,13 @@ document.addEventListener('DOMContentLoaded', () => {
         upButton: document.querySelector('.buddy-chat-scroll-up'),
         downButton: document.querySelector('.buddy-chat-scroll-down'),
         scrollAmount: 30
+    });
+
+    const roomChatScroll = ui?.setupScrollControls({
+        viewport: roomChatFeedEl,
+        upButton: btnGameRoomChatScrollUp,
+        downButton: btnGameRoomChatScrollDown,
+        scrollAmount: 28
     });
 
     const addBuddyCursorController = ui?.setupInputCursor({
@@ -1816,6 +1836,7 @@ document.addEventListener('DOMContentLoaded', () => {
             applyChattingMode(nextChattingMode);
             roomChatInput?.focus();
             roomChatCursorController?.update();
+            window.setTimeout(() => roomChatScroll?.update(), 20);
         });
     }
 

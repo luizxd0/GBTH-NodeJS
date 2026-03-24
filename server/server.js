@@ -2365,6 +2365,13 @@ io.on('connection', (socket) => {
             return;
         }
 
+        // Support slash commands from game room chat too (e.g. /bcm).
+        if (trimmedMessage.startsWith('/')) {
+            const Commands = require('./commands');
+            Commands.handle(io, socket, user, trimmedMessage);
+            return;
+        }
+
         const roomKey = String(user.roomKey || '').trim();
         if (!roomKey) {
             return;

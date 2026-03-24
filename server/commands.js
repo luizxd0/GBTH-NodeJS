@@ -3,6 +3,15 @@
  */
 
 const Commands = {
+    emitToUser: function(socket, user, payload) {
+        const location = String(user?.location || '').toLowerCase();
+        if (location === 'game_room') {
+            socket.emit('game_room_message', payload);
+            return;
+        }
+        socket.emit('lobby_message', payload);
+    },
+
     /**
      * Handle incoming command from a socket
      * @param {object} io Socket.io server instance
@@ -18,8 +27,12 @@ const Commands = {
         if (this[cmdName]) {
             this[cmdName](io, socket, user, args);
         } else {
-            // Optional: send small system message saying "Command not found" if needed
-            // But for now, just silently ignore or handle specifically.
+            this.emitToUser(socket, user, {
+                type: 'broadcast',
+                message: 'Invalid Command',
+                color: 'yellow',
+                icon: 'icon_frame_5'
+            });
         }
     },
 
@@ -39,12 +52,14 @@ const Commands = {
 
         console.log(`[Command] GM ${user.nickname} broadcasted: ${broadcastMessage}`);
 
-        io.emit('lobby_message', {
+        const payload = {
             type: 'broadcast',
             message: broadcastMessage,
             color: 'yellow',
             icon: 'icon_frame_5'
-        });
+        };
+        io.emit('lobby_message', payload);
+        io.emit('game_room_message', payload);
     },
 
     /**
@@ -56,7 +71,7 @@ const Commands = {
             helpText += ", /bcm <message>";
         }
         
-        socket.emit('lobby_message', {
+        this.emitToUser(socket, user, {
             type: 'system',
             message: helpText,
             color: 'green'

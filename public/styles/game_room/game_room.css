@@ -864,10 +864,74 @@
     display: none;
 }
 
+#game-room-screen .game-room-chat-scroll-controls {
+    display: none;
+}
+
+#game-room-screen.chatting-mode .game-room-chat-scroll-controls {
+    position: absolute;
+    top: 401px;
+    left: 475px;
+    width: 18px;
+    height: 132px;
+    z-index: 12;
+    display: block;
+}
+
+.game-room-chat-scroll-btn {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border: none;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-position: center;
+    outline: none;
+    cursor: inherit;
+}
+
+#btn-game-room-chat-scroll-up {
+    top: 7px;
+    left: 0;
+    background-image: url('/assets/screens/game_room/b_scroll_up2/b_scroll_up2_frame_0.png');
+}
+
+#btn-game-room-chat-scroll-up:hover:not(.disabled) {
+    background-image: url('/assets/screens/game_room/b_scroll_up2/b_scroll_up2_frame_1.png');
+}
+
+#btn-game-room-chat-scroll-up:active:not(.disabled) {
+    background-image: url('/assets/screens/game_room/b_scroll_up2/b_scroll_up2_frame_2.png');
+}
+
+#btn-game-room-chat-scroll-up.disabled {
+    background-image: url('/assets/screens/game_room/b_scroll_up2/b_scroll_up2_frame_3.png');
+    pointer-events: none;
+}
+
+#btn-game-room-chat-scroll-down {
+    bottom: 0;
+    left: 0;
+    background-image: url('/assets/screens/game_room/b_scroll_down2/b_scroll_down2_frame_0.png');
+}
+
+#btn-game-room-chat-scroll-down:hover:not(.disabled) {
+    background-image: url('/assets/screens/game_room/b_scroll_down2/b_scroll_down2_frame_1.png');
+}
+
+#btn-game-room-chat-scroll-down:active:not(.disabled) {
+    background-image: url('/assets/screens/game_room/b_scroll_down2/b_scroll_down2_frame_2.png');
+}
+
+#btn-game-room-chat-scroll-down.disabled {
+    background-image: url('/assets/screens/game_room/b_scroll_down2/b_scroll_down2_frame_3.png');
+    pointer-events: none;
+}
+
 #game-room-screen.chatting-mode #game-room-chat-feed {
     top: 400px;
     left: 32px;
-    width: 435px;
+    width: 432px;
     height: 130px;
     display: flex;
     overflow-y: auto;
