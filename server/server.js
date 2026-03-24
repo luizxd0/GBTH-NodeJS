@@ -2437,7 +2437,10 @@ io.on('connection', (socket) => {
         if (!channelId) return;
         const channelUsers = [];
         for (const [sId, data] of socketData.entries()) {
-            if (data.location === 'channel' && data.channelId === channelId) {
+            const nicknameKey = String(data?.nickname || '').toLowerCase();
+            const linkedSocketId = userSockets.get(nicknameKey);
+            const isLinkedPresence = Boolean(linkedSocketId) && linkedSocketId === sId;
+            if (isLinkedPresence && data.location === 'channel' && data.channelId === channelId) {
                 channelUsers.push({
                     id: data.id,
                     nickname: data.nickname,
@@ -2449,7 +2452,10 @@ io.on('connection', (socket) => {
         }
         for (const [sId, data] of socketData.entries()) {
             const userData = socketData.get(sId);
-            if (userData && userData.location === 'channel' && userData.channelId === channelId) {
+            const nicknameKey = String(userData?.nickname || '').toLowerCase();
+            const linkedSocketId = userSockets.get(nicknameKey);
+            const isLinkedPresence = Boolean(linkedSocketId) && linkedSocketId === sId;
+            if (userData && isLinkedPresence && userData.location === 'channel' && userData.channelId === channelId) {
                 io.to(sId).emit('channel_users', channelUsers);
             }
         }

@@ -884,7 +884,7 @@ document.addEventListener('DOMContentLoaded', () => {
     );
     const AVATAR_SEAT_ADJUST_BY_ASSET = AVATAR_SYNC_CONFIG.seatAdjustByAsset || mobilePoseConfig.avatarSeatAdjustByAsset || {};
     const AVATAR_SEAT_ADJUST_BY_ASSET_TEAM_B = AVATAR_SYNC_CONFIG.seatAdjustByAssetTeamB || mobilePoseConfig.avatarSeatAdjustByAssetTeamB || {};
-    const ROOM_MASTER_KEY_ICON_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABsAAAAQCAYAAADnEwSWAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAGOSURBVDhPvZQtj+MwEEDfngIGLAhYEHDAoKBgwcKAgwcCCxcWFuYHFBQeDCxccCCwsD8hMKCgoMCgwGCBQcGASHfA/YyrrtS92yeNrIwlP41n4ges/uGL+NZP/E8ePlWZkX7mhNV+5hMyI+QDIX82/R2alaXZaCS8T3YmKkdDMiOAAIqzSrVYXxXe3bOTKAXJjpGZlHI0JH825AO5uOrLym714Ix8INTTguy77CUpJAKdgnpQh9uGCqvF+lhd0j/I1znylPXTMZ2Gq0sIokR4e6uZVC3z8oVxEZ8RXeOs9ui7+zACGqSdB/VMqhashvUKkaxarCmmLbPaIwLyKMijMKs9xbQ97qG6Dwc7B+qYly9gJKxdPPqXMhump9kozcoC8Ov3Grrw3WxOe3YLuvOo9+guCMeFQZcF458pdntxMkQDco4RJqMh7cqSPaUsGncaYyOUoyHjHylZFnonCYiEHtqtMF/aaPxvyiLOZIf/7DVPMdk+nwh+J8yXLhJxU/YRX/aCHLhW/YF/+jbewV9OB++/gLbnhQAAAABJRU5ErkJggg==';
+    const ROOM_MASTER_KEY_ICON_PATH = '/assets/screens/game_room/ready_back/ready_back_frame_7.png';
     const POWER_USER_EXITEM_IDS = new Set([204801, 204802, 204803, 204804, 204831, 204832, 204833, 204834, 204835]);
     const POWER_USER_READY_BACKGROUND_FRAMES = [0, 1, 2, 3, 4, 5];
     const DEFAULT_JOIN_MOBILE_INDEX = 15;
@@ -1480,7 +1480,7 @@ document.addEventListener('DOMContentLoaded', () => {
         keyIconEl.className = 'slot-master-key-icon';
         keyIconEl.alt = '';
         keyIconEl.draggable = false;
-        keyIconEl.src = ROOM_MASTER_KEY_ICON_DATA_URI;
+        keyIconEl.src = ROOM_MASTER_KEY_ICON_PATH;
         infoEl.appendChild(keyIconEl);
         localPlayerKeyIconEl = keyIconEl;
         updateLocalSlotMasterKeyIcon();
