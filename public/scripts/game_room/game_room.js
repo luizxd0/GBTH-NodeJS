@@ -1143,9 +1143,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const ROOM_MASTER_KEY_ICON_PATH = '/assets/screens/game_room/ready_back/ready_back_frame_7.png';
     const POWER_USER_EXITEM_IDS = new Set([204801, 204802, 204803, 204804, 204831, 204832, 204833, 204834, 204835]);
     const POWER_USER_READY_BACKGROUND_FRAMES = [0, 1, 2, 3, 4, 5];
-    const SLOT_BUBBLE_MIN_DURATION_MS = 4500;
-    const SLOT_BUBBLE_MAX_DURATION_MS = 12000;
-    const SLOT_BUBBLE_MS_PER_CHAR = 80;
+    const SLOT_BUBBLE_MIN_DURATION_MS = 10000;
+    const SLOT_BUBBLE_MAX_DURATION_MS = 24000;
+    const SLOT_BUBBLE_MS_PER_CHAR = 160;
+    const SLOT_BUBBLE_RESTORE_MIN_DURATION_MS = 5000;
     const DEFAULT_JOIN_MOBILE_INDEX = 15;
     let selectedMobile = Math.trunc(Number(roomConfig?.mobileIndex));
     if (selectedMobile === 0) selectedMobile = DEFAULT_JOIN_MOBILE_INDEX;
@@ -1501,7 +1502,8 @@ document.addEventListener('DOMContentLoaded', () => {
             activeSlotSpeechBubblesByNickname.delete(nicknameKey);
             return;
         }
-        showSlotSpeechBubbleForSlot(slot, bubbleState.message, Boolean(bubbleState.isPowerUser), remainingMs);
+        const restoredDurationMs = Math.max(SLOT_BUBBLE_RESTORE_MIN_DURATION_MS, remainingMs);
+        showSlotSpeechBubbleForSlot(slot, bubbleState.message, Boolean(bubbleState.isPowerUser), restoredDurationMs);
     }
 
     function getSlotBubbleDurationMs(message) {

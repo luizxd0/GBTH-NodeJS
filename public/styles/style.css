@@ -663,7 +663,25 @@ body {
     --slot-capacity-top: 11px;
     --slot-capacity-right: 40px;
     --slot-capacity-width: 24px;
-    --slot-capacity-gap: 5px;
+    /* Horizontal space between current count and max (no slash in markup) */
+    --slot-capacity-gap: 6px;
+    --slot-capacity-max-margin-left: 0px;
+    /* Interior layout (left column defaults; .right overrides below) */
+    --lobby-room-number-top: 9px;
+    --lobby-room-number-left: 11px;
+    --lobby-room-number-width: 22px;
+    --lobby-room-title-top: 10px;
+    --lobby-room-title-left: 33px;
+    --lobby-room-title-width: 215px;
+    --lobby-room-status-top: 27px;
+    --lobby-room-status-left: 20px;
+    --lobby-room-stage-top: 32px;
+    --lobby-room-stage-right: 84px;
+    --lobby-room-mode-top: 32px;
+    --lobby-room-mode-right: 41px;
+    --lobby-room-meta-top: 30px;
+    --lobby-room-meta-left: 8px;
+    --lobby-room-meta-width: 215px;
 }
 
 .lobby-room-slot.left {
@@ -676,6 +694,27 @@ body {
     --frame-static: url('/assets/screens/lobby/gamelist_back/gamelist_back_frame_4.png');
     --frame-hover: url('/assets/screens/lobby/gamelist_back/gamelist_back_frame_5.png');
     --frame-active: url('/assets/screens/lobby/gamelist_back/gamelist_back_frame_6.png');
+    /*
+     * Right column only — mirror art uses different padding; adjust top/left/right here.
+     * Left column keeps .lobby-room-slot defaults above.
+     */
+    --lobby-room-number-top: 9px;
+    --lobby-room-number-left: 36px;
+    --lobby-room-title-top: 10px;
+    --lobby-room-title-left: 58px;
+    --lobby-room-status-top: 27px;
+    --lobby-room-status-left: 45px;
+    --lobby-room-stage-top: 32px;
+    --lobby-room-stage-right: 58px;
+    --lobby-room-mode-top: 32px;
+    --lobby-room-mode-right: 16px;
+    --lobby-room-meta-top: 30px;
+    --lobby-room-meta-left: 8px;
+    --slot-capacity-top: 11px;
+    --slot-capacity-right: 13px;
+    --slot-capacity-width: 28px;
+    --slot-capacity-gap: 6px;
+    --slot-capacity-max-margin-left: 0px;
 }
 
 .lobby-room-slot.power-user.left {
@@ -701,9 +740,9 @@ body {
 
 .lobby-room-number {
     position: absolute;
-    top: 9px;
-    left: 11px;
-    width: 22px;
+    top: var(--lobby-room-number-top);
+    left: var(--lobby-room-number-left);
+    width: var(--lobby-room-number-width);
     font-size: 12px;
     font-weight: bold;
     color: #ffffff;
@@ -716,9 +755,9 @@ body {
 
 .lobby-room-title {
     position: absolute;
-    top: 10px;
-    left: 33px;
-    width: 215px;
+    top: var(--lobby-room-title-top);
+    left: var(--lobby-room-title-left);
+    width: var(--lobby-room-title-width);
     line-height: 14px;
     font-size: 11px;
     font-weight: bold;
@@ -730,8 +769,8 @@ body {
 
 .lobby-room-status {
     position: absolute;
-    top: 27px;
-    left: 20px;
+    top: var(--lobby-room-status-top);
+    left: var(--lobby-room-status-left);
     width: auto;
     height: auto;
     max-width: none;
@@ -744,8 +783,8 @@ body {
 
 .lobby-room-stage {
     position: absolute;
-    top: 32px;
-    right: 84px;
+    top: var(--lobby-room-stage-top);
+    right: var(--lobby-room-stage-right);
     width: auto;
     height: auto;
     max-width: none;
@@ -758,8 +797,8 @@ body {
 
 .lobby-room-mode {
     position: absolute;
-    top: 32px;
-    right: 41px;
+    top: var(--lobby-room-mode-top);
+    right: var(--lobby-room-mode-right);
     width: auto;
     height: auto;
     max-width: none;
@@ -772,9 +811,9 @@ body {
 
 .lobby-room-meta {
     position: absolute;
-    top: 30px;
-    left: 8px;
-    width: 215px;
+    top: var(--lobby-room-meta-top);
+    left: var(--lobby-room-meta-left);
+    width: var(--lobby-room-meta-width);
     line-height: 13px;
     font-size: 10px;
     color: #cde7ff;
@@ -797,6 +836,8 @@ body {
     justify-content: center;
     align-items: center;
     gap: var(--slot-capacity-gap);
+    flex-wrap: nowrap;
+    white-space: nowrap;
     font-size: 12px;
     font-weight: bold;
     line-height: 12px;
@@ -808,6 +849,10 @@ body {
     display: inline-block;
     min-width: 10px;
     text-align: center;
+}
+
+.lobby-room-capacity-max {
+    margin-left: var(--slot-capacity-max-margin-left);
 }
 
 .lobby-room-slot.power-user .lobby-room-capacity {
