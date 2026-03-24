@@ -1502,63 +1502,61 @@ document.addEventListener('DOMContentLoaded', () => {
             activeSlotSpeechBubblesByNickname.delete(nicknameKey);
             return;
         }
-        const restoredDurationMs = Math.max(SLOT_BUBBLE_RESTORE_MIN_DURATION_MS, remainingMs);
-        showSlotSpeechBubbleForSlot(slot, bubbleState.message, Boolean(bubbleState.isPowerUser), restoredDurationMs);
+        renderSlotSpeechBubble(slot, bubbleState.message, Boolean(bubbleState.isPowerUser), remainingMs);
     }
 
-    function getSlotBubbleDurationMs(message) {
-        const safeMessage = sanitizeSlotBubbleMessage(message);
-        return Math.max(
-            SLOT_BUBBLE_MIN_DURATION_MS,
-            Math.min(SLOT_BUBBLE_MAX_DURATION_MS, safeMessage.length * SLOT_BUBBLE_MS_PER_CHAR)
-        );
-    }
-
-    function showSlotSpeechBubbleForSlot(slot, message, isPowerUser = false, durationOverrideMs = null) {
+    function renderSlotSpeechBubble(slot, message, isPowerUser, durationMs) {
         if (!slot) return;
-        const safeMessage = sanitizeSlotBubbleMessage(message);
-        if (!safeMessage) return;
         const bubbleEl = getSlotSpeechBubbleElement(slot);
         if (!bubbleEl) return;
         const textEl = bubbleEl.querySelector('.slot-textballoon-text');
         if (!textEl) return;
-
+        
         applySlotSpeechBubbleTheme(bubbleEl, isPowerUser);
-        textEl.textContent = safeMessage;
+        
+        // Disable transition temporarily to prevent css flashing
+        bubbleEl.style.transition = 'none';
+        bubbleEl.classList.remove('visible');
+        void bubbleEl.offsetWidth; // Force reflow
+        textEl.textContent = message;
+        
+        // Re-enable transition and show
+        bubbleEl.style.transition = '';
         bubbleEl.classList.add('visible');
-
-        const slotNicknameKey = getBubbleNicknameKey(slot.dataset.nickname);
-        const durationMs = Number.isFinite(Number(durationOverrideMs))
-            ? Math.max(120, Math.trunc(Number(durationOverrideMs)))
-            : getSlotBubbleDurationMs(safeMessage);
-        const expiresAt = Date.now() + durationMs;
-        if (slotNicknameKey) {
-            activeSlotSpeechBubblesByNickname.set(slotNicknameKey, {
-                message: safeMessage,
-                isPowerUser: Boolean(isPowerUser),
-                expiresAt
-            });
-        }
 
         clearSlotSpeechBubbleTimer(slot);
         const hideTimer = window.setTimeout(() => {
             bubbleEl.classList.remove('visible');
             slotSpeechBubbleHideTimers.delete(slot);
-            if (slotNicknameKey) {
-                const latest = activeSlotSpeechBubblesByNickname.get(slotNicknameKey);
-                if (latest && Number(latest.expiresAt) <= Date.now()) {
-                    activeSlotSpeechBubblesByNickname.delete(slotNicknameKey);
-                }
-            }
         }, durationMs);
         slotSpeechBubbleHideTimers.set(slot, hideTimer);
     }
 
+    function getSlotBubbleDurationMs(message) {
+        const safeMessage = sanitizeSlotBubbleMessage(message);
+        // Absolute minimum 4 seconds. Add more based on text length.
+        return Math.max(4000, safeMessage.length * 150);
+    }
+
     function showSlotSpeechBubbleByNickname(nickname, message, isPowerUser = false) {
+        const safeMessage = sanitizeSlotBubbleMessage(message);
+        if (!safeMessage) return;
+        const nicknameKey = getBubbleNicknameKey(nickname);
+        if (!nicknameKey) return;
+
         const slot = resolveSlotByNickname(nickname);
-        if (!slot) return;
-        const slotPowerUser = String(slot.dataset.poweruser || '').trim() === '1';
-        showSlotSpeechBubbleForSlot(slot, message, Boolean(isPowerUser) || slotPowerUser);
+        const slotPowerUser = slot ? (String(slot.dataset.poweruser || '').trim() === '1') : false;
+        const durationMs = getSlotBubbleDurationMs(safeMessage);
+        
+        activeSlotSpeechBubblesByNickname.set(nicknameKey, {
+            message: safeMessage,
+            isPowerUser: Boolean(isPowerUser) || slotPowerUser,
+            expiresAt: Date.now() + durationMs
+        });
+
+        if (slot) {
+            renderSlotSpeechBubble(slot, safeMessage, Boolean(isPowerUser) || slotPowerUser, durationMs);
+        }
     }
 
     function getRandomPowerUserReadyBackgroundFrame() {

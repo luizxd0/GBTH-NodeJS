@@ -660,12 +660,16 @@ body {
     padding: 0;
     overflow: hidden;
     z-index: 1;
-    --slot-capacity-top: 11px;
-    --slot-capacity-right: 40px;
-    --slot-capacity-width: 24px;
-    /* Horizontal space between current count and max (no slash in markup) */
+    --slot-capacity-top: 8px;
+    --slot-capacity-right: 39px;
+    /* Min row height when buddy icon (frame_14) is hidden; raise if numbers sit too high vs with-icon rows */
+    --slot-capacity-row-min-height: 17px;
+    /* Horizontal space between lock, player icon, current count, and max */
     --slot-capacity-gap: 6px;
     --slot-capacity-max-margin-left: 0px;
+    /* Buddy headcount icon (frame_14): nudge vs flex-aligned position */
+    --slot-capacity-buddy-icon-top: 0px;
+    --slot-capacity-buddy-icon-right: -5px;
     /* Interior layout (left column defaults; .right overrides below) */
     --lobby-room-number-top: 9px;
     --lobby-room-number-left: 11px;
@@ -712,9 +716,11 @@ body {
     --lobby-room-meta-left: 8px;
     --slot-capacity-top: 11px;
     --slot-capacity-right: 13px;
-    --slot-capacity-width: 28px;
-    --slot-capacity-gap: 6px;
+    --slot-capacity-row-min-height: 17px;
+    --slot-capacity-gap: 4px;
     --slot-capacity-max-margin-left: 0px;
+    --slot-capacity-buddy-icon-top: 0px;
+    --slot-capacity-buddy-icon-right: 0px;
 }
 
 .lobby-room-slot.power-user.left {
@@ -831,9 +837,12 @@ body {
     position: absolute;
     top: var(--slot-capacity-top);
     right: var(--slot-capacity-right);
-    width: var(--slot-capacity-width);
+    width: max-content;
+    max-width: none;
+    min-height: var(--slot-capacity-row-min-height);
+    box-sizing: border-box;
     display: inline-flex;
-    justify-content: center;
+    justify-content: flex-end;
     align-items: center;
     gap: var(--slot-capacity-gap);
     flex-wrap: nowrap;
@@ -842,6 +851,27 @@ body {
     font-weight: bold;
     line-height: 12px;
     color: #ffffff;
+}
+
+/* Lock + headcount icons use source PNG dimensions (same idea as .lobby-room-status / -stage / -mode). */
+.lobby-room-capacity-lock,
+.lobby-room-capacity-icon {
+    display: block;
+    flex-shrink: 0;
+    width: auto;
+    height: auto;
+    max-width: none;
+    max-height: none;
+    object-fit: none;
+    image-rendering: auto;
+    pointer-events: none;
+}
+
+/* Buddy-only icon (gamelist_back_frame_14): adjust --slot-capacity-buddy-icon-top / -right on .lobby-room-slot or .lobby-room-slot.right */
+.lobby-room-capacity-icon {
+    position: relative;
+    top: var(--slot-capacity-buddy-icon-top);
+    right: var(--slot-capacity-buddy-icon-right);
 }
 
 .lobby-room-capacity-current,

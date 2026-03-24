@@ -2715,6 +2715,7 @@ io.on('connection', (socket) => {
                         || Number(previousPresence.channelId) !== Number(nextPresence.channelId)
                         || Number(previousPresence.roomId || 0) !== Number(nextPresence.roomId || 0);
                     nextPresence.__hasPresenceChanged = hasPresenceChanged;
+                    nextPresence.__previousChannelId = previousPresence ? previousPresence.channelId : null;
                     nextPresence.__hasGameRoomTopologyChanged = hasGameRoomTopologyChanged;
                     lastKnownPresence.set(userId, {
                         location: nextPresence.location,
@@ -2758,12 +2759,17 @@ io.on('connection', (socket) => {
                         notifyBuddiesOfStatusChange(currentData.id, 0);
                     }
                 }
+                const prevChannel = currentData.__previousChannelId;
+                if (prevChannel !== undefined && prevChannel !== null && prevChannel !== currentData.channelId && prevChannel > 0) {
+                    broadcastChannelUsers(prevChannel);
+                }
                 broadcastChannelUsers(currentData.channelId);
                 broadcastLobbyRooms();
                 deliverOfflinePacketsToSocket(socket, currentData).catch((error) => {
                     console.error('[Packet] Failed to deliver offline packets:', error);
                 });
                 delete currentData.__hasPresenceChanged;
+                delete currentData.__previousChannelId;
                 delete currentData.__hasGameRoomTopologyChanged;
             }
         }
@@ -2866,7 +2872,7 @@ io.on('connection', (socket) => {
         if (user && user.location === 'channel') {
             const oldChannelId = user.channelId;
             user.channelId = parseInt(newChannelId);
-            
+
             // Re-broadcast user lists for both channels
             broadcastChannelUsers(oldChannelId);
             broadcastChannelUsers(user.channelId);
@@ -3186,6 +3192,7 @@ io.on('connection', (socket) => {
                 mapSide,
                 mapIndex,
                 memberCount: memberIds.length,
+                memberIds: memberIds.slice(),
                 maxPlayers,
                 ownerNickname,
                 ownerGuild,

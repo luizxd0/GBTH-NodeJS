@@ -61,6 +61,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const LOBBY_STAGE_FRAME_COUNT = 22;
     let lobbyRoomsCache = [];
     let lobbyRoomsPageIndex = 0;
+    /** Buddy user ids (from `buddy_list_data`) — used to show headcount friend icon on room rows. */
+    const lobbyBuddyIds = new Set();
+
+    function syncLobbyBuddyIdsFromBuddyList(buddies) {
+        lobbyBuddyIds.clear();
+        if (!Array.isArray(buddies)) return;
+        buddies.forEach((entry) => {
+            const id = String(entry?.id ?? '').trim();
+            if (id) lobbyBuddyIds.add(id);
+        });
+    }
+
+    function lobbyRoomHasBuddyMember(room) {
+        const ids = Array.isArray(room?.memberIds) ? room.memberIds : [];
+        for (let i = 0; i < ids.length; i += 1) {
+            const id = String(ids[i] ?? '').trim();
+            if (id && lobbyBuddyIds.has(id)) return true;
+        }
+        return false;
+    }
 
     const buddyScroll = ui?.setupScrollControls({
         viewport: buddyListContent,
@@ -275,6 +295,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 powerUser: Boolean(room?.powerUser),
                 hasPassword: Boolean(room?.hasPassword),
                 ownerNickname: String(room?.ownerNickname || '').trim(),
+                memberIds: Array.isArray(room?.memberIds)
+                    ? room.memberIds.map((id) => String(id ?? '').trim()).filter(Boolean)
+                    : [],
                 status
             };
         }).filter((room) => room.roomId > 0)
@@ -393,6 +416,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const occupied = Math.min(normalizedMaxPlayers, Math.max(0, Math.trunc(Number(room.memberCount || 0))));
             const capacityEl = document.createElement('div');
             capacityEl.className = 'lobby-room-capacity';
+            if (room.hasPassword) {
+                const lockIconEl = document.createElement('img');
+                lockIconEl.className = 'lobby-room-capacity-lock';
+                lockIconEl.src = '/assets/screens/lobby/gamelist_back/gamelist_back_frame_15.png';
+                lockIconEl.alt = 'password protected';
+                lockIconEl.setAttribute('draggable', 'false');
+                capacityEl.appendChild(lockIconEl);
+            }
+            if (lobbyRoomHasBuddyMember(room)) {
+                const capacityIconEl = document.createElement('img');
+                capacityIconEl.className = 'lobby-room-capacity-icon';
+                capacityIconEl.src = '/assets/screens/lobby/gamelist_back/gamelist_back_frame_14.png';
+                capacityIconEl.alt = '';
+                capacityIconEl.setAttribute('draggable', 'false');
+                capacityEl.appendChild(capacityIconEl);
+            }
             const capacityCurrentEl = document.createElement('span');
             capacityCurrentEl.className = 'lobby-room-capacity-current';
             capacityCurrentEl.textContent = String(occupied);
@@ -822,8 +861,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (onlineCountEl) onlineCountEl.textContent = data.onlineCount;
         if (totalCountEl) totalCountEl.textContent = data.totalCount;
 
+        syncLobbyBuddyIdsFromBuddyList(data?.buddies);
         buddyUi?.renderList(buddyListContent, data.buddies, { includeIdDataset: true });
         window.setTimeout(() => buddyScroll?.update(), 50);
+        if (lobbyRoomList && lobbyRoomsCache.length > 0) {
+            renderLobbyRoomsPage();
+        }
     });
 
     const btnBuddyDel = document.getElementById('btn-buddy-del');
