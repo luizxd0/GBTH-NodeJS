@@ -246,12 +246,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const roomId = Math.trunc(Number(room?.roomId || 0));
             const memberCount = Math.max(0, Math.trunc(Number(room?.memberCount || 0)));
             const maxPlayers = Math.max(1, Math.trunc(Number(room?.maxPlayers || 1)));
+            const teamSize = Math.max(1, Math.trunc(Number(room?.teamSize || 4)));
             return {
+                roomKey: String(room?.roomKey || '').trim(),
                 roomId: Number.isFinite(roomId) && roomId > 0 ? roomId : 0,
                 title: String(room?.title || '').trim(),
                 mode: String(room?.mode || 'solo').trim().toLowerCase(),
                 memberCount,
                 maxPlayers,
+                teamSize,
+                slotLabel: String(room?.slotLabel || '').trim(),
                 powerUser: Boolean(room?.powerUser),
                 hasPassword: Boolean(room?.hasPassword),
                 ownerNickname: String(room?.ownerNickname || '').trim()
@@ -312,11 +316,30 @@ document.addEventListener('DOMContentLoaded', () => {
             metaEl.className = 'lobby-room-meta';
             const modeLabel = room.mode ? room.mode.toUpperCase() : 'SOLO';
             const lockLabel = room.hasPassword ? ' LOCK' : '';
-            metaEl.textContent = `${room.memberCount}/${room.maxPlayers} ${modeLabel}${lockLabel}`;
+            metaEl.textContent = `${modeLabel}${lockLabel}`;
+
+            // Lobby list should show occupancy as x / teamSize, clamped by teamSize.
+            // Example: 4v4 with 1 player => 1/4, 1v1 with 2 players => 1/1.
+            const normalizedTeamSize = Math.max(1, Math.trunc(Number(room.teamSize || 4)));
+            const occupied = Math.min(normalizedTeamSize, Math.ceil(Math.max(0, room.memberCount) / 2));
+            const capacityEl = document.createElement('div');
+            capacityEl.className = 'lobby-room-capacity';
+            const capacityCurrentEl = document.createElement('span');
+            capacityCurrentEl.className = 'lobby-room-capacity-current';
+            capacityCurrentEl.textContent = String(occupied);
+            const capacityMaxEl = document.createElement('span');
+            capacityMaxEl.className = 'lobby-room-capacity-max';
+            capacityMaxEl.textContent = String(normalizedTeamSize);
+            capacityEl.appendChild(capacityCurrentEl);
+            capacityEl.appendChild(capacityMaxEl);
 
             slot.appendChild(numberEl);
             slot.appendChild(titleEl);
             slot.appendChild(metaEl);
+            slot.appendChild(capacityEl);
+            slot.addEventListener('dblclick', () => {
+                joinLobbyRoom(room);
+            });
             fragment.appendChild(slot);
         });
 
@@ -345,6 +368,40 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         lobbyRoomsPageIndex = targetPage;
         renderLobbyRoomsPage();
+    }
+
+    function joinLobbyRoom(room) {
+        if (!userData || !room?.roomKey) return;
+
+        const roomConfig = {
+            title: String(room.title || `Room ${room.roomId}`).trim(),
+            roomKey: String(room.roomKey || '').trim(),
+            mode: String(room.mode || 'solo').trim().toLowerCase(),
+            teamSize: Math.max(1, Math.trunc(Number(room.teamSize || 4))),
+            slotLabel: String(room.slotLabel || '').trim(),
+            createdAt: Date.now()
+        };
+        sessionStorage.setItem('gbth_pending_room', JSON.stringify(roomConfig));
+
+        socket.emit('set_user_data', {
+            nickname: userData.nickname,
+            id: userData.id,
+            gender: userData.gender,
+            grade: userData.grade || 24,
+            guild: userData.guild || '',
+            authority: userData.authority || 0,
+            location: 'game_room',
+            roomKey: roomConfig.roomKey,
+            roomTitle: roomConfig.title,
+            mode: roomConfig.mode,
+            teamSize: roomConfig.teamSize,
+            slotLabel: roomConfig.slotLabel,
+            createdAt: roomConfig.createdAt
+        });
+
+        window.playTransition('closing', () => {
+            window.location.href = '/views/game_room/index.html';
+        });
     }
 
     function hideCreateRoomPopup() {

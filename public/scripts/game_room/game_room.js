@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const userData = JSON.parse(sessionStorage.getItem('user') || 'null');
     const roomConfig = JSON.parse(sessionStorage.getItem('gbth_pending_room') || 'null') || {};
     const selectedServerName = String(sessionStorage.getItem('gbth_selected_server_name') || '').trim();
-    const roomKey = String(roomConfig?.createdAt || roomConfig?.title || userData?.id || '').trim();
+    const roomKey = String(roomConfig?.roomKey || roomConfig?.createdAt || roomConfig?.title || userData?.id || '').trim();
 
     const roomTitleEl = document.getElementById('game-room-room-title');
     const roomNumberEl = document.getElementById('game-room-room-number');
@@ -225,6 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         roomConfig.title = nextTitle;
         persistRoomConfig();
+        syncRoomMetadataToLobby();
         if (roomTitleEl) {
             roomTitleEl.textContent = nextTitle;
         }
@@ -450,6 +451,17 @@ document.addEventListener('DOMContentLoaded', () => {
         deathButton.dataset.deathMode = DEATH_MODE_ORDER.includes(mode) ? mode : 'death56';
     }
 
+    function syncRoomMetadataToLobby() {
+        if (!isRoomMaster) return;
+        socket.emit('update_game_room_metadata', {
+            roomKey: roomKey || roomConfig.roomKey || `room:${userData?.id || ''}`,
+            title: String(roomConfig?.title || roomTitleEl?.textContent || '').trim(),
+            mode: String(roomConfig?.mode || currentGameMode || 'solo').trim().toLowerCase(),
+            teamSize: Math.max(1, Math.trunc(Number(roomConfig?.teamSize || currentTeamSize || 4))),
+            slotLabel: String(roomConfig?.slotLabel || `${currentTeamSize}v${currentTeamSize}`).trim()
+        });
+    }
+
     function isSlotOccupied(slotElement) {
         if (!slotElement) return false;
         if (String(slotElement.dataset.occupied || '') === '1') return true;
@@ -489,6 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
         roomConfig.teamSize = nextSize;
         roomConfig.slotLabel = `${nextSize}v${nextSize}`;
         persistRoomConfig();
+        syncRoomMetadataToLobby();
         updateMapControlPermissions();
     }
 
@@ -537,6 +550,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setGameModeButtonVisual(currentGameMode);
         roomConfig.mode = currentGameMode;
         persistRoomConfig();
+        syncRoomMetadataToLobby();
         updateMapControlPermissions();
     }
 
@@ -611,6 +625,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderMapCard();
 
     if (userData) {
+        const initialMobileIndex = Math.trunc(Number(roomConfig?.mobileIndex || 15));
         socket.emit('set_user_data', {
             nickname: userData.nickname,
             id: userData.id,
@@ -619,7 +634,12 @@ document.addEventListener('DOMContentLoaded', () => {
             guild: userData.guild || '',
             authority: userData.authority || 0,
             location: 'game_room',
-            roomKey: roomKey || `room:${userData.id}`
+            roomKey: roomKey || roomConfig.roomKey || `room:${userData.id}`,
+            roomTitle: String(roomConfig?.title || '').trim(),
+            mode: String(roomConfig?.mode || '').trim(),
+            teamSize: Math.max(1, Math.trunc(Number(roomConfig?.teamSize || 4))),
+            slotLabel: String(roomConfig?.slotLabel || '').trim(),
+            mobileIndex: Number.isFinite(initialMobileIndex) ? initialMobileIndex : 15
         });
         appendRoomSystemMessage('Room successfuly created', 'yellow');
     }
@@ -637,13 +657,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
     socket.on('game_room_presence', (data) => {
         const roomId = Math.trunc(Number(data?.roomId || 0));
+        const teamSizeFromServer = Math.max(1, Math.trunc(Number(data?.teamSize || currentTeamSize || 4)));
+        const assignedSlotIndex = Math.trunc(Number(data?.roomSlotIndex));
         isRoomMaster = Boolean(data?.isMaster);
         roomMemberCount = Math.max(1, Math.trunc(Number(data?.memberCount || 1)));
+        preferredJoinSlotIndex = Number.isFinite(assignedSlotIndex) ? assignedSlotIndex : -1;
+        if (teamSizeFromServer !== currentTeamSize) {
+            applyTeamSizeLayout(teamSizeFromServer);
+        }
+        const preferredSlot = getSlotByAssignedIndex(preferredJoinSlotIndex);
+        if (preferredSlot && localPlayerSlot && preferredSlot !== localPlayerSlot && !isSlotOccupied(preferredSlot)) {
+            if (!moveLocalPlayerToSlot(preferredSlot)) {
+                destroySlotAvatar();
+                renderSlotAvatar(preferredSlot, userData);
+            } else {
+                startMobileAnimation(selectedMobile);
+            }
+        }
+        if (!localPlayerSlot && userData) {
+            const slot = findPlayerSlot();
+            if (slot) {
+                renderSlotAvatar(slot, userData);
+            }
+        }
         updateLocalSlotMasterKeyIcon();
         updateMapControlPermissions();
         if (roomNumberEl) {
             roomNumberEl.textContent = String(roomId > 0 ? roomId : 1);
         }
+    });
+
+    socket.on('game_room_roster', (payload) => {
+        applyGameRoomRoster(payload);
     });
 
     socket.on('incoming_buddy_request', (data) => {
@@ -971,6 +1016,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let slotAvatarDynamicSeatX = 0;
     let slotAvatarDynamicSeatY = 0;
     let localPlayerSlot = null;
+    let preferredJoinSlotIndex = -1;
+    const remotePlayerIdsBySlot = new Map();
+    const remoteAvatarAnimatorsBySlot = new Map();
 
     function isLocalPlayerInTeamB() {
         return !!localPlayerSlot?.classList?.contains('team-b');
@@ -1013,8 +1061,8 @@ document.addEventListener('DOMContentLoaded', () => {
             : MOBILE_FRAME_COUNT;
     }
 
-    function getMobileBaseOffsetForAsset(assetIndex) {
-        const isTeamB = isLocalPlayerInTeamB();
+    function getMobileBaseOffsetForAsset(assetIndex, teamBOverride = null) {
+        const isTeamB = typeof teamBOverride === 'boolean' ? teamBOverride : isLocalPlayerInTeamB();
         const pose = MOBILE_ASSET_POSE[Math.trunc(Number(assetIndex))] || {};
         const mobileOffset = (isTeamB && pose.mobileOffsetTeamB)
             ? pose.mobileOffsetTeamB
@@ -1025,9 +1073,9 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    function getAvatarSeatAdjustForAsset(assetIndex) {
+    function getAvatarSeatAdjustForAsset(assetIndex, teamBOverride = null) {
         const normalizedAssetIndex = Math.trunc(Number(assetIndex));
-        const isTeamB = isLocalPlayerInTeamB();
+        const isTeamB = typeof teamBOverride === 'boolean' ? teamBOverride : isLocalPlayerInTeamB();
         const pose = MOBILE_ASSET_POSE[normalizedAssetIndex] || {};
         // Prefer per-asset seatAdjust in the same list as mobile/avatar offsets.
         const teamBAdjust = pose.seatAdjustTeamB || AVATAR_SEAT_ADJUST_BY_ASSET_TEAM_B[normalizedAssetIndex] || null;
@@ -1040,9 +1088,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    function applyAvatarPlacementForMobile(assetIndex) {
-        if (!slotAvatarContainerEl) return;
-        const isTeamB = isLocalPlayerInTeamB();
+    function computeAvatarPlacementForAsset(assetIndex, teamBOverride = null, dynamicSeatX = 0, dynamicSeatY = 0) {
+        const isTeamB = typeof teamBOverride === 'boolean' ? teamBOverride : isLocalPlayerInTeamB();
         const normalizedAssetIndex = Math.trunc(Number(assetIndex));
         const pose = MOBILE_ASSET_POSE[normalizedAssetIndex] || {};
         const useReferenceAvatarOffset = AVATAR_SYNC_CONFIG.useReferenceAvatarOffset === true;
@@ -1053,7 +1100,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let avatarBottom = Number.isFinite(Number(avatarOffset.bottom)) ? Math.trunc(Number(avatarOffset.bottom)) : 20;
         let avatarLeft = Number.isFinite(Number(avatarOffset.left)) ? Math.trunc(Number(avatarOffset.left)) : 0;
         if (AVATAR_SYNC_ENABLED && !AVATAR_SYNC_DISABLED_ASSETS.has(normalizedAssetIndex)) {
-            const mobileOffset = getMobileBaseOffsetForAsset(normalizedAssetIndex);
+            const mobileOffset = getMobileBaseOffsetForAsset(normalizedAssetIndex, isTeamB);
             const syncX = (mobileOffset.x - AVATAR_SYNC_REFERENCE_OFFSET.x) * AVATAR_SYNC_X_FACTOR;
             const syncY = (mobileOffset.y - AVATAR_SYNC_REFERENCE_OFFSET.y) * AVATAR_SYNC_Y_FACTOR;
             const clampedSyncX = Math.max(-AVATAR_SYNC_MAX_DELTA_X, Math.min(AVATAR_SYNC_MAX_DELTA_X, Math.trunc(syncX)));
@@ -1061,13 +1108,19 @@ document.addEventListener('DOMContentLoaded', () => {
             avatarLeft += clampedSyncX;
             avatarBottom += clampedSyncY;
         }
-        const seatAdjust = getAvatarSeatAdjustForAsset(normalizedAssetIndex);
+        const seatAdjust = getAvatarSeatAdjustForAsset(normalizedAssetIndex, isTeamB);
         avatarLeft += seatAdjust.left;
         avatarBottom += seatAdjust.bottom;
-        avatarLeft += slotAvatarDynamicSeatX;
-        avatarBottom += slotAvatarDynamicSeatY;
-        slotAvatarContainerEl.style.bottom = `${avatarBottom}px`;
-        slotAvatarContainerEl.style.left = `calc(50% + ${avatarLeft}px)`;
+        avatarLeft += Math.trunc(Number(dynamicSeatX) || 0);
+        avatarBottom += Math.trunc(Number(dynamicSeatY) || 0);
+        return { left: avatarLeft, bottom: avatarBottom };
+    }
+
+    function applyAvatarPlacementForMobile(assetIndex) {
+        if (!slotAvatarContainerEl) return;
+        const placement = computeAvatarPlacementForAsset(assetIndex, null, slotAvatarDynamicSeatX, slotAvatarDynamicSeatY);
+        slotAvatarContainerEl.style.bottom = `${placement.bottom}px`;
+        slotAvatarContainerEl.style.left = `calc(50% + ${placement.left}px)`;
     }
 
     function getMobileFrameAnchorDelta(assetIndex, frame) {
@@ -1173,6 +1226,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const index = Math.floor(Math.random() * POWER_USER_READY_BACKGROUND_FRAMES.length);
         const frame = Math.trunc(Number(POWER_USER_READY_BACKGROUND_FRAMES[index]));
+        return Number.isFinite(frame) && frame >= 0 ? frame : 0;
+    }
+
+    function getStablePowerUserReadyBackgroundFrame(seedValue) {
+        if (!Array.isArray(POWER_USER_READY_BACKGROUND_FRAMES) || POWER_USER_READY_BACKGROUND_FRAMES.length <= 0) {
+            return 0;
+        }
+        const raw = String(seedValue ?? '').trim();
+        if (!raw) {
+            return getRandomPowerUserReadyBackgroundFrame();
+        }
+        let hash = 0;
+        for (let index = 0; index < raw.length; index += 1) {
+            hash = ((hash << 5) - hash) + raw.charCodeAt(index);
+            hash |= 0;
+        }
+        const normalizedIndex = Math.abs(hash) % POWER_USER_READY_BACKGROUND_FRAMES.length;
+        const frame = Math.trunc(Number(POWER_USER_READY_BACKGROUND_FRAMES[normalizedIndex]));
         return Number.isFinite(frame) && frame >= 0 ? frame : 0;
     }
 
@@ -1355,17 +1426,251 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
+    function getSlotByAssignedIndex(slotIndex) {
+        const normalized = Math.trunc(Number(slotIndex));
+        if (!Number.isFinite(normalized) || normalized < 0) return null;
+        const seat = Math.floor(normalized / 2);
+        const teamKey = normalized % 2 === 0 ? 'A' : 'B';
+        const teamSlots = slotElementsByTeam[teamKey] || [];
+        if (seat < 0 || seat >= currentTeamSize) return null;
+        const slot = teamSlots[seat] || null;
+        if (!slot || slot.style.display === 'none') return null;
+        return slot;
+    }
+
+    function removeRemotePlayersFromSlots() {
+        const allSlots = [
+            ...(slotElementsByTeam.A || []),
+            ...(slotElementsByTeam.B || [])
+        ];
+        allSlots.forEach((slot) => {
+            if (!slot) return;
+            const remoteAnimator = remoteAvatarAnimatorsBySlot.get(slot);
+            if (remoteAnimator) {
+                try { remoteAnimator.destroy(); } catch (error) { /* ignore */ }
+                remoteAvatarAnimatorsBySlot.delete(slot);
+            }
+            const remoteFxBackdrop = slot.querySelector('.slot-avatar-fx-backdrop-remote');
+            if (remoteFxBackdrop) {
+                remoteFxBackdrop.remove();
+            }
+            const remoteFxForeground = slot.querySelector('.slot-avatar-fx-foreground-remote');
+            if (remoteFxForeground) {
+                remoteFxForeground.remove();
+            }
+            const remoteWrapper = slot.querySelector('.slot-avatar-wrapper-remote');
+            if (remoteWrapper) {
+                remoteWrapper.remove();
+            }
+            const remoteInfo = slot.querySelector('.slot-player-info-remote');
+            if (remoteInfo) {
+                remoteInfo.remove();
+            }
+            if (slot === localPlayerSlot) return;
+            slot.dataset.occupied = '';
+            slot.dataset.userId = '';
+        });
+        remotePlayerIdsBySlot.clear();
+    }
+
+    function renderRemotePlayerVisual(slot, player) {
+        if (!slot || !player) return;
+        if (slot === localPlayerSlot) return;
+
+        const fxBackdropHost = document.createElement('div');
+        fxBackdropHost.className = 'slot-avatar-fx-layer slot-avatar-fx-backdrop slot-avatar-fx-backdrop-remote';
+        fxBackdropHost.style.setProperty('--avatar-preview-slot-left', '0px');
+        fxBackdropHost.style.setProperty('--avatar-preview-slot-top', '-37px');
+        fxBackdropHost.style.setProperty('--avatar-preview-slot-width', '127px');
+        fxBackdropHost.style.setProperty('--avatar-preview-slot-height', '108px');
+        fxBackdropHost.style.setProperty('--avatar-preview-slot-radius', '0px');
+        slot.appendChild(fxBackdropHost);
+
+        const remotePowerBgEl = document.createElement('div');
+        remotePowerBgEl.className = 'slot-poweruser-fallback-bg hidden';
+        fxBackdropHost.appendChild(remotePowerBgEl);
+
+        const shouldShowRemotePowerBg = hasPowerUserEquipped(player) && !hasEquippedAvatarBackground(player);
+        if (shouldShowRemotePowerBg) {
+            const remotePowerFrame = getStablePowerUserReadyBackgroundFrame(player.id || player.nickname);
+            remotePowerBgEl.style.backgroundImage = `url('/assets/screens/game_room/ready_backimgae/ready_backimgae_frame_${remotePowerFrame}.png')`;
+            remotePowerBgEl.classList.remove('hidden');
+        }
+
+        const fxForegroundHost = document.createElement('div');
+        fxForegroundHost.className = 'slot-avatar-fx-layer slot-avatar-fx-foreground slot-avatar-fx-foreground-remote';
+        fxForegroundHost.style.setProperty('--avatar-preview-slot-left', '0px');
+        fxForegroundHost.style.setProperty('--avatar-preview-slot-top', '-37px');
+        fxForegroundHost.style.setProperty('--avatar-preview-slot-width', '127px');
+        fxForegroundHost.style.setProperty('--avatar-preview-slot-height', '108px');
+        fxForegroundHost.style.setProperty('--avatar-preview-slot-radius', '0px');
+        slot.appendChild(fxForegroundHost);
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'slot-avatar-wrapper slot-avatar-wrapper-remote';
+
+        const avatarContainer = document.createElement('div');
+        avatarContainer.className = 'slot-avatar-container';
+        avatarContainer.style.zIndex = '1';
+        avatarContainer.style.setProperty('--avatar-preview-slot-left', '-14px');
+        avatarContainer.style.setProperty('--avatar-preview-slot-top', '-3px');
+        avatarContainer.style.setProperty('--avatar-preview-slot-width', '127px');
+        avatarContainer.style.setProperty('--avatar-preview-slot-height', '71px');
+        avatarContainer.style.setProperty('--avatar-preview-slot-radius', '0px');
+        wrapper.appendChild(avatarContainer);
+
+        const mobileImgEl = document.createElement('img');
+        mobileImgEl.className = 'slot-mobile-img';
+        mobileImgEl.alt = '';
+        mobileImgEl.draggable = false;
+        const remoteMobileIndex = normalizeMobileSelectionIndex(Number(player.mobileIndex || DEFAULT_JOIN_MOBILE_INDEX));
+        const remoteAssetIndex = getRenderedMobileAssetIndex(remoteMobileIndex);
+        mobileImgEl.src = getMobileFramePathForAsset(remoteAssetIndex, 0);
+        mobileImgEl.style.left = '73px';
+        mobileImgEl.style.bottom = '35px';
+        const isRemoteTeamB = slot.classList.contains('team-b');
+        const remoteBaseOffset = getMobileBaseOffsetForAsset(remoteAssetIndex, isRemoteTeamB);
+        const remoteFrameDelta = getMobileFrameAnchorDelta(remoteAssetIndex, 0);
+        mobileImgEl.style.marginLeft = `${remoteBaseOffset.x + remoteFrameDelta.x}px`;
+        mobileImgEl.style.marginBottom = `${remoteBaseOffset.y + remoteFrameDelta.y}px`;
+        mobileImgEl.addEventListener('error', () => {
+            mobileImgEl.src = getMobileFramePathForAsset(remoteAssetIndex, 1);
+        }, { once: true });
+        wrapper.appendChild(mobileImgEl);
+
+        const remoteAvatarPlacement = computeAvatarPlacementForAsset(remoteAssetIndex, isRemoteTeamB, 0, 0);
+        avatarContainer.style.bottom = `${remoteAvatarPlacement.bottom}px`;
+        avatarContainer.style.left = `calc(50% + ${remoteAvatarPlacement.left}px)`;
+
+        slot.appendChild(wrapper);
+
+        if (window.AvatarPreviewRuntime?.createAnimator) {
+            window.AvatarPreviewRuntime.createAnimator(avatarContainer, {
+                gender: player.gender,
+                ahead: player.ahead,
+                abody: player.abody,
+                aeyes: player.aeyes,
+                aflag: player.aflag,
+                abackground: player.abackground,
+                aforeground: player.aforeground,
+                aexitem: player.aexitem
+            }, {
+                rootId: 'avatar-shop-character-preview',
+                context: 'game_room',
+                effectVariant: 'legacy'
+            }).then((animator) => {
+                animator?.setEquip?.('background', player.abackground);
+                animator?.setEquip?.('foreground', player.aforeground);
+                const previewRoot = avatarContainer.querySelector('#avatar-shop-character-preview');
+                if (previewRoot) {
+                    const backdropNode = previewRoot.querySelector('.avatar-preview-backdrop');
+                    const foregroundNode = previewRoot.querySelector('.avatar-preview-foreground');
+                    if (backdropNode) {
+                        fxBackdropHost.appendChild(backdropNode);
+                    }
+                    if (foregroundNode) {
+                        fxForegroundHost.appendChild(foregroundNode);
+                    }
+                }
+                remoteAvatarAnimatorsBySlot.set(slot, animator);
+            }).catch(() => {
+                // Ignore avatar render failures for remote users.
+            });
+        }
+    }
+
+    function renderRemotePlayerInSlot(slot, player) {
+        if (!slot || !player) return;
+        if (slot === localPlayerSlot) return;
+        const remoteUserId = String(player.id || '').trim();
+        if (!remoteUserId) return;
+
+        renderRemotePlayerVisual(slot, player);
+
+        const infoEl = document.createElement('div');
+        infoEl.className = 'slot-player-info slot-player-info-remote';
+
+        const rankIconEl = document.createElement('img');
+        rankIconEl.className = 'slot-level-icon';
+        rankIconEl.alt = '';
+        rankIconEl.draggable = false;
+        rankIconEl.src = resolveRankIconPathByGrade(player.grade);
+        infoEl.appendChild(rankIconEl);
+
+        const textWrapEl = document.createElement('div');
+        textWrapEl.className = 'slot-player-texts';
+
+        const nicknameEl = document.createElement('div');
+        nicknameEl.className = 'slot-nickname';
+        nicknameEl.textContent = String(player.nickname || '').trim();
+        textWrapEl.appendChild(nicknameEl);
+
+        const guildEl = document.createElement('div');
+        guildEl.className = 'slot-guild';
+        guildEl.textContent = String(player.guild || '').trim();
+        guildEl.style.visibility = guildEl.textContent ? 'visible' : 'hidden';
+        textWrapEl.appendChild(guildEl);
+
+        infoEl.appendChild(textWrapEl);
+
+        const keyIconEl = document.createElement('img');
+        keyIconEl.className = 'slot-master-key-icon';
+        keyIconEl.alt = '';
+        keyIconEl.draggable = false;
+        keyIconEl.src = ROOM_MASTER_KEY_ICON_PATH;
+        keyIconEl.style.visibility = player.isMaster ? 'visible' : 'hidden';
+        infoEl.appendChild(keyIconEl);
+
+        slot.appendChild(infoEl);
+        slot.dataset.occupied = '1';
+        slot.dataset.userId = remoteUserId;
+        remotePlayerIdsBySlot.set(slot, remoteUserId);
+    }
+
+    function applyGameRoomRoster(payload) {
+        const players = Array.isArray(payload?.players) ? payload.players : [];
+        const localUserId = String(userData?.id || '').trim();
+        const localNickname = String(userData?.nickname || '').trim().toLowerCase();
+        removeRemotePlayersFromSlots();
+
+        let rosterCount = 0;
+        players.forEach((player) => {
+            const playerId = String(player?.id || '').trim();
+            if (!playerId) return;
+            rosterCount += 1;
+            const playerNickname = String(player?.nickname || '').trim().toLowerCase();
+            if (playerId === localUserId || (localNickname && playerNickname === localNickname)) return;
+            const slotIndex = Math.trunc(Number(player?.slotIndex));
+            const slot = getSlotByAssignedIndex(slotIndex);
+            if (!slot) return;
+            renderRemotePlayerInSlot(slot, player);
+        });
+
+        if (rosterCount > 0) {
+            roomMemberCount = rosterCount;
+        }
+    }
+
     function findPlayerSlot() {
+        const preferredSlot = getSlotByAssignedIndex(preferredJoinSlotIndex);
+        if (preferredSlot && !isSlotOccupied(preferredSlot)) {
+            return preferredSlot;
+        }
+
         // Place local player in first available Team A slot by default
         const teamASlots = slotElementsByTeam.A || [];
-        for (const slot of teamASlots) {
+        for (let index = 0; index < teamASlots.length; index += 1) {
+            if (index >= currentTeamSize) break;
+            const slot = teamASlots[index];
             if (slot && !isSlotOccupied(slot)) {
                 return slot;
             }
         }
         // Fallback: try Team B
         const teamBSlots = slotElementsByTeam.B || [];
-        for (const slot of teamBSlots) {
+        for (let index = 0; index < teamBSlots.length; index += 1) {
+            if (index >= currentTeamSize) break;
+            const slot = teamBSlots[index];
             if (slot && !isSlotOccupied(slot)) {
                 return slot;
             }

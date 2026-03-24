@@ -20,6 +20,7 @@ const userGameRoomMembership = new Map(); // userId -> roomKey
 const gameRoomNumbers = new Map(); // roomKey -> room number
 const gameRoomDisabledItems = new Map(); // roomKey -> Set("page:index")
 const gameRoomMetadata = new Map(); // roomKey -> room metadata
+const gameRoomSlotAssignments = new Map(); // roomKey -> Map(userId, slotIndex 0..7 as A1,B1,A2,B2,...)
 const RECONNECT_GRACE_MS = 2500;
 const WORLD_LIST_DISCONNECT_GRACE_MS = 150;
 
@@ -113,6 +114,173 @@ function getSerializedGameRoomDisabledItems(roomKey) {
     return Array.from(set);
 }
 
+function getLinkedPresenceByUserId(userId) {
+    const normalizedUserId = String(userId || '').trim();
+    if (!normalizedUserId) return null;
+    for (const [socketId, data] of socketData.entries()) {
+        if (!data) continue;
+        if (String(data.id || '').trim() !== normalizedUserId) continue;
+        const nicknameKey = String(data.nickname || '').toLowerCase();
+        const linkedSocketId = userSockets.get(nicknameKey);
+        if (!linkedSocketId || linkedSocketId !== socketId) continue;
+        return { socketId, data };
+    }
+    return null;
+}
+
+function buildGameRoomRoster(roomKey) {
+    const normalizedRoomKey = String(roomKey || '').trim();
+    if (!normalizedRoomKey) {
+        return { roomKey: '', teamSize: 4, players: [] };
+    }
+    const members = activeGameRooms.get(normalizedRoomKey);
+    if (!members || members.size <= 0) {
+        return {
+            roomKey: normalizedRoomKey,
+            teamSize: getGameRoomTeamSize(normalizedRoomKey),
+            players: []
+        };
+    }
+
+    const players = [];
+    for (const memberId of members) {
+        const normalizedMemberId = String(memberId || '').trim();
+        if (!normalizedMemberId) continue;
+        const linkedPresence = getLinkedPresenceByUserId(normalizedMemberId);
+        if (!linkedPresence?.data) continue;
+        const slotIndex = getUserAssignedRoomSlot(normalizedRoomKey, normalizedMemberId);
+        const presence = linkedPresence.data;
+        players.push({
+            id: presence.id,
+            nickname: presence.nickname,
+            guild: presence.guild,
+            grade: presence.grade,
+            gender: presence.gender,
+            authority: presence.authority,
+            poweruser: Boolean(presence.poweruser),
+            ahead: Number(presence.ahead ?? 0),
+            abody: Number(presence.abody ?? 0),
+            aeyes: presence.aeyes ?? null,
+            aflag: presence.aflag ?? null,
+            abackground: presence.abackground ?? null,
+            aforeground: presence.aforeground ?? null,
+            aexitem: presence.aexitem ?? null,
+            mobileIndex: Number(presence.mobileIndex ?? 15),
+            slotIndex: slotIndex >= 0 ? slotIndex : -1,
+            isMaster: isUserGameRoomMaster(presence.id, normalizedRoomKey)
+        });
+    }
+    players.sort((a, b) => {
+        if (a.slotIndex !== b.slotIndex) return a.slotIndex - b.slotIndex;
+        return String(a.nickname || '').localeCompare(String(b.nickname || ''));
+    });
+
+    return {
+        roomKey: normalizedRoomKey,
+        teamSize: getGameRoomTeamSize(normalizedRoomKey),
+        players
+    };
+}
+
+function broadcastGameRoomRoster(roomKey) {
+    const normalizedRoomKey = String(roomKey || '').trim();
+    if (!normalizedRoomKey) return;
+    const payload = buildGameRoomRoster(normalizedRoomKey);
+    for (const [socketId, data] of socketData.entries()) {
+        if (String(data?.location || '').toLowerCase() !== 'game_room') continue;
+        if (String(data?.roomKey || '').trim() !== normalizedRoomKey) continue;
+        const nicknameKey = String(data?.nickname || '').toLowerCase();
+        const linkedSocketId = userSockets.get(nicknameKey);
+        const isLinkedPresence = Boolean(linkedSocketId) && linkedSocketId === socketId;
+        if (!isLinkedPresence) continue;
+        io.to(socketId).emit('game_room_roster', payload);
+    }
+}
+
+function clampGameRoomTeamSize(teamSize) {
+    const normalized = Math.trunc(Number(teamSize));
+    if (!Number.isFinite(normalized) || normalized <= 0) return 4;
+    return Math.min(Math.max(normalized, 1), 4);
+}
+
+function getGameRoomTeamSize(roomKey) {
+    const normalizedRoomKey = String(roomKey || '').trim();
+    if (!normalizedRoomKey) return 4;
+    const meta = gameRoomMetadata.get(normalizedRoomKey);
+    return clampGameRoomTeamSize(meta?.teamSize);
+}
+
+function getPreferredSlotOrder(teamSize) {
+    const normalizedTeamSize = clampGameRoomTeamSize(teamSize);
+    const order = [];
+    for (let i = 0; i < normalizedTeamSize; i += 1) {
+        // Slot index sequence: A1(0), B1(1), A2(2), B2(3)...
+        order.push(i * 2);
+        order.push(i * 2 + 1);
+    }
+    return order;
+}
+
+function ensureGameRoomSlotAssignmentMap(roomKey) {
+    const normalizedRoomKey = String(roomKey || '').trim();
+    if (!normalizedRoomKey) return null;
+    let assignments = gameRoomSlotAssignments.get(normalizedRoomKey);
+    if (!assignments) {
+        assignments = new Map();
+        gameRoomSlotAssignments.set(normalizedRoomKey, assignments);
+    }
+    return assignments;
+}
+
+function getUserAssignedRoomSlot(roomKey, userId) {
+    const normalizedRoomKey = String(roomKey || '').trim();
+    const normalizedUserId = String(userId || '').trim();
+    if (!normalizedRoomKey || !normalizedUserId) return -1;
+    const assignments = gameRoomSlotAssignments.get(normalizedRoomKey);
+    if (!assignments) return -1;
+    const value = Math.trunc(Number(assignments.get(normalizedUserId)));
+    return Number.isFinite(value) && value >= 0 ? value : -1;
+}
+
+function allocateUserRoomSlot(roomKey, userId) {
+    const normalizedRoomKey = String(roomKey || '').trim();
+    const normalizedUserId = String(userId || '').trim();
+    if (!normalizedRoomKey || !normalizedUserId) return -1;
+
+    const assignments = ensureGameRoomSlotAssignmentMap(normalizedRoomKey);
+    if (!assignments) return -1;
+
+    const existing = getUserAssignedRoomSlot(normalizedRoomKey, normalizedUserId);
+    if (existing >= 0) return existing;
+
+    const teamSize = getGameRoomTeamSize(normalizedRoomKey);
+    const preferredOrder = getPreferredSlotOrder(teamSize);
+    const occupied = new Set();
+    for (const value of assignments.values()) {
+        const numeric = Math.trunc(Number(value));
+        if (Number.isFinite(numeric) && numeric >= 0) {
+            occupied.add(numeric);
+        }
+    }
+
+    const slot = preferredOrder.find((candidate) => !occupied.has(candidate));
+    if (!Number.isFinite(slot)) return -1;
+    assignments.set(normalizedUserId, slot);
+    return slot;
+}
+
+function releaseUserRoomSlot(roomKey, userId) {
+    const normalizedRoomKey = String(roomKey || '').trim();
+    const normalizedUserId = String(userId || '').trim();
+    if (!normalizedRoomKey || !normalizedUserId) return;
+    const assignments = gameRoomSlotAssignments.get(normalizedRoomKey);
+    if (!assignments) return;
+    assignments.delete(normalizedUserId);
+    if (assignments.size <= 0) {
+        gameRoomSlotAssignments.delete(normalizedRoomKey);
+    }
+}
+
 function upsertGameRoomMetadata(roomKey, payload = {}) {
     const normalizedRoomKey = String(roomKey || '').trim();
     if (!normalizedRoomKey) return false;
@@ -195,6 +363,9 @@ function syncSocketGameRoomNumbers(notifyClients = false) {
 
         const resolvedRoomId = getGameRoomNumberForKey(presence.roomKey);
         presence.roomId = resolvedRoomId > 0 ? resolvedRoomId : 1;
+        const assignedSlot = allocateUserRoomSlot(presence.roomKey, presence.id);
+        presence.roomSlotIndex = assignedSlot >= 0 ? assignedSlot : -1;
+        presence.roomTeamSize = getGameRoomTeamSize(presence.roomKey);
 
         if (notifyClients) {
             const targetSocket = io.sockets.sockets.get(socketId);
@@ -203,7 +374,9 @@ function syncSocketGameRoomNumbers(notifyClients = false) {
                     roomId: Number(presence.roomId || 1),
                     roomKey: String(presence.roomKey || ''),
                     isMaster: isUserGameRoomMaster(presence.id, presence.roomKey),
-                    memberCount: getGameRoomMemberCount(presence.roomKey)
+                    memberCount: getGameRoomMemberCount(presence.roomKey),
+                    roomSlotIndex: Number(presence.roomSlotIndex ?? -1),
+                    teamSize: Number(presence.roomTeamSize || 4)
                 });
             }
         }
@@ -224,16 +397,19 @@ function removeUserFromGameRoom(userId) {
     const members = activeGameRooms.get(previousRoomKey);
     if (members) {
         members.delete(normalizedUserId);
+        releaseUserRoomSlot(previousRoomKey, normalizedUserId);
         if (members.size <= 0) {
             activeGameRooms.delete(previousRoomKey);
             gameRoomNumbers.delete(previousRoomKey);
             gameRoomDisabledItems.delete(previousRoomKey);
             gameRoomMetadata.delete(previousRoomKey);
+            gameRoomSlotAssignments.delete(previousRoomKey);
         }
     }
 
     userGameRoomMembership.delete(normalizedUserId);
     syncSocketGameRoomNumbers(true);
+    broadcastGameRoomRoster(previousRoomKey);
     return true;
 }
 
@@ -246,19 +422,23 @@ function assignUserToGameRoom(userId, roomKey) {
     const normalizedRoomKey = normalizeGameRoomKey(roomKey, normalizedUserId);
     const previousRoomKey = userGameRoomMembership.get(normalizedUserId);
     let topologyChanged = false;
+    let changedPreviousRoomKey = '';
 
     if (previousRoomKey && previousRoomKey !== normalizedRoomKey) {
         const previousMembers = activeGameRooms.get(previousRoomKey);
         if (previousMembers) {
             previousMembers.delete(normalizedUserId);
+            releaseUserRoomSlot(previousRoomKey, normalizedUserId);
             if (previousMembers.size <= 0) {
                 activeGameRooms.delete(previousRoomKey);
                 gameRoomNumbers.delete(previousRoomKey);
                 gameRoomDisabledItems.delete(previousRoomKey);
                 gameRoomMetadata.delete(previousRoomKey);
+                gameRoomSlotAssignments.delete(previousRoomKey);
             }
         }
         topologyChanged = true;
+        changedPreviousRoomKey = previousRoomKey;
     }
 
     let members = activeGameRooms.get(normalizedRoomKey);
@@ -276,6 +456,8 @@ function assignUserToGameRoom(userId, roomKey) {
     if (members.size !== sizeBefore) {
         topologyChanged = true;
     }
+    const assignedSlotIndex = allocateUserRoomSlot(normalizedRoomKey, normalizedUserId);
+    const roomTeamSize = getGameRoomTeamSize(normalizedRoomKey);
 
     userGameRoomMembership.set(normalizedUserId, normalizedRoomKey);
 
@@ -285,12 +467,18 @@ function assignUserToGameRoom(userId, roomKey) {
 
     if (topologyChanged) {
         syncSocketGameRoomNumbers(true);
+        if (changedPreviousRoomKey) {
+            broadcastGameRoomRoster(changedPreviousRoomKey);
+        }
+        broadcastGameRoomRoster(normalizedRoomKey);
     }
 
     return {
         roomKey: normalizedRoomKey,
         roomId: getGameRoomNumberForKey(normalizedRoomKey) || 1,
-        topologyChanged
+        topologyChanged,
+        roomSlotIndex: assignedSlotIndex >= 0 ? assignedSlotIndex : -1,
+        teamSize: roomTeamSize
     };
 }
 
@@ -2220,6 +2408,8 @@ io.on('connection', (socket) => {
                     const normalizedLocation = String(data.location || 'unknown').toLowerCase();
                     let roomId = 0;
                     let roomKey = '';
+                    let roomSlotIndex = -1;
+                    let roomTeamSize = 4;
 
                     if (normalizedLocation === 'game_room') {
                         const roomAssignment = assignUserToGameRoom(
@@ -2228,6 +2418,8 @@ io.on('connection', (socket) => {
                         );
                         roomId = roomAssignment.roomId || 1;
                         roomKey = roomAssignment.roomKey;
+                        roomSlotIndex = Math.trunc(Number(roomAssignment.roomSlotIndex));
+                        roomTeamSize = clampGameRoomTeamSize(roomAssignment.teamSize);
                         hasGameRoomTopologyChanged = roomAssignment.topologyChanged;
                         if (isUserGameRoomMaster(dbUser.UserId, roomKey)) {
                             upsertGameRoomMetadata(roomKey, {
@@ -2242,6 +2434,7 @@ io.on('connection', (socket) => {
                                 powerUser: Boolean(equipState?.poweruser),
                                 createdAt: data.createdAt
                             });
+                            roomTeamSize = getGameRoomTeamSize(roomKey);
                         }
                     } else {
                         hasGameRoomTopologyChanged = removeUserFromGameRoom(dbUser.UserId);
@@ -2255,11 +2448,23 @@ io.on('connection', (socket) => {
                         guild: dbUser.Guild,
                         authority: dbUser.Authority,
                         poweruser: Boolean(equipState?.poweruser),
+                        ahead: equipState?.ahead ?? 0,
+                        abody: equipState?.abody ?? 0,
+                        aeyes: equipState?.aeyes ?? null,
+                        aflag: equipState?.aflag ?? null,
+                        abackground: equipState?.abackground ?? null,
+                        aforeground: equipState?.aforeground ?? null,
+                        aexitem: equipState?.aexitem ?? null,
+                        mobileIndex: Math.trunc(Number(data.mobileIndex ?? 15)),
                         location: normalizedLocation,
                         serverId: normalizedLocation === 'world_list' ? 0 : 1,
                         channelId: normalizedLocation === 'channel' ? 1 : 0,
                         roomId: normalizedLocation === 'game_room' ? roomId : 0,
-                        roomKey: normalizedLocation === 'game_room' ? roomKey : ''
+                        roomKey: normalizedLocation === 'game_room' ? roomKey : '',
+                        roomSlotIndex: normalizedLocation === 'game_room'
+                            ? (Number.isFinite(roomSlotIndex) ? roomSlotIndex : -1)
+                            : -1,
+                        roomTeamSize: normalizedLocation === 'game_room' ? roomTeamSize : 4
                     };
                     socketData.set(socket.id, nextPresence);
 
@@ -2304,11 +2509,14 @@ io.on('connection', (socket) => {
                         roomId: Number(currentData.roomId || 1),
                         roomKey: String(currentData.roomKey || ''),
                         isMaster: isUserGameRoomMaster(currentData.id, currentData.roomKey),
-                        memberCount: getGameRoomMemberCount(currentData.roomKey)
+                        memberCount: getGameRoomMemberCount(currentData.roomKey),
+                        roomSlotIndex: Number(currentData.roomSlotIndex ?? -1),
+                        teamSize: Number(currentData.roomTeamSize || getGameRoomTeamSize(currentData.roomKey))
                     });
                     socket.emit('game_room_item_state', {
                         disabledItems: getSerializedGameRoomDisabledItems(currentData.roomKey)
                     });
+                    broadcastGameRoomRoster(currentData.roomKey);
                 }
                 const shouldRefreshAllBuddyLists = Boolean(currentData.__hasGameRoomTopologyChanged);
                 if (shouldRefreshAllBuddyLists) {
@@ -2384,6 +2592,35 @@ io.on('connection', (socket) => {
     });
 
     socket.on('get_lobby_rooms', () => {
+        broadcastLobbyRooms();
+    });
+
+    socket.on('update_game_room_metadata', (payload) => {
+        const user = socketData.get(socket.id);
+        if (!user || String(user.location || '').toLowerCase() !== 'game_room') {
+            return;
+        }
+
+        const roomKey = String(user.roomKey || payload?.roomKey || '').trim();
+        if (!roomKey) return;
+        if (!isUserGameRoomMaster(user.id, roomKey)) {
+            return;
+        }
+
+        const previousTeamSize = getGameRoomTeamSize(roomKey);
+        const nextTeamSize = clampGameRoomTeamSize(payload?.teamSize);
+        const changed = upsertGameRoomMetadata(roomKey, {
+            title: payload?.title,
+            mode: payload?.mode,
+            teamSize: nextTeamSize,
+            slotLabel: payload?.slotLabel || `${nextTeamSize}v${nextTeamSize}`
+        });
+        if (!changed) return;
+
+        if (nextTeamSize !== previousTeamSize) {
+            syncSocketGameRoomNumbers(true);
+        }
+        broadcastGameRoomRoster(roomKey);
         broadcastLobbyRooms();
     });
 

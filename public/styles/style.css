@@ -660,6 +660,10 @@ body {
     padding: 0;
     overflow: hidden;
     z-index: 1;
+    --slot-capacity-top: 8px;
+    --slot-capacity-right: 40px;
+    --slot-capacity-width: 24px;
+    --slot-capacity-gap: 5px;
 }
 
 .lobby-room-slot.left {
@@ -739,6 +743,32 @@ body {
 
 .lobby-room-slot.power-user .lobby-room-title,
 .lobby-room-slot.power-user .lobby-room-meta {
+    color: #fff5c4;
+}
+
+.lobby-room-capacity {
+    position: absolute;
+    top: var(--slot-capacity-top);
+    right: var(--slot-capacity-right);
+    width: var(--slot-capacity-width);
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--slot-capacity-gap);
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 12px;
+    color: #ffffff;
+}
+
+.lobby-room-capacity-current,
+.lobby-room-capacity-max {
+    display: inline-block;
+    min-width: 10px;
+    text-align: center;
+}
+
+.lobby-room-slot.power-user .lobby-room-capacity {
     color: #fff5c4;
 }
 
