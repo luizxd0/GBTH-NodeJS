@@ -673,7 +673,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (userData) {
         const initialMobileIndex = Math.trunc(Number(roomConfig?.mobileIndex || 15));
-        socket.emit('set_user_data', {
+        const storedJoinPassword = String(roomConfig?.password || '').trim();
+        const presencePayload = {
             nickname: userData.nickname,
             id: userData.id,
             gender: userData.gender,
@@ -686,8 +687,14 @@ document.addEventListener('DOMContentLoaded', () => {
             mode: String(roomConfig?.mode || '').trim(),
             teamSize: Math.max(1, Math.trunc(Number(roomConfig?.teamSize || 4))),
             slotLabel: String(roomConfig?.slotLabel || '').trim(),
+            mapSide: String(roomConfig?.mapSide || 'A').trim().toUpperCase() === 'B' ? 'B' : 'A',
+            mapIndex: Math.max(0, Math.min(MAP_FRAME_COUNT - 1, Math.trunc(Number(roomConfig?.mapIndex || 0)))),
             mobileIndex: Number.isFinite(initialMobileIndex) ? initialMobileIndex : 15
-        });
+        };
+        if (storedJoinPassword !== '') {
+            presencePayload.password = storedJoinPassword;
+        }
+        socket.emit('set_user_data', presencePayload);
         appendRoomSystemMessage('Room successfuly created', 'yellow');
     }
 

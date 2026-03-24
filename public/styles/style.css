@@ -660,11 +660,16 @@ body {
     padding: 0;
     overflow: hidden;
     z-index: 1;
+    /* Password tab (gamelist_back_frame_15) — right edge “locker”; tune per column */
+    --lobby-room-password-tab-top: 51%;
+    --lobby-room-password-tab-right: 9px;
+    --lobby-room-password-tab-translate-x: 0px;
+    --lobby-room-password-tab-translate-y: -50%;
     --slot-capacity-top: 8px;
     --slot-capacity-right: 39px;
     /* Min row height when buddy icon (frame_14) is hidden; raise if numbers sit too high vs with-icon rows */
     --slot-capacity-row-min-height: 17px;
-    /* Horizontal space between lock, player icon, current count, and max */
+    /* Horizontal space between buddy icon, current count, and max */
     --slot-capacity-gap: 6px;
     --slot-capacity-max-margin-left: 0px;
     /* Buddy headcount icon (frame_14): nudge vs flex-aligned position */
@@ -721,6 +726,7 @@ body {
     --slot-capacity-max-margin-left: 0px;
     --slot-capacity-buddy-icon-top: 0px;
     --slot-capacity-buddy-icon-right: 0px;
+    --lobby-room-password-tab-right: -2px;
 }
 
 .lobby-room-slot.power-user.left {
@@ -833,6 +839,30 @@ body {
     color: #fff5c4;
 }
 
+/* Allow password locker tab (frame_15) to sit past the slot edge like the original UI */
+.lobby-room-slot.lobby-room-slot--password {
+    overflow: visible;
+    z-index: 2;
+}
+
+.lobby-room-password-tab {
+    position: absolute;
+    top: var(--lobby-room-password-tab-top);
+    right: var(--lobby-room-password-tab-right);
+    transform: translate(
+        var(--lobby-room-password-tab-translate-x),
+        var(--lobby-room-password-tab-translate-y)
+    );
+    width: auto;
+    height: auto;
+    max-width: none;
+    max-height: none;
+    object-fit: none;
+    image-rendering: auto;
+    pointer-events: none;
+    z-index: 4;
+}
+
 .lobby-room-capacity {
     position: absolute;
     top: var(--slot-capacity-top);
@@ -853,8 +883,7 @@ body {
     color: #ffffff;
 }
 
-/* Lock + headcount icons use source PNG dimensions (same idea as .lobby-room-status / -stage / -mode). */
-.lobby-room-capacity-lock,
+/* Buddy headcount icon uses source PNG dimensions (same idea as .lobby-room-status / -stage / -mode). */
 .lobby-room-capacity-icon {
     display: block;
     flex-shrink: 0;
@@ -4114,6 +4143,151 @@ body {
 
 #btn-gamecreate-cancel:disabled {
     background-image: url('/assets/screens/lobby/b_gamecreate_cancel/b_gamecreate_cancel_frame_3.png');
+}
+
+/* Join room — password popup (gamelist_password_frame_1 + b_password_ok / b_password_cancel) */
+#join-room-password-popup {
+    --lobby-pw-popup-w: 313px;
+    --lobby-pw-popup-h: 160px;
+    /* Hit target over the dark typing area in the bitmap */
+    --lobby-pw-input-top: 51px;
+    --lobby-pw-input-left: 118px;
+    --lobby-pw-input-w: 176px;
+    --lobby-pw-input-h: 20px;
+    --lobby-pw-actions-right: 14px;
+    --lobby-pw-actions-bottom: 8px;
+    --lobby-pw-actions-gap: 6px;
+
+    position: absolute;
+    z-index: 3050;
+    top: 200px;
+    left: 244px;
+    width: var(--lobby-pw-popup-w);
+    height: var(--lobby-pw-popup-h);
+    background-image: url('/assets/screens/lobby/gamelist_password/gamelist_password_frame_1.png');
+    background-size: var(--lobby-pw-popup-w) var(--lobby-pw-popup-h);
+    background-repeat: no-repeat;
+    font-family: var(--gbth-ui-font);
+    image-rendering: pixelated;
+}
+
+#join-room-password-popup .lobby-password-popup-drag {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    cursor: inherit;
+    z-index: 2;
+}
+
+#join-room-password-popup .lobby-password-popup-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+#join-room-password-popup .lobby-password-popup-input-cell,
+#join-room-password-popup .lobby-password-popup-actions,
+#join-room-password-popup #join-room-password-input {
+    pointer-events: auto;
+}
+
+#join-room-password-popup .lobby-password-popup-input-cell {
+    position: absolute;
+    top: var(--lobby-pw-input-top);
+    left: var(--lobby-pw-input-left);
+    width: var(--lobby-pw-input-w);
+    height: var(--lobby-pw-input-h);
+    background: transparent;
+}
+
+#join-room-password-popup #join-room-password-input {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: transparent;
+    color: #fff;
+    font-family: var(--gbth-ui-font);
+    font-size: 11px;
+    padding: 2px 5px;
+    box-sizing: border-box;
+    outline: none;
+    caret-color: transparent;
+}
+
+#join-room-password-popup #join-room-password-cursor {
+    position: absolute;
+    top: 3px;
+    left: 5px;
+    width: 2px;
+    height: 14px;
+    background-color: #e02020;
+    pointer-events: none;
+    animation: cursor-blink 0.8s infinite;
+    z-index: 1;
+}
+
+#join-room-password-popup .lobby-password-popup-actions {
+    position: absolute;
+    right: var(--lobby-pw-actions-right);
+    bottom: var(--lobby-pw-actions-bottom);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--lobby-pw-actions-gap);
+    z-index: 3;
+}
+
+#join-room-password-popup .lobby-password-sprite-btn {
+    width: 82px;
+    height: 34px;
+    padding: 0;
+    border: none;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-size: 82px 34px;
+    cursor: inherit;
+    outline: none;
+    image-rendering: pixelated;
+}
+
+#join-room-password-popup #btn-join-room-password-ok {
+    background-image: url('/assets/screens/lobby/b_password_ok/b_password_ok_frame_0.png');
+}
+
+#join-room-password-popup #btn-join-room-password-ok:hover:not(:disabled) {
+    background-image: url('/assets/screens/lobby/b_password_ok/b_password_ok_frame_1.png');
+}
+
+#join-room-password-popup #btn-join-room-password-ok:active:not(:disabled) {
+    background-image: url('/assets/screens/lobby/b_password_ok/b_password_ok_frame_2.png');
+}
+
+#join-room-password-popup #btn-join-room-password-ok:disabled {
+    background-image: url('/assets/screens/lobby/b_password_ok/b_password_ok_frame_3.png');
+}
+
+#join-room-password-popup #btn-join-room-password-cancel {
+    background-image: url('/assets/screens/lobby/b_password_cancel/b_password_cancel_frame_0.png');
+}
+
+#join-room-password-popup #btn-join-room-password-cancel:hover:not(:disabled) {
+    background-image: url('/assets/screens/lobby/b_password_cancel/b_password_cancel_frame_1.png');
+}
+
+#join-room-password-popup #btn-join-room-password-cancel:active:not(:disabled) {
+    background-image: url('/assets/screens/lobby/b_password_cancel/b_password_cancel_frame_2.png');
+}
+
+#join-room-password-popup #btn-join-room-password-cancel:disabled {
+    background-image: url('/assets/screens/lobby/b_password_cancel/b_password_cancel_frame_3.png');
 }
 
 /* Add Buddy Popup Styling */

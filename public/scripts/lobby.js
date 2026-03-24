@@ -4,6 +4,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const socket = io();
     const lobbyScreen = document.getElementById('lobby-screen');
 
+    let lobbyJoinNavigation = null;
+
+    function clearLobbyJoinNavigation() {
+        if (!lobbyJoinNavigation) return;
+        if (lobbyJoinNavigation.timeoutId) {
+            window.clearTimeout(lobbyJoinNavigation.timeoutId);
+        }
+        if (lobbyJoinNavigation.presenceHandler) {
+            socket.off('game_room_presence', lobbyJoinNavigation.presenceHandler);
+        }
+        lobbyJoinNavigation = null;
+    }
+
     let userData = JSON.parse(sessionStorage.getItem('user'));
 
     const nicknameSpan = document.getElementById('lobby-nickname');
@@ -144,6 +157,24 @@ document.addEventListener('DOMContentLoaded', () => {
         useInputOffset: true
     });
 
+    const joinRoomPasswordPopup = document.getElementById('join-room-password-popup');
+    const joinRoomPasswordInput = document.getElementById('join-room-password-input');
+    const joinRoomPasswordCursor = document.getElementById('join-room-password-cursor');
+    const joinRoomPasswordGhostSpan = document.getElementById('join-room-password-ghost');
+    const btnJoinRoomPasswordOk = document.getElementById('btn-join-room-password-ok');
+    const btnJoinRoomPasswordCancel = document.getElementById('btn-join-room-password-cancel');
+
+    const joinRoomPasswordCursorController = ui?.setupInputCursor({
+        input: joinRoomPasswordInput,
+        cursor: joinRoomPasswordCursor,
+        ghost: joinRoomPasswordGhostSpan,
+        baseLeft: 6,
+        baseTop: 4,
+        useInputOffset: true
+    });
+
+    let pendingJoinRoom = null;
+
     const buddyChatCursorController = ui?.setupInputCursor({
         input: buddyChatInput,
         cursor: buddyChatCursor,
@@ -163,6 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (buddyPanel) ui?.makeDraggable(buddyPanel);
     if (addBuddyPopup) ui?.makeDraggable(addBuddyPopup);
     if (createRoomPopup) ui?.makeDraggable(createRoomPopup, { handleSelector: '.gamecreate-window-header' });
+    if (joinRoomPasswordPopup) ui?.makeDraggable(joinRoomPasswordPopup, { handleSelector: '.lobby-password-popup-drag' });
     if (buddyAlertPopup) ui?.makeDraggable(buddyAlertPopup);
     if (buddyChatWindow) ui?.makeDraggable(buddyChatWindow);
 
@@ -416,14 +448,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const occupied = Math.min(normalizedMaxPlayers, Math.max(0, Math.trunc(Number(room.memberCount || 0))));
             const capacityEl = document.createElement('div');
             capacityEl.className = 'lobby-room-capacity';
-            if (room.hasPassword) {
-                const lockIconEl = document.createElement('img');
-                lockIconEl.className = 'lobby-room-capacity-lock';
-                lockIconEl.src = '/assets/screens/lobby/gamelist_back/gamelist_back_frame_15.png';
-                lockIconEl.alt = 'password protected';
-                lockIconEl.setAttribute('draggable', 'false');
-                capacityEl.appendChild(lockIconEl);
-            }
             if (lobbyRoomHasBuddyMember(room)) {
                 const capacityIconEl = document.createElement('img');
                 capacityIconEl.className = 'lobby-room-capacity-icon';
@@ -447,6 +471,16 @@ document.addEventListener('DOMContentLoaded', () => {
             slot.appendChild(modeEl);
             slot.appendChild(stageEl);
             slot.appendChild(capacityEl);
+
+            if (room.hasPassword) {
+                slot.classList.add('lobby-room-slot--password');
+                const passwordTabEl = document.createElement('img');
+                passwordTabEl.className = 'lobby-room-password-tab';
+                passwordTabEl.src = '/assets/screens/lobby/gamelist_back/gamelist_back_frame_15.png';
+                passwordTabEl.alt = 'password protected';
+                passwordTabEl.setAttribute('draggable', 'false');
+                slot.appendChild(passwordTabEl);
+            }
             slot.addEventListener('dblclick', () => {
                 joinLobbyRoom(room);
             });
@@ -480,7 +514,28 @@ document.addEventListener('DOMContentLoaded', () => {
         renderLobbyRoomsPage();
     }
 
-    function joinLobbyRoom(room) {
+    function hideJoinRoomPasswordPopup() {
+        pendingJoinRoom = null;
+        joinRoomPasswordPopup?.classList.add('hidden');
+        if (joinRoomPasswordInput) {
+            joinRoomPasswordInput.value = '';
+        }
+        joinRoomPasswordCursorController?.update();
+    }
+
+    function showJoinRoomPasswordPopup(room) {
+        if (!joinRoomPasswordPopup || !room) return;
+        pendingJoinRoom = room;
+        joinRoomPasswordPopup.classList.remove('hidden');
+        centerLobbyPopup(joinRoomPasswordPopup);
+        if (joinRoomPasswordInput) {
+            joinRoomPasswordInput.value = '';
+            joinRoomPasswordInput.focus();
+        }
+        joinRoomPasswordCursorController?.update();
+    }
+
+    function completeJoinLobbyRoom(room, joinPassword) {
         if (!userData || !room?.roomKey) return;
         const normalizedMaxPlayers = Math.max(1, Math.trunc(Number(room.maxPlayers || (room.teamSize || 4) * 2)));
         const occupied = Math.max(0, Math.trunc(Number(room.memberCount || 0)));
@@ -489,6 +544,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const pwd = String(joinPassword || '').trim();
         const roomConfig = {
             title: String(room.title || `Room ${room.roomId}`).trim(),
             roomKey: String(room.roomKey || '').trim(),
@@ -497,9 +553,29 @@ document.addEventListener('DOMContentLoaded', () => {
             slotLabel: String(room.slotLabel || '').trim(),
             mapSide: String(room.mapSide || 'A').trim().toUpperCase() === 'B' ? 'B' : 'A',
             mapIndex: Math.max(0, Math.min(LOBBY_STAGE_FRAME_COUNT - 1, Math.trunc(Number(room.mapIndex || 0)))),
-            createdAt: Date.now()
+            createdAt: Date.now(),
+            password: pwd
         };
-        sessionStorage.setItem('gbth_pending_room', JSON.stringify(roomConfig));
+
+        clearLobbyJoinNavigation();
+        hideJoinRoomPasswordPopup();
+
+        const presenceHandler = () => {
+            sessionStorage.setItem('gbth_pending_room', JSON.stringify(roomConfig));
+            clearLobbyJoinNavigation();
+            window.playTransition('closing', () => {
+                window.location.href = '/views/game_room/index.html';
+            });
+        };
+
+        lobbyJoinNavigation = {
+            timeoutId: window.setTimeout(() => {
+                clearLobbyJoinNavigation();
+                window.showError?.('Room', 'Unable to join room. Please try again.');
+            }, 12000),
+            presenceHandler
+        };
+        socket.on('game_room_presence', presenceHandler);
 
         socket.emit('set_user_data', {
             nickname: userData.nickname,
@@ -516,12 +592,24 @@ document.addEventListener('DOMContentLoaded', () => {
             slotLabel: roomConfig.slotLabel,
             mapSide: roomConfig.mapSide,
             mapIndex: roomConfig.mapIndex,
+            password: pwd,
             createdAt: roomConfig.createdAt
         });
+    }
 
-        window.playTransition('closing', () => {
-            window.location.href = '/views/game_room/index.html';
-        });
+    function joinLobbyRoom(room) {
+        if (!userData || !room?.roomKey) return;
+        const normalizedMaxPlayers = Math.max(1, Math.trunc(Number(room.maxPlayers || (room.teamSize || 4) * 2)));
+        const occupied = Math.max(0, Math.trunc(Number(room.memberCount || 0)));
+        if (occupied >= normalizedMaxPlayers) {
+            window.showError?.('Room', 'Room is full.');
+            return;
+        }
+        if (room.hasPassword) {
+            showJoinRoomPasswordPopup(room);
+            return;
+        }
+        completeJoinLobbyRoom(room, '');
     }
 
     function hideCreateRoomPopup() {
@@ -669,6 +757,28 @@ document.addEventListener('DOMContentLoaded', () => {
             if (event.key !== 'Enter') return;
             event.preventDefault();
             submitCreateRoom();
+        });
+    }
+
+    if (joinRoomPasswordInput) {
+        joinRoomPasswordInput.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            if (!pendingJoinRoom) return;
+            completeJoinLobbyRoom(pendingJoinRoom, joinRoomPasswordInput.value);
+        });
+    }
+
+    if (btnJoinRoomPasswordOk) {
+        btnJoinRoomPasswordOk.addEventListener('click', () => {
+            if (!pendingJoinRoom) return;
+            completeJoinLobbyRoom(pendingJoinRoom, joinRoomPasswordInput?.value || '');
+        });
+    }
+
+    if (btnJoinRoomPasswordCancel) {
+        btnJoinRoomPasswordCancel.addEventListener('click', () => {
+            hideJoinRoomPasswordPopup();
         });
     }
 
@@ -1114,10 +1224,12 @@ document.addEventListener('DOMContentLoaded', () => {
         setLobbyRooms(rooms);
     });
     socket.on('lobby_room_join_error', (payload) => {
+        clearLobbyJoinNavigation();
+        hideJoinRoomPasswordPopup();
         const reason = String(payload?.reason || '').trim().toLowerCase();
-        const fallback = reason === 'room_full'
-            ? 'Room is full.'
-            : 'Unable to join room.';
+        let fallback = 'Unable to join room.';
+        if (reason === 'room_full') fallback = 'Room is full.';
+        else if (reason === 'wrong_password') fallback = 'Incorrect password.';
         const message = String(payload?.message || '').trim() || fallback;
         window.showError?.('Room', message);
     });

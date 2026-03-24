@@ -529,10 +529,23 @@ function upsertGameRoomMetadata(roomKey, payload = {}) {
         changed = true;
     }
 
-    const hasPassword = Boolean(payload?.hasPassword);
-    if (next.hasPassword !== hasPassword) {
-        next.hasPassword = hasPassword;
-        changed = true;
+    if (Object.prototype.hasOwnProperty.call(payload, 'password')) {
+        const trimmed = String(payload.password || '').trim();
+        if (next.roomPassword !== trimmed) {
+            next.roomPassword = trimmed;
+            changed = true;
+        }
+        const hasPassword = trimmed !== '';
+        if (next.hasPassword !== hasPassword) {
+            next.hasPassword = hasPassword;
+            changed = true;
+        }
+    } else if (Object.prototype.hasOwnProperty.call(payload, 'hasPassword')) {
+        const hasPassword = Boolean(payload.hasPassword);
+        if (next.hasPassword !== hasPassword) {
+            next.hasPassword = hasPassword;
+            changed = true;
+        }
     }
 
     const powerUser = Boolean(payload?.powerUser);
@@ -614,11 +627,13 @@ function removeUserFromGameRoom(userId) {
     return true;
 }
 
-function assignUserToGameRoom(userId, roomKey) {
+function assignUserToGameRoom(userId, roomKey, joinOptions = {}) {
     const normalizedUserId = String(userId || '').trim();
     if (!normalizedUserId) {
         return { roomKey: '', roomId: 0, topologyChanged: false };
     }
+
+    const joinPasswordAttempt = String(joinOptions.joinPassword || '').trim();
 
     const normalizedRoomKey = normalizeGameRoomKey(roomKey, normalizedUserId);
     const currentTargetMembers = activeGameRooms.get(normalizedRoomKey);
@@ -635,6 +650,22 @@ function assignUserToGameRoom(userId, roomKey) {
             teamSize: roomTeamSize,
             joinRejected: 'room_full'
         };
+    }
+
+    const meta = gameRoomMetadata.get(normalizedRoomKey) || {};
+    const storedPassword = String(meta.roomPassword || '').trim();
+    const roomRequiresPassword = Boolean(meta.hasPassword) && storedPassword !== '';
+    if (!isAlreadyInTargetRoom && roomRequiresPassword && currentTargetCount > 0) {
+        if (storedPassword !== joinPasswordAttempt) {
+            return {
+                roomKey: normalizedRoomKey,
+                roomId: getGameRoomNumberForKey(normalizedRoomKey) || 0,
+                topologyChanged: false,
+                roomSlotIndex: -1,
+                teamSize: roomTeamSize,
+                joinRejected: 'wrong_password'
+            };
+        }
     }
 
     const previousRoomKey = userGameRoomMembership.get(normalizedUserId);
@@ -2634,12 +2665,21 @@ io.on('connection', (socket) => {
                     if (normalizedLocation === 'game_room') {
                         const roomAssignment = assignUserToGameRoom(
                             dbUser.UserId,
-                            data.roomKey || data.roomId || data.roomTitle
+                            data.roomKey || data.roomId || data.roomTitle,
+                            { joinPassword: data.password }
                         );
-                        if (String(roomAssignment?.joinRejected || '').toLowerCase() === 'room_full') {
+                        const joinRejected = String(roomAssignment?.joinRejected || '').toLowerCase();
+                        if (joinRejected === 'room_full') {
                             socket.emit('lobby_room_join_error', {
                                 reason: 'room_full',
                                 message: 'Room is full.'
+                            });
+                            return;
+                        }
+                        if (joinRejected === 'wrong_password') {
+                            socket.emit('lobby_room_join_error', {
+                                reason: 'wrong_password',
+                                message: 'Incorrect password.'
                             });
                             return;
                         }
@@ -2659,7 +2699,7 @@ io.on('connection', (socket) => {
                                 ownerUserId: dbUser.UserId,
                                 ownerNickname: dbUser.Nickname,
                                 ownerGuild: dbUser.Guild || '',
-                                hasPassword: String(data.password || '').trim() !== '',
+                                password: data.password,
                                 powerUser: Boolean(equipState?.poweruser),
                                 createdAt: data.createdAt
                             });
