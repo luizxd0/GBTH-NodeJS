@@ -4151,13 +4151,12 @@ body {
     --lobby-pw-popup-h: 160px;
     /* Hit target over the dark typing area in the bitmap */
     --lobby-pw-input-top: 51px;
-    --lobby-pw-input-left: 118px;
-    --lobby-pw-input-w: 176px;
+    --lobby-pw-input-left: 90px;
+    --lobby-pw-input-w: 100px;
     --lobby-pw-input-h: 20px;
     --lobby-pw-actions-right: 14px;
     --lobby-pw-actions-bottom: 8px;
     --lobby-pw-actions-gap: 6px;
-
     position: absolute;
     z-index: 3050;
     top: 200px;
