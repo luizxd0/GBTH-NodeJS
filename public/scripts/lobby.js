@@ -72,6 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const lobbyRoomList = document.getElementById('lobby-room-list');
     const LOBBY_ROOMS_PAGE_SIZE = 6;
     const LOBBY_STAGE_FRAME_COUNT = 22;
+    const JOIN_ROOM_PASSWORD_MAX_LEN = 4;
     let lobbyRoomsCache = [];
     let lobbyRoomsPageIndex = 0;
     /** Buddy user ids (from `buddy_list_data`) — used to show headcount friend icon on room rows. */
@@ -172,6 +173,16 @@ document.addEventListener('DOMContentLoaded', () => {
         baseTop: 4,
         useInputOffset: true
     });
+
+    if (joinRoomPasswordInput) {
+        joinRoomPasswordInput.maxLength = JOIN_ROOM_PASSWORD_MAX_LEN;
+        joinRoomPasswordInput.addEventListener('input', () => {
+            const v = String(joinRoomPasswordInput.value || '');
+            if (v.length <= JOIN_ROOM_PASSWORD_MAX_LEN) return;
+            joinRoomPasswordInput.value = v.slice(0, JOIN_ROOM_PASSWORD_MAX_LEN);
+            joinRoomPasswordCursorController?.update();
+        });
+    }
 
     let pendingJoinRoom = null;
 
@@ -292,6 +303,10 @@ document.addEventListener('DOMContentLoaded', () => {
         updateCreateRoomModeDescription(mode);
     }
 
+    function isLobbyGm() {
+        return Number(userData?.authority || 0) === 100;
+    }
+
     function normalizeLobbyRoomsPayload(rooms) {
         if (!Array.isArray(rooms)) return [];
 
@@ -313,7 +328,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 || explicitStatus === 'in_game';
             const isFull = memberCount >= maxPlayers;
             const status = isPlaying ? 'playing' : (isFull ? 'full' : 'waiting');
-            return {
+            const hintPwd = String(room?.password ?? '').trim().slice(0, JOIN_ROOM_PASSWORD_MAX_LEN);
+            const normalized = {
                 roomKey: String(room?.roomKey || '').trim(),
                 roomId: Number.isFinite(roomId) && roomId > 0 ? roomId : 0,
                 title: String(room?.title || '').trim(),
@@ -332,6 +348,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     : [],
                 status
             };
+            if (hintPwd !== '') {
+                normalized.password = hintPwd;
+            }
+            return normalized;
         }).filter((room) => room.roomId > 0)
             .sort((a, b) => {
                 if (a.powerUser !== b.powerUser) return a.powerUser ? -1 : 1;
@@ -529,7 +549,10 @@ document.addEventListener('DOMContentLoaded', () => {
         joinRoomPasswordPopup.classList.remove('hidden');
         centerLobbyPopup(joinRoomPasswordPopup);
         if (joinRoomPasswordInput) {
-            joinRoomPasswordInput.value = '';
+            const gmPrefill = isLobbyGm()
+                ? String(room?.password || '').trim().slice(0, JOIN_ROOM_PASSWORD_MAX_LEN)
+                : '';
+            joinRoomPasswordInput.value = gmPrefill;
             joinRoomPasswordInput.focus();
         }
         joinRoomPasswordCursorController?.update();
@@ -544,7 +567,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const pwd = String(joinPassword || '').trim();
+        const pwd = String(joinPassword || '').trim().slice(0, JOIN_ROOM_PASSWORD_MAX_LEN);
         const roomConfig = {
             title: String(room.title || `Room ${room.roomId}`).trim(),
             roomKey: String(room.roomKey || '').trim(),
@@ -680,7 +703,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const roomConfig = {
             title: roomTitleInput || `${nickname}'s Room`,
-            password: String(createRoomPasswordInput?.value || ''),
+            password: String(createRoomPasswordInput?.value || '').trim().slice(0, 4),
             mode: selectedCreateRoomMode,
             teamSize,
             slotLabel: selectedCreateRoomSize,

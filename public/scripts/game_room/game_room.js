@@ -10,6 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const roomTitleEl = document.getElementById('game-room-room-title');
     const roomNumberEl = document.getElementById('game-room-room-number');
+    const gameRoomPasswordPanel = document.getElementById('game-room-password-panel');
+    const gameRoomPasswordText = document.getElementById('game-room-password-text');
     const btnEditRoomTitle = document.getElementById('btn-game-room-edit-title');
     const serverTitleEl = document.getElementById('game-room-server-title');
     const gameRoomScreen = document.getElementById('game-room-screen');
@@ -307,6 +309,24 @@ document.addEventListener('DOMContentLoaded', () => {
         roomTitleEl.textContent = String(roomConfig.title || fallbackTitle);
     }
 
+    const ROOM_PASSWORD_MAX_LEN = 4;
+
+    function normalizeRoomPassword(value) {
+        return String(value || '').trim().slice(0, ROOM_PASSWORD_MAX_LEN);
+    }
+
+    function updateGameRoomPasswordPanel() {
+        if (!gameRoomPasswordPanel || !gameRoomPasswordText) return;
+        const pwd = normalizeRoomPassword(roomConfig?.password);
+        const show = pwd.length > 0;
+        gameRoomPasswordPanel.classList.toggle('hidden', !show);
+        gameRoomPasswordPanel.setAttribute('aria-hidden', show ? 'false' : 'true');
+        gameRoomPasswordText.textContent = pwd;
+    }
+
+    roomConfig.password = normalizeRoomPassword(roomConfig?.password);
+    updateGameRoomPasswordPanel();
+
     if (serverTitleEl) {
         const label = selectedServerName || 'Server name';
         serverTitleEl.textContent = `${label} - Gunbound Classic`;
@@ -397,6 +417,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function persistRoomConfig() {
+        if (roomConfig.password !== undefined && roomConfig.password !== null) {
+            roomConfig.password = normalizeRoomPassword(roomConfig.password);
+        }
         sessionStorage.setItem('gbth_pending_room', JSON.stringify(roomConfig));
     }
 
@@ -673,7 +696,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (userData) {
         const initialMobileIndex = Math.trunc(Number(roomConfig?.mobileIndex || 15));
-        const storedJoinPassword = String(roomConfig?.password || '').trim();
+        const storedJoinPassword = normalizeRoomPassword(roomConfig?.password);
         const presencePayload = {
             nickname: userData.nickname,
             id: userData.id,
@@ -791,6 +814,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (Number.isFinite(mapIndex)) {
             selectedMapIndex = Math.max(0, Math.min(MAP_FRAME_COUNT - 1, mapIndex));
         }
+        if (Object.prototype.hasOwnProperty.call(payload || {}, 'password')) {
+            const nextPwd = normalizeRoomPassword(payload.password);
+            const hasPw = Boolean(payload?.hasPassword);
+            roomConfig.password = hasPw && nextPwd !== '' ? nextPwd : '';
+            persistRoomConfig();
+        }
+        updateGameRoomPasswordPanel();
         renderMapCard();
     });
 

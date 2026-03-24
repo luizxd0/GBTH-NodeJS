@@ -719,14 +719,14 @@ body {
     --lobby-room-mode-right: 16px;
     --lobby-room-meta-top: 30px;
     --lobby-room-meta-left: 8px;
-    --slot-capacity-top: 11px;
-    --slot-capacity-right: 13px;
+    --slot-capacity-top: 8px;
+    --slot-capacity-right: 14px;
     --slot-capacity-row-min-height: 17px;
-    --slot-capacity-gap: 4px;
+    --slot-capacity-gap: 6px;
     --slot-capacity-max-margin-left: 0px;
     --slot-capacity-buddy-icon-top: 0px;
-    --slot-capacity-buddy-icon-right: 0px;
-    --lobby-room-password-tab-right: -2px;
+    --slot-capacity-buddy-icon-right: -5px;
+    --lobby-room-password-tab-right: 234px;
 }
 
 .lobby-room-slot.power-user.left {

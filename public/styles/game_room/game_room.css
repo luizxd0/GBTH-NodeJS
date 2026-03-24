@@ -42,6 +42,33 @@
     width: 174px;
 }
 
+#game-room-password-panel {
+    position: absolute;
+    top: 15px;
+    left: 305px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+#game-room-password-panel.hidden {
+    display: none;
+}
+
+#game-room-password-text {
+    font-family: var(--gbth-ui-font);
+    font-size: 11px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 12px;
+    text-shadow: 1px 1px 0 #00253f;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
 #game-room-server-title {
     left: 570px;
     width: 190px;

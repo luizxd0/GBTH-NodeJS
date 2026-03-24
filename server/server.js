@@ -242,6 +242,7 @@ function buildGameRoomConfigPayload(roomKey) {
     const normalizedRoomKey = String(roomKey || '').trim();
     const meta = gameRoomMetadata.get(normalizedRoomKey) || {};
     const teamSize = getGameRoomTeamSize(normalizedRoomKey);
+    const roomPwd = String(meta.roomPassword || '').trim().slice(0, 4);
     return {
         roomKey: normalizedRoomKey,
         title: String(meta.title || '').trim(),
@@ -252,7 +253,9 @@ function buildGameRoomConfigPayload(roomKey) {
         teamSize,
         slotLabel: String(meta.slotLabel || `${teamSize}v${teamSize}`).trim(),
         mapSide: String(meta.mapSide || 'A').trim().toUpperCase() === 'B' ? 'B' : 'A',
-        mapIndex: Math.max(0, Math.min(21, Math.trunc(Number(meta.mapIndex || 0))))
+        mapIndex: Math.max(0, Math.min(21, Math.trunc(Number(meta.mapIndex || 0)))),
+        hasPassword: Boolean(meta.hasPassword && roomPwd !== ''),
+        password: roomPwd
     };
 }
 
@@ -530,7 +533,7 @@ function upsertGameRoomMetadata(roomKey, payload = {}) {
     }
 
     if (Object.prototype.hasOwnProperty.call(payload, 'password')) {
-        const trimmed = String(payload.password || '').trim();
+        const trimmed = String(payload.password || '').trim().slice(0, 4);
         if (next.roomPassword !== trimmed) {
             next.roomPassword = trimmed;
             changed = true;
@@ -633,7 +636,7 @@ function assignUserToGameRoom(userId, roomKey, joinOptions = {}) {
         return { roomKey: '', roomId: 0, topologyChanged: false };
     }
 
-    const joinPasswordAttempt = String(joinOptions.joinPassword || '').trim();
+    const joinPasswordAttempt = String(joinOptions.joinPassword || '').trim().slice(0, 4);
 
     const normalizedRoomKey = normalizeGameRoomKey(roomKey, normalizedUserId);
     const currentTargetMembers = activeGameRooms.get(normalizedRoomKey);
@@ -3256,7 +3259,17 @@ io.on('connection', (socket) => {
             const isLinkedPresence = Boolean(linkedSocketId) && linkedSocketId === socketId;
             if (!isLinkedPresence) continue;
             if (String(data?.location || '').toLowerCase() !== 'channel') continue;
-            io.to(socketId).emit('lobby_rooms', rooms);
+            const isGmViewer = Number(data?.authority || 0) === 100;
+            const payloadRooms = isGmViewer
+                ? rooms.map((r) => {
+                    if (!r.hasPassword) return r;
+                    const metaForRoom = gameRoomMetadata.get(String(r.roomKey || '').trim()) || {};
+                    const pwd = String(metaForRoom.roomPassword || '').trim().slice(0, 4);
+                    if (!pwd) return r;
+                    return { ...r, password: pwd };
+                })
+                : rooms;
+            io.to(socketId).emit('lobby_rooms', payloadRooms);
         }
     }
 
