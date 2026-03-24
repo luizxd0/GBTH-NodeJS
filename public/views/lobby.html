@@ -194,6 +194,33 @@
                 </div>
             </div>
 
+            <!-- Direct Go: room number + password (background: gamelist_directgo) -->
+            <div id="lobby-direct-go-popup" class="hidden">
+                <div class="lobby-direct-go-drag" aria-hidden="true"></div>
+                <div class="lobby-direct-go-content">
+                    <div class="lobby-direct-go-input-cell lobby-direct-go-input-cell--room">
+                        <input type="text" id="direct-go-room-input" inputmode="numeric" pattern="[0-9]*"
+                            maxlength="8" autocomplete="off" spellcheck="false" aria-label="Room number">
+                        <div id="direct-go-room-cursor"></div>
+                        <span id="direct-go-room-ghost"
+                            style="visibility: hidden; white-space: pre; position: absolute; font-family: var(--gbth-ui-font); font-size: 11px;"></span>
+                    </div>
+                    <div class="lobby-direct-go-input-cell lobby-direct-go-input-cell--password">
+                        <input type="text" id="direct-go-password-input" maxlength="4" autocomplete="off"
+                            spellcheck="false" aria-label="Room password">
+                        <div id="direct-go-password-cursor"></div>
+                        <span id="direct-go-password-ghost"
+                            style="visibility: hidden; white-space: pre; position: absolute; font-family: var(--gbth-ui-font); font-size: 11px;"></span>
+                    </div>
+                    <div class="lobby-direct-go-actions">
+                        <button type="button" id="btn-direct-go-ok" class="lobby-direct-go-sprite-btn"
+                            aria-label="Ok"></button>
+                        <button type="button" id="btn-direct-go-cancel" class="lobby-direct-go-sprite-btn"
+                            aria-label="Cancel"></button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Already Friends / Buddy Alert Popup -->
             <div id="buddy-alert-popup" class="hidden">
                 <div class="buddy-window-header"></div>

@@ -4301,6 +4301,165 @@ body {
     background-image: url('/assets/screens/lobby/b_password_cancel/b_password_cancel_frame_3.png');
 }
 
+/* Direct Go popup (gamelist_directgo + b_directgo_ok / b_directgo_cancel) */
+#lobby-direct-go-popup {
+    --lobby-dg-popup-w: 313px;
+    --lobby-dg-popup-h: 160px;
+    --lobby-dg-room-input-top: 52px;
+    --lobby-dg-room-input-left: 112px;
+    --lobby-dg-room-input-w: 192px;
+    --lobby-dg-room-input-h: 20px;
+    --lobby-dg-password-input-top: 80px;
+    --lobby-dg-password-input-left: 112px;
+    --lobby-dg-password-input-w: 192px;
+    --lobby-dg-password-input-h: 20px;
+    --lobby-dg-actions-right: 14px;
+    --lobby-dg-actions-bottom: 8px;
+    --lobby-dg-actions-gap: 6px;
+    position: absolute;
+    z-index: 3060;
+    top: 200px;
+    left: 244px;
+    width: var(--lobby-dg-popup-w);
+    height: var(--lobby-dg-popup-h);
+    background-image: url('/assets/shared/client_graphics/gamelist_directgo/gamelist_directgo_frame_0.png');
+    background-size: var(--lobby-dg-popup-w) var(--lobby-dg-popup-h);
+    background-repeat: no-repeat;
+    font-family: var(--gbth-ui-font);
+    image-rendering: pixelated;
+}
+
+#lobby-direct-go-popup .lobby-direct-go-drag {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    cursor: inherit;
+    z-index: 2;
+}
+
+#lobby-direct-go-popup .lobby-direct-go-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+#lobby-direct-go-popup .lobby-direct-go-input-cell,
+#lobby-direct-go-popup .lobby-direct-go-actions,
+#lobby-direct-go-popup #direct-go-room-input,
+#lobby-direct-go-popup #direct-go-password-input {
+    pointer-events: auto;
+}
+
+#lobby-direct-go-popup .lobby-direct-go-input-cell--room {
+    position: absolute;
+    top: var(--lobby-dg-room-input-top);
+    left: var(--lobby-dg-room-input-left);
+    width: var(--lobby-dg-room-input-w);
+    height: var(--lobby-dg-room-input-h);
+    background: transparent;
+}
+
+#lobby-direct-go-popup .lobby-direct-go-input-cell--password {
+    position: absolute;
+    top: var(--lobby-dg-password-input-top);
+    left: var(--lobby-dg-password-input-left);
+    width: var(--lobby-dg-password-input-w);
+    height: var(--lobby-dg-password-input-h);
+    background: transparent;
+}
+
+#lobby-direct-go-popup #direct-go-room-input,
+#lobby-direct-go-popup #direct-go-password-input {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: transparent;
+    color: #fff;
+    font-family: var(--gbth-ui-font);
+    font-size: 11px;
+    padding: 2px 5px;
+    box-sizing: border-box;
+    outline: none;
+    caret-color: transparent;
+}
+
+#lobby-direct-go-popup #direct-go-room-cursor,
+#lobby-direct-go-popup #direct-go-password-cursor {
+    position: absolute;
+    top: 3px;
+    left: 5px;
+    width: 2px;
+    height: 14px;
+    background-color: #e02020;
+    pointer-events: none;
+    animation: cursor-blink 0.8s infinite;
+    z-index: 1;
+}
+
+#lobby-direct-go-popup .lobby-direct-go-actions {
+    position: absolute;
+    right: var(--lobby-dg-actions-right);
+    bottom: var(--lobby-dg-actions-bottom);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--lobby-dg-actions-gap);
+    z-index: 3;
+}
+
+#lobby-direct-go-popup .lobby-direct-go-sprite-btn {
+    width: 82px;
+    height: 34px;
+    padding: 0;
+    border: none;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-size: 82px 34px;
+    cursor: inherit;
+    outline: none;
+    image-rendering: pixelated;
+}
+
+#lobby-direct-go-popup #btn-direct-go-ok {
+    background-image: url('/assets/shared/client_graphics/b_directgo_ok/b_directgo_ok_frame_0.png');
+}
+
+#lobby-direct-go-popup #btn-direct-go-ok:hover:not(:disabled) {
+    background-image: url('/assets/shared/client_graphics/b_directgo_ok/b_directgo_ok_frame_1.png');
+}
+
+#lobby-direct-go-popup #btn-direct-go-ok:active:not(:disabled) {
+    background-image: url('/assets/shared/client_graphics/b_directgo_ok/b_directgo_ok_frame_2.png');
+}
+
+#lobby-direct-go-popup #btn-direct-go-ok:disabled {
+    background-image: url('/assets/shared/client_graphics/b_directgo_ok/b_directgo_ok_frame_3.png');
+}
+
+#lobby-direct-go-popup #btn-direct-go-cancel {
+    background-image: url('/assets/shared/client_graphics/b_directgo_cancel/b_directgo_cancel_frame_0.png');
+}
+
+#lobby-direct-go-popup #btn-direct-go-cancel:hover:not(:disabled) {
+    background-image: url('/assets/shared/client_graphics/b_directgo_cancel/b_directgo_cancel_frame_1.png');
+}
+
+#lobby-direct-go-popup #btn-direct-go-cancel:active:not(:disabled) {
+    background-image: url('/assets/shared/client_graphics/b_directgo_cancel/b_directgo_cancel_frame_2.png');
+}
+
+#lobby-direct-go-popup #btn-direct-go-cancel:disabled {
+    background-image: url('/assets/shared/client_graphics/b_directgo_cancel/b_directgo_cancel_frame_3.png');
+}
+
 /* Add Buddy Popup Styling */
 #add-buddy-popup {
     position: absolute;

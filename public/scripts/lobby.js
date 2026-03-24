@@ -186,6 +186,55 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const lobbyDirectGoPopup = document.getElementById('lobby-direct-go-popup');
+    const directGoRoomInput = document.getElementById('direct-go-room-input');
+    const directGoRoomCursor = document.getElementById('direct-go-room-cursor');
+    const directGoRoomGhostSpan = document.getElementById('direct-go-room-ghost');
+    const directGoPasswordInput = document.getElementById('direct-go-password-input');
+    const directGoPasswordCursor = document.getElementById('direct-go-password-cursor');
+    const directGoPasswordGhostSpan = document.getElementById('direct-go-password-ghost');
+    const btnDirectGoOk = document.getElementById('btn-direct-go-ok');
+    const btnDirectGoCancel = document.getElementById('btn-direct-go-cancel');
+    const DIRECT_GO_ROOM_INPUT_MAX_LEN = 8;
+
+    const directGoRoomCursorController = ui?.setupInputCursor({
+        input: directGoRoomInput,
+        cursor: directGoRoomCursor,
+        ghost: directGoRoomGhostSpan,
+        baseLeft: 6,
+        baseTop: 4,
+        useInputOffset: true
+    });
+
+    const directGoPasswordCursorController = ui?.setupInputCursor({
+        input: directGoPasswordInput,
+        cursor: directGoPasswordCursor,
+        ghost: directGoPasswordGhostSpan,
+        baseLeft: 6,
+        baseTop: 4,
+        useInputOffset: true
+    });
+
+    if (directGoRoomInput) {
+        directGoRoomInput.addEventListener('input', () => {
+            const digits = String(directGoRoomInput.value || '').replace(/\D/g, '').slice(0, DIRECT_GO_ROOM_INPUT_MAX_LEN);
+            if (directGoRoomInput.value !== digits) {
+                directGoRoomInput.value = digits;
+            }
+            directGoRoomCursorController?.update();
+        });
+    }
+
+    if (directGoPasswordInput) {
+        directGoPasswordInput.maxLength = JOIN_ROOM_PASSWORD_MAX_LEN;
+        directGoPasswordInput.addEventListener('input', () => {
+            const v = String(directGoPasswordInput.value || '');
+            if (v.length <= JOIN_ROOM_PASSWORD_MAX_LEN) return;
+            directGoPasswordInput.value = v.slice(0, JOIN_ROOM_PASSWORD_MAX_LEN);
+            directGoPasswordCursorController?.update();
+        });
+    }
+
     let pendingJoinRoom = null;
 
     const buddyChatCursorController = ui?.setupInputCursor({
@@ -208,6 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (addBuddyPopup) ui?.makeDraggable(addBuddyPopup);
     if (createRoomPopup) ui?.makeDraggable(createRoomPopup, { handleSelector: '.gamecreate-window-header' });
     if (joinRoomPasswordPopup) ui?.makeDraggable(joinRoomPasswordPopup, { handleSelector: '.lobby-password-popup-drag' });
+    if (lobbyDirectGoPopup) ui?.makeDraggable(lobbyDirectGoPopup, { handleSelector: '.lobby-direct-go-drag' });
     if (buddyAlertPopup) ui?.makeDraggable(buddyAlertPopup);
     if (buddyChatWindow) ui?.makeDraggable(buddyChatWindow);
 
@@ -582,8 +632,65 @@ document.addEventListener('DOMContentLoaded', () => {
         joinRoomPasswordCursorController?.update();
     }
 
+    function hideDirectGoPopup() {
+        lobbyDirectGoPopup?.classList.add('hidden');
+        if (directGoRoomInput) {
+            directGoRoomInput.value = '';
+        }
+        if (directGoPasswordInput) {
+            directGoPasswordInput.value = '';
+        }
+        directGoRoomCursorController?.update();
+        directGoPasswordCursorController?.update();
+    }
+
+    function showDirectGoPopup() {
+        if (!lobbyDirectGoPopup) return;
+        hideJoinRoomPasswordPopup();
+        lobbyDirectGoPopup.classList.remove('hidden');
+        centerLobbyPopup(lobbyDirectGoPopup);
+        socket.emit('get_lobby_rooms');
+        if (directGoRoomInput) {
+            directGoRoomInput.value = '';
+            directGoRoomInput.focus();
+        }
+        if (directGoPasswordInput) {
+            directGoPasswordInput.value = '';
+        }
+        directGoRoomCursorController?.update();
+        directGoPasswordCursorController?.update();
+    }
+
+    function submitDirectGo() {
+        if (!userData) return;
+        const rawNum = String(directGoRoomInput?.value || '').trim();
+        const roomId = Math.trunc(Number(rawNum));
+        if (!rawNum || !Number.isFinite(roomId) || roomId <= 0) {
+            window.showError?.('Room', 'Enter a valid room number.');
+            return;
+        }
+        const room = lobbyRoomsCache.find((r) => Math.trunc(Number(r?.roomId || 0)) === roomId) || null;
+        if (!room || !String(room.roomKey || '').trim()) {
+            window.showError?.('Room', 'Room not found.');
+            return;
+        }
+        const pwd = String(directGoPasswordInput?.value || '').trim().slice(0, JOIN_ROOM_PASSWORD_MAX_LEN);
+        if (room.hasPassword && pwd === '') {
+            window.showError?.('Room', 'This room requires a password.');
+            return;
+        }
+        const normalizedMaxPlayers = Math.max(1, Math.trunc(Number(room.maxPlayers || (room.teamSize || 4) * 2)));
+        const occupied = Math.max(0, Math.trunc(Number(room.memberCount || 0)));
+        if (occupied >= normalizedMaxPlayers) {
+            window.showError?.('Room', 'Room is full.');
+            return;
+        }
+        completeJoinLobbyRoom(room, pwd);
+    }
+
     function showJoinRoomPasswordPopup(room) {
         if (!joinRoomPasswordPopup || !room) return;
+        hideDirectGoPopup();
         pendingJoinRoom = room;
         joinRoomPasswordPopup.classList.remove('hidden');
         centerLobbyPopup(joinRoomPasswordPopup);
@@ -621,6 +728,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         clearLobbyJoinNavigation();
         hideJoinRoomPasswordPopup();
+        hideDirectGoPopup();
 
         const presenceHandler = () => {
             sessionStorage.setItem('gbth_pending_room', JSON.stringify(roomConfig));
@@ -844,6 +952,35 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    if (btnDirectGoOk) {
+        btnDirectGoOk.addEventListener('click', () => {
+            submitDirectGo();
+        });
+    }
+
+    if (btnDirectGoCancel) {
+        btnDirectGoCancel.addEventListener('click', () => {
+            hideDirectGoPopup();
+        });
+    }
+
+    if (directGoRoomInput) {
+        directGoRoomInput.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            directGoPasswordInput?.focus();
+            directGoPasswordCursorController?.update();
+        });
+    }
+
+    if (directGoPasswordInput) {
+        directGoPasswordInput.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            submitDirectGo();
+        });
+    }
+
     const buttons = [
         'btn-lobby-exit', 'btn-lobby-buddy', 'btn-lobby-ranking',
         'btn-lobby-avatar', 'btn-lobby-create', 'btn-lobby-join',
@@ -871,6 +1008,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (id === 'btn-friends') {
                 setLobbyRoomNavFilter('friends');
+            }
+            if (id === 'btn-goto') {
+                showDirectGoPopup();
             }
             if (id === 'btn-lobby-create') {
                 showCreateRoomPopup();
@@ -1303,6 +1443,7 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.on('lobby_room_join_error', (payload) => {
         clearLobbyJoinNavigation();
         hideJoinRoomPasswordPopup();
+        hideDirectGoPopup();
         const reason = String(payload?.reason || '').trim().toLowerCase();
         let fallback = 'Unable to join room.';
         if (reason === 'room_full') fallback = 'Room is full.';
