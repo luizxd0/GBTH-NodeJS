@@ -264,6 +264,11 @@
     isolation: isolate;
 }
 
+.game-room-slot.team-b .slot-avatar-wrapper {
+    transform: translateX(-50%) scaleX(-1);
+    transform-origin: center bottom;
+}
+
 .slot-avatar-fx-layer {
     position: absolute;
     left: 0px;
@@ -311,8 +316,8 @@
 }
 
 .game-room-slot.team-b .slot-avatar-container {
-    /* Team B should face left */
-    transform: translateX(-50%) scaleX(1);
+    /* Keep same local transform; wrapper handles Team B mirroring */
+    transform: translateX(-50%) scaleX(-1);
 }
 
 .slot-avatar-container #avatar-shop-character-preview {
@@ -338,8 +343,8 @@
 }
 
 .game-room-slot.team-b .slot-mobile-img {
-    /* Team B should face left */
-    transform: translateX(-50%) scaleX(1);
+    /* Keep same local transform; wrapper handles Team B mirroring */
+    transform: translateX(-50%) scaleX(-1);
 }
 
 .slot-player-info {

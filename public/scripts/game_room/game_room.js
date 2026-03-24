@@ -883,6 +883,7 @@ document.addEventListener('DOMContentLoaded', () => {
             : []
     );
     const AVATAR_SEAT_ADJUST_BY_ASSET = AVATAR_SYNC_CONFIG.seatAdjustByAsset || mobilePoseConfig.avatarSeatAdjustByAsset || {};
+    const AVATAR_SEAT_ADJUST_BY_ASSET_TEAM_B = AVATAR_SYNC_CONFIG.seatAdjustByAssetTeamB || mobilePoseConfig.avatarSeatAdjustByAssetTeamB || {};
     const ROOM_MASTER_KEY_ICON_DATA_URI = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABsAAAAQCAYAAADnEwSWAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAGOSURBVDhPvZQtj+MwEEDfngIGLAhYEHDAoKBgwcKAgwcCCxcWFuYHFBQeDCxccCCwsD8hMKCgoMCgwGCBQcGASHfA/YyrrtS92yeNrIwlP41n4ges/uGL+NZP/E8ePlWZkX7mhNV+5hMyI+QDIX82/R2alaXZaCS8T3YmKkdDMiOAAIqzSrVYXxXe3bOTKAXJjpGZlHI0JH825AO5uOrLym714Ix8INTTguy77CUpJAKdgnpQh9uGCqvF+lhd0j/I1znylPXTMZ2Gq0sIokR4e6uZVC3z8oVxEZ8RXeOs9ui7+zACGqSdB/VMqhashvUKkaxarCmmLbPaIwLyKMijMKs9xbQ97qG6Dwc7B+qYly9gJKxdPPqXMhump9kozcoC8Ov3Grrw3WxOe3YLuvOo9+guCMeFQZcF458pdntxMkQDco4RJqMh7cqSPaUsGncaYyOUoyHjHylZFnonCYiEHtqtMF/aaPxvyiLOZIf/7DVPMdk+nwh+J8yXLhJxU/YRX/aCHLhW/YF/+jbewV9OB++/gLbnhQAAAABJRU5ErkJggg==';
     const POWER_USER_EXITEM_IDS = new Set([204801, 204802, 204803, 204804, 204831, 204832, 204833, 204834, 204835]);
     const POWER_USER_READY_BACKGROUND_FRAMES = [0, 1, 2, 3, 4, 5];
@@ -912,6 +913,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let slotAvatarDynamicSeatX = 0;
     let slotAvatarDynamicSeatY = 0;
     let localPlayerSlot = null;
+
+    function isLocalPlayerInTeamB() {
+        return !!localPlayerSlot?.classList?.contains('team-b');
+    }
 
     function normalizeMobileSelectionIndex(mobileIndex) {
         const normalized = Math.trunc(Number(mobileIndex));
@@ -951,8 +956,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getMobileBaseOffsetForAsset(assetIndex) {
+        const isTeamB = isLocalPlayerInTeamB();
         const pose = MOBILE_ASSET_POSE[Math.trunc(Number(assetIndex))] || {};
-        const mobileOffset = pose.mobileOffset || {};
+        const mobileOffset = (isTeamB && pose.mobileOffsetTeamB)
+            ? pose.mobileOffsetTeamB
+            : (pose.mobileOffset || {});
         return {
             x: Number.isFinite(Number(mobileOffset.x)) ? Math.trunc(Number(mobileOffset.x)) : -35,
             y: Number.isFinite(Number(mobileOffset.y)) ? Math.trunc(Number(mobileOffset.y)) : -30
@@ -961,9 +969,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getAvatarSeatAdjustForAsset(assetIndex) {
         const normalizedAssetIndex = Math.trunc(Number(assetIndex));
+        const isTeamB = isLocalPlayerInTeamB();
         const pose = MOBILE_ASSET_POSE[normalizedAssetIndex] || {};
         // Prefer per-asset seatAdjust in the same list as mobile/avatar offsets.
-        const adjust = pose.seatAdjust || AVATAR_SEAT_ADJUST_BY_ASSET[normalizedAssetIndex] || {};
+        const teamBAdjust = pose.seatAdjustTeamB || AVATAR_SEAT_ADJUST_BY_ASSET_TEAM_B[normalizedAssetIndex] || null;
+        const adjust = isTeamB
+            ? (teamBAdjust || pose.seatAdjust || AVATAR_SEAT_ADJUST_BY_ASSET[normalizedAssetIndex] || {})
+            : (pose.seatAdjust || AVATAR_SEAT_ADJUST_BY_ASSET[normalizedAssetIndex] || {});
         return {
             left: Number.isFinite(Number(adjust.left)) ? Math.trunc(Number(adjust.left)) : 0,
             bottom: Number.isFinite(Number(adjust.bottom)) ? Math.trunc(Number(adjust.bottom)) : 0
@@ -972,13 +984,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function applyAvatarPlacementForMobile(assetIndex) {
         if (!slotAvatarContainerEl) return;
+        const isTeamB = isLocalPlayerInTeamB();
         const normalizedAssetIndex = Math.trunc(Number(assetIndex));
         const pose = MOBILE_ASSET_POSE[normalizedAssetIndex] || {};
         const useReferenceAvatarOffset = AVATAR_SYNC_CONFIG.useReferenceAvatarOffset === true;
         const referencePose = MOBILE_ASSET_POSE[RIDER_ASSET_INDEX] || {};
         const avatarOffset = useReferenceAvatarOffset
-            ? (referencePose.avatarOffset || {})
-            : (pose.avatarOffset || {});
+            ? ((isTeamB && referencePose.avatarOffsetTeamB) ? referencePose.avatarOffsetTeamB : (referencePose.avatarOffset || {}))
+            : ((isTeamB && pose.avatarOffsetTeamB) ? pose.avatarOffsetTeamB : (pose.avatarOffset || {}));
         let avatarBottom = Number.isFinite(Number(avatarOffset.bottom)) ? Math.trunc(Number(avatarOffset.bottom)) : 20;
         let avatarLeft = Number.isFinite(Number(avatarOffset.left)) ? Math.trunc(Number(avatarOffset.left)) : 0;
         if (AVATAR_SYNC_ENABLED && !AVATAR_SYNC_DISABLED_ASSETS.has(normalizedAssetIndex)) {
@@ -1179,7 +1192,7 @@ document.addEventListener('DOMContentLoaded', () => {
             slotMobileBaseOffsetY = offset.y;
             slotMobileImgEl.style.width = '';
             slotMobileImgEl.style.height = '';
-            slotMobileImgEl.style.transform = getMobileTransformForAsset();
+            slotMobileImgEl.style.transform = '';
             slotMobileImgEl.style.transformOrigin = 'center bottom';
             applyMobileFramePose();
         }
@@ -1303,6 +1316,68 @@ document.addEventListener('DOMContentLoaded', () => {
         return teamASlots[0] || null;
     }
 
+    function getNextAvailableTeamSlotForPlayer(currentSlot) {
+        if (!currentSlot) return null;
+        const isCurrentTeamA = currentSlot.classList.contains('team-a');
+        const nextTeamKey = isCurrentTeamA ? 'B' : 'A';
+        const nextTeamSlots = slotElementsByTeam[nextTeamKey] || [];
+
+        for (let index = 0; index < nextTeamSlots.length; index += 1) {
+            if (index >= currentTeamSize) break;
+            const slot = nextTeamSlots[index];
+            if (!slot) continue;
+            if (slot.style.display === 'none') continue;
+            if (!isSlotOccupied(slot)) {
+                return slot;
+            }
+        }
+
+        return null;
+    }
+
+    function updateLocalPlayerTeamTransforms() {
+        if (!localPlayerSlot) return;
+        // Facing should follow slot CSS team classes to stay consistent
+        // across side changes and mobile re-selection.
+        if (slotAvatarContainerEl) {
+            slotAvatarContainerEl.style.transform = '';
+        }
+        if (slotMobileImgEl) {
+            slotMobileImgEl.style.transform = '';
+        }
+        applyAvatarPlacementForMobile(slotMobileIndex);
+    }
+
+    function moveLocalPlayerToSlot(targetSlot) {
+        if (!targetSlot || !localPlayerSlot || targetSlot === localPlayerSlot) return false;
+
+        const sourceSlot = localPlayerSlot;
+        const wrapper = sourceSlot.querySelector('.slot-avatar-wrapper');
+        const info = sourceSlot.querySelector('.slot-player-info');
+        const latency = sourceSlot.querySelector('.slot-latency-ms');
+        if (!wrapper || !info || !latency || !slotFxBackdropHostEl || !slotFxForegroundHostEl) {
+            return false;
+        }
+
+        const userId = String(sourceSlot.dataset.userId || userData?.id || '');
+        sourceSlot.dataset.occupied = '';
+        sourceSlot.dataset.userId = '';
+
+        localPlayerSlot = targetSlot;
+        targetSlot.dataset.occupied = '1';
+        targetSlot.dataset.userId = userId;
+
+        targetSlot.appendChild(slotFxBackdropHostEl);
+        targetSlot.appendChild(slotFxForegroundHostEl);
+        targetSlot.appendChild(wrapper);
+        targetSlot.appendChild(info);
+        targetSlot.appendChild(latency);
+
+        updateLocalSlotMasterKeyIcon();
+        updateLocalPlayerTeamTransforms();
+        return true;
+    }
+
     function renderSlotAvatar(slotElement, user) {
         if (!slotElement || !user) return;
         localPlayerSlot = slotElement;
@@ -1361,11 +1436,7 @@ document.addEventListener('DOMContentLoaded', () => {
         slotMobileImgEl.draggable = false;
         slotMobileImgEl.style.zIndex = '3';
         wrapper.appendChild(slotMobileImgEl);
-        const isTeamA = slotElement.classList.contains('team-a');
-        avatarContainer.style.transform = isTeamA
-            ? 'translateX(-50%) scaleX(-1)'
-            : 'translateX(-50%) scaleX(1)';
-        slotMobileImgEl.style.transform = getMobileTransformForAsset();
+        updateLocalPlayerTeamTransforms();
 
         slotElement.appendChild(wrapper);
 
@@ -1652,8 +1723,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnChange) {
         btnChange.addEventListener('click', () => {
-            const next = selectedMobile >= MOBILE_SELECTION_MAX ? MOBILE_SELECTION_MIN : selectedMobile + 1;
-            setSelectedMobile(next);
+            if (!userData || !localPlayerSlot) return;
+            const targetSlot = getNextAvailableTeamSlotForPlayer(localPlayerSlot);
+            if (!targetSlot) {
+                showError('Room', 'No available slot on the opposite team.');
+                return;
+            }
+
+            if (!moveLocalPlayerToSlot(targetSlot)) {
+                // Fallback only if expected DOM state is missing.
+                destroySlotAvatar();
+                renderSlotAvatar(targetSlot, userData);
+                return;
+            }
+            // Reset frame anchors after team switch to keep rider/avatar lock consistent.
+            startMobileAnimation(selectedMobile);
         });
     }
 
