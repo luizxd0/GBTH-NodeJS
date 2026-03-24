@@ -2289,7 +2289,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const btnAddBuddyOk = document.getElementById('btn-add-buddy-ok');
+    let buddyInviteInFlight = false;
     const submitBuddyInvite = () => {
+        if (buddyInviteInFlight) return;
         const nickname = addBuddyInput?.value.trim() || '';
         const currentNickname = userData?.nickname || '';
 
@@ -2299,6 +2301,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (nickname !== '') {
+            buddyInviteInFlight = true;
             socket.emit('send_buddy_request', nickname);
         }
     };
@@ -2324,6 +2327,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     socket.on('buddy_request_sent', (data) => {
+        buddyInviteInFlight = false;
         const nickname = String(data?.nickname || '').trim();
         if (!nickname) return;
         window.showBuddyAlert(`You trying to add ${nickname} to the buddy list, wait for an answer.`);
@@ -2331,6 +2335,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     socket.on('buddy_request_error', (data) => {
+        buddyInviteInFlight = false;
         const message = String(data?.message || 'Unable to send buddy request.');
         window.showBuddyAlert(message);
         if (addBuddyPopup && addBuddyPopup.classList.contains('hidden')) {

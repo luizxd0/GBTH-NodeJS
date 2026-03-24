@@ -52,6 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const buddyChatMessages = document.getElementById('buddy-chat-messages');
     const buddyChatContent = document.querySelector('.buddy-chat-content');
     const btnBuddyChatClose = document.getElementById('btn-buddy-chat-close');
+    let buddyInviteInFlight = false;
 
     const errorPopup = ui?.createErrorPopupController({
         overlay: document.getElementById('error-overlay'),
@@ -851,6 +852,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     socket.on('buddy_request_sent', (data) => {
+        buddyInviteInFlight = false;
         const nickname = String(data?.nickname || '').trim();
         if (!nickname) return;
         showBuddyAlert(`You trying to add ${nickname} to the buddy list, wait for an answer.`);
@@ -858,6 +860,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     socket.on('buddy_request_error', (data) => {
+        buddyInviteInFlight = false;
         const message = String(data?.message || 'Unable to send buddy request.');
         showBuddyAlert(message);
         if (addBuddyPopup && addBuddyPopup.classList.contains('hidden')) {
@@ -2602,6 +2605,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const submitBuddyInvite = () => {
+        if (buddyInviteInFlight) return;
         const nickname = String(addBuddyInput?.value || '').trim();
         const currentNickname = String(userData?.nickname || '').trim();
         if (!nickname) return;
@@ -2611,6 +2615,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        buddyInviteInFlight = true;
         socket.emit('send_buddy_request', nickname);
     };
 

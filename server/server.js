@@ -1491,7 +1491,10 @@ const pool = mysql.createPool({
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'gunbound',
     waitForConnections: true,
-    connectionLimit: 10,
+    connectionLimit: Math.min(
+        100,
+        Math.max(10, Math.trunc(Number(process.env.DB_CONNECTION_LIMIT) || 50))
+    ),
     queueLimit: 0
 });
 
@@ -2795,7 +2798,7 @@ io.on('connection', (socket) => {
                 }
                 const shouldRefreshAllBuddyLists = Boolean(currentData.__hasGameRoomTopologyChanged);
                 if (shouldRefreshAllBuddyLists) {
-                    refreshBuddyListsForAllOnlineUsers();
+                    void refreshBuddyListsForAllOnlineUsers();
                 } else {
                     const shouldNotifyBuddyStatus = Boolean(currentData.__hasPresenceChanged) || !resumedFromReconnect;
                     if (shouldNotifyBuddyStatus) {
@@ -3274,70 +3277,71 @@ io.on('connection', (socket) => {
     }
 
     async function sendBuddyList(socket, userId) {
+        if (!socket || !userId) {
+            return;
+        }
         try {
-            const connection = await pool.getConnection();
-            try {
-                const [buddies] = await connection.execute(
-                    `SELECT b.Buddy as id, g.Nickname, g.TotalGrade as Grade, g.Guild 
-                     FROM buddylist b
-                     JOIN game g ON b.Buddy = g.Id
-                     WHERE b.Id = ?`,
-                    [userId]
-                );
+            const [buddies] = await pool.execute(
+                `SELECT b.Buddy as id, g.Nickname, g.TotalGrade as Grade, g.Guild 
+                 FROM buddylist b
+                 JOIN game g ON b.Buddy = g.Id
+                 WHERE b.Id = ?`,
+                [userId]
+            );
 
-                const buddyListData = buddies.map(b => {
-                    const buddyNicknameKey = b.Nickname.toLowerCase();
-                    const isOnline = userSockets.has(buddyNicknameKey);
-                    let location = 'offline';
-                    let serverId = 0;
-                    let channelId = 0;
-                    let roomId = 0;
+            const buddyListData = buddies.map(b => {
+                const buddyNicknameKey = b.Nickname.toLowerCase();
+                const isOnline = userSockets.has(buddyNicknameKey);
+                let location = 'offline';
+                let serverId = 0;
+                let channelId = 0;
+                let roomId = 0;
 
-                    if (isOnline) {
-                        const buddySocketId = userSockets.get(buddyNicknameKey);
-                        const buddyData = socketData.get(buddySocketId);
-                        location = buddyData ? buddyData.location : 'online';
-                        serverId = buddyData ? buddyData.serverId : 0;
-                        channelId = buddyData ? buddyData.channelId : 0;
-                        roomId = buddyData ? buddyData.roomId : 0;
-                    }
+                if (isOnline) {
+                    const buddySocketId = userSockets.get(buddyNicknameKey);
+                    const buddyData = socketData.get(buddySocketId);
+                    location = buddyData ? buddyData.location : 'online';
+                    serverId = buddyData ? buddyData.serverId : 0;
+                    channelId = buddyData ? buddyData.channelId : 0;
+                    roomId = buddyData ? buddyData.roomId : 0;
+                }
 
-                    return {
-                        id: b.id,
-                        nickname: b.Nickname,
-                        grade: b.Grade,
-                        guild: b.Guild,
-                        online: isOnline,
-                        location: location,
-                        serverId: serverId || 0,
-                        channelId: channelId || 0,
-                        roomId: roomId || 0
-                    };
-                });
+                return {
+                    id: b.id,
+                    nickname: b.Nickname,
+                    grade: b.Grade,
+                    guild: b.Guild,
+                    online: isOnline,
+                    location: location,
+                    serverId: serverId || 0,
+                    channelId: channelId || 0,
+                    roomId: roomId || 0
+                };
+            });
 
-                const onlineCount = buddyListData.filter(b => b.online).length;
-                const totalCount = buddyListData.length;
+            const onlineCount = buddyListData.filter(b => b.online).length;
+            const totalCount = buddyListData.length;
 
-                socket.emit('buddy_list_data', {
-                    buddies: buddyListData,
-                    onlineCount,
-                    totalCount
-                });
-            } catch (err) {
-                console.error('[Buddy] Error fetching list:', err);
-            } finally {
-                connection.release();
-            }
-        } catch (error) {
-            console.error('[Buddy] Connection Error:', error);
+            socket.emit('buddy_list_data', {
+                buddies: buddyListData,
+                onlineCount,
+                totalCount
+            });
+        } catch (err) {
+            console.error('[Buddy] Error fetching list:', err);
         }
     }
 
-    function refreshBuddyListsForAllOnlineUsers() {
-        for (const [socketId, data] of socketData.entries()) {
-            const onlineSocket = io.sockets.sockets.get(socketId);
-            if (!onlineSocket || !data?.id) continue;
-            sendBuddyList(onlineSocket, data.id);
+    /** One query at a time — avoids exhausting the MySQL pool when many sockets refresh together. */
+    async function refreshBuddyListsForAllOnlineUsers() {
+        try {
+            for (const [socketId, data] of socketData.entries()) {
+                const onlineSocket = io.sockets.sockets.get(socketId);
+                if (!onlineSocket || !data?.id) continue;
+                await sendBuddyList(onlineSocket, data.id);
+            }
+        } catch (error) {
+            console.error('[Buddy] refreshBuddyListsForAllOnlineUsers:', error);
         }
     }
 
@@ -3373,7 +3377,7 @@ io.on('connection', (socket) => {
                     if (friendSocketId) {
                         const friendSocket = io.sockets.sockets.get(friendSocketId);
                         if (friendSocket) {
-                            sendBuddyList(friendSocket, friend.Id);
+                            await sendBuddyList(friendSocket, friend.Id);
                         }
                     }
                 }
@@ -3402,7 +3406,7 @@ io.on('connection', (socket) => {
             broadcastChannelUsers(data.channelId);
             broadcastLobbyRooms();
             if (hasGameRoomTopologyChanged) {
-                refreshBuddyListsForAllOnlineUsers();
+                void refreshBuddyListsForAllOnlineUsers();
             }
         }
     });
@@ -3531,10 +3535,12 @@ io.on('connection', (socket) => {
                     await connection.commit();
                     console.log(`[Buddy] [${getUKTimestamp()}] ${receiver.nickname} accepted buddy request from ${fromNickname}`);
 
-                    // Refresh buddy list instantly
-                    sendBuddyList(socket, receiver.id);
-                    if (senderSocket) {
-                        sendBuddyList(io.sockets.sockets.get(senderSocketId), fromId);
+                    await sendBuddyList(socket, receiver.id);
+                    if (senderSocketId) {
+                        const senderSock = io.sockets.sockets.get(senderSocketId);
+                        if (senderSock) {
+                            await sendBuddyList(senderSock, fromId);
+                        }
                     }
 
                     if (senderCanReceiveBuddyPopupNow && senderSocketId) {
@@ -3587,10 +3593,8 @@ io.on('connection', (socket) => {
                 await connection.commit();
                 console.log(`[Buddy] [${getUKTimestamp()}] ${user.nickname} deleted a buddy (ID: ${targetId})`);
 
-                // Send updated list to the user who deleted
-                sendBuddyList(socket, user.id);
+                await sendBuddyList(socket, user.id);
 
-                // Find the target's socket
                 let targetSocketId = null;
                 for (const [sId, data] of socketData.entries()) {
                     if (data.id === targetId) {
@@ -3599,8 +3603,11 @@ io.on('connection', (socket) => {
                     }
                 }
 
-                if (targetSocketId && io.sockets.sockets.get(targetSocketId)) {
-                    sendBuddyList(io.sockets.sockets.get(targetSocketId), targetId);
+                if (targetSocketId) {
+                    const targetSock = io.sockets.sockets.get(targetSocketId);
+                    if (targetSock) {
+                        await sendBuddyList(targetSock, targetId);
+                    }
                 }
 
             } catch (err) {
@@ -3658,7 +3665,7 @@ io.on('connection', (socket) => {
                     console.log(`[Logoff] [${getUKTimestamp()}] ${nickname} logged off.`);
                     notifyBuddiesOfStatusChange(userId, 100);
                     if (hasGameRoomTopologyChanged) {
-                        refreshBuddyListsForAllOnlineUsers();
+                        void refreshBuddyListsForAllOnlineUsers();
                     }
                 }, disconnectGraceMs);
 
