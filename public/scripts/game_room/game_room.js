@@ -2366,9 +2366,52 @@ document.addEventListener('DOMContentLoaded', () => {
     const ITEM_SLOT_COUNT = Math.max(1, itemSlotButtons.length || 6);
     const selectedItemSlots = Array.from({ length: ITEM_SLOT_COUNT }, () => null);
     const disabledRoomItemKeys = new Set();
+    const renderedItemRefByButton = Array.from({ length: itemButtons.length }, () => null);
     let nextSelectedItemEntryId = 1;
 
     let currentItemPage = 0;
+
+    function getNonMasterVisibleItemEntries() {
+        const entries = [];
+        itemPages.forEach((page, pageIndex) => {
+            (page || []).forEach((item, itemIndex) => {
+                const iconPath = String(item?.gridIconPath || '');
+                if (!iconPath) return;
+                if (isRoomItemDisabled(pageIndex, itemIndex)) return;
+                entries.push({
+                    pageIndex,
+                    itemIndex,
+                    iconPath
+                });
+            });
+        });
+        return entries;
+    }
+
+    function getRenderableItemPageCount() {
+        const pageSize = Math.max(1, itemButtons.length || 1);
+        if (isRoomMaster) {
+            return Math.max(1, itemPages.length);
+        }
+        const visibleEntries = getNonMasterVisibleItemEntries();
+        return Math.max(1, Math.ceil(visibleEntries.length / pageSize));
+    }
+
+    function normalizeItemPageIndex(pageIndex) {
+        const pageCount = getRenderableItemPageCount();
+        const numeric = Math.trunc(Number(pageIndex || 0));
+        if (!Number.isFinite(numeric)) return 0;
+        const normalized = ((numeric % pageCount) + pageCount) % pageCount;
+        return normalized;
+    }
+
+    function shiftItemPage(delta) {
+        const pageCount = getRenderableItemPageCount();
+        if (pageCount <= 0) return;
+        const numericDelta = Math.trunc(Number(delta || 0));
+        currentItemPage = normalizeItemPageIndex(currentItemPage + numericDelta);
+        renderItemPage();
+    }
 
     function getRoomItemKey(pageIndex, itemIndex) {
         return `${Math.trunc(Number(pageIndex) || 0)}:${Math.trunc(Number(itemIndex) || 0)}`;
@@ -2508,79 +2551,115 @@ document.addEventListener('DOMContentLoaded', () => {
 
     itemButtons.forEach((button, index) => {
         button.addEventListener('click', () => {
-            const page = itemPages[currentItemPage] || [];
-            const item = page[index];
+            const ref = renderedItemRefByButton[index];
+            if (!ref) return;
+            const sourcePageIndex = Math.trunc(Number(ref.pageIndex));
+            const sourceItemIndex = Math.trunc(Number(ref.itemIndex));
+            if (!Number.isFinite(sourcePageIndex) || sourcePageIndex < 0) return;
+            if (!Number.isFinite(sourceItemIndex) || sourceItemIndex < 0) return;
+            const page = itemPages[sourcePageIndex] || [];
+            const item = page[sourceItemIndex];
             if (!item) return;
-            if (isRoomItemDisabled(currentItemPage, index)) return;
-            addItemToSlots(item, currentItemPage, index);
+            if (isRoomItemDisabled(sourcePageIndex, sourceItemIndex)) return;
+            addItemToSlots(item, sourcePageIndex, sourceItemIndex);
         });
 
         button.addEventListener('contextmenu', (event) => {
             event.preventDefault();
-            const page = itemPages[currentItemPage] || [];
-            const item = page[index];
-            if (!item) return;
             if (!isRoomMaster) return;
+            const ref = renderedItemRefByButton[index];
+            if (!ref) return;
+            const sourcePageIndex = Math.trunc(Number(ref.pageIndex));
+            const sourceItemIndex = Math.trunc(Number(ref.itemIndex));
+            if (!Number.isFinite(sourcePageIndex) || sourcePageIndex < 0) return;
+            if (!Number.isFinite(sourceItemIndex) || sourceItemIndex < 0) return;
+            const page = itemPages[sourcePageIndex] || [];
+            const item = page[sourceItemIndex];
+            if (!item) return;
 
-            const nextDisabled = !isRoomItemDisabled(currentItemPage, index);
-            setRoomItemDisabled(currentItemPage, index, nextDisabled);
+            const nextDisabled = !isRoomItemDisabled(sourcePageIndex, sourceItemIndex);
+            setRoomItemDisabled(sourcePageIndex, sourceItemIndex, nextDisabled);
             if (nextDisabled) {
                 removeDisabledItemsFromSlots();
             }
             renderItemPage();
             socket.emit('game_room_toggle_item_disabled', {
-                pageIndex: currentItemPage,
-                itemIndex: index,
+                pageIndex: sourcePageIndex,
+                itemIndex: sourceItemIndex,
                 disabled: nextDisabled
             });
         });
     });
 
     function renderItemPage() {
+        currentItemPage = normalizeItemPageIndex(currentItemPage);
+        const pageCount = getRenderableItemPageCount();
         const page = itemPages[currentItemPage] || [];
-        itemButtons.forEach((button, index) => {
-            const item = page[index];
-            const normalIconPath = String(item?.gridIconPath || '');
-            const hasItem = Boolean(normalIconPath);
-            const itemDisabled = hasItem && isRoomItemDisabled(currentItemPage, index);
+        if (isRoomMaster) {
+            itemButtons.forEach((button, index) => {
+                const item = page[index];
+                const normalIconPath = String(item?.gridIconPath || '');
+                const hasItem = Boolean(normalIconPath);
+                const itemDisabled = hasItem && isRoomItemDisabled(currentItemPage, index);
 
-            let isVisible = hasItem;
-            let iconPath = normalIconPath;
-            if (itemDisabled) {
-                if (isRoomMaster) {
+                let isVisible = hasItem;
+                let iconPath = normalIconPath;
+                if (itemDisabled) {
                     iconPath = String(item?.disabledGridIconPath || normalIconPath);
-                } else {
-                    isVisible = false;
                 }
-            }
 
-            button.style.backgroundImage = isVisible ? `url('${iconPath}')` : 'none';
-            button.style.visibility = isVisible ? 'visible' : 'hidden';
-            button.style.pointerEvents = isVisible ? 'auto' : 'none';
-            button.disabled = !isVisible;
-        });
+                renderedItemRefByButton[index] = hasItem
+                    ? { pageIndex: currentItemPage, itemIndex: index }
+                    : null;
+                button.style.backgroundImage = isVisible ? `url('${iconPath}')` : 'none';
+                button.style.visibility = isVisible ? 'visible' : 'hidden';
+                button.style.pointerEvents = isVisible ? 'auto' : 'none';
+                button.disabled = !isVisible;
+            });
+        } else {
+            const visibleEntries = getNonMasterVisibleItemEntries();
+            const pageSize = Math.max(1, itemButtons.length || 1);
+            const start = currentItemPage * pageSize;
+            const pageEntries = visibleEntries.slice(start, start + pageSize);
+
+            itemButtons.forEach((button, visualIndex) => {
+                const entry = pageEntries[visualIndex];
+                if (entry) {
+                    renderedItemRefByButton[visualIndex] = {
+                        pageIndex: entry.pageIndex,
+                        itemIndex: entry.itemIndex
+                    };
+                    button.style.backgroundImage = `url('${entry.iconPath}')`;
+                    button.style.visibility = 'visible';
+                    button.style.pointerEvents = 'auto';
+                    button.disabled = false;
+                } else {
+                    renderedItemRefByButton[visualIndex] = null;
+                    button.style.backgroundImage = 'none';
+                    button.style.visibility = 'hidden';
+                    button.style.pointerEvents = 'none';
+                    button.disabled = true;
+                }
+            });
+        }
 
         if (btnItemUp) {
-            btnItemUp.disabled = currentItemPage <= 0;
+            btnItemUp.disabled = !isRoomMaster && pageCount <= 1;
         }
         if (btnItemDown) {
-            btnItemDown.disabled = currentItemPage >= itemPages.length - 1;
+            btnItemDown.disabled = !isRoomMaster && pageCount <= 1;
         }
     }
 
     if (btnItemUp) {
         btnItemUp.addEventListener('click', () => {
-            if (currentItemPage <= 0) return;
-            currentItemPage -= 1;
-            renderItemPage();
+            shiftItemPage(-1);
         });
     }
 
     if (btnItemDown) {
         btnItemDown.addEventListener('click', () => {
-            if (currentItemPage >= itemPages.length - 1) return;
-            currentItemPage += 1;
-            renderItemPage();
+            shiftItemPage(1);
         });
     }
 
