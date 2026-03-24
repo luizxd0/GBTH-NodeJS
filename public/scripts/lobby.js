@@ -75,6 +75,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const JOIN_ROOM_PASSWORD_MAX_LEN = 4;
     let lobbyRoomsCache = [];
     let lobbyRoomsPageIndex = 0;
+    /** Lobby room list filter: all rooms, only waiting, or only rooms with a buddy member. */
+    let lobbyRoomNavFilter = 'all';
     /** Buddy user ids (from `buddy_list_data`) — used to show headcount friend icon on room rows. */
     const lobbyBuddyIds = new Set();
 
@@ -359,9 +361,45 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
+    function getLobbyRoomsVisibleList() {
+        if (!Array.isArray(lobbyRoomsCache) || lobbyRoomsCache.length <= 0) return [];
+        if (lobbyRoomNavFilter === 'waiting') {
+            return lobbyRoomsCache.filter((r) => String(r?.status || '').trim().toLowerCase() === 'waiting');
+        }
+        if (lobbyRoomNavFilter === 'friends') {
+            return lobbyRoomsCache.filter((r) => lobbyRoomHasBuddyMember(r));
+        }
+        return lobbyRoomsCache;
+    }
+
     function getLobbyRoomsTotalPages() {
-        if (!Array.isArray(lobbyRoomsCache) || lobbyRoomsCache.length <= 0) return 0;
-        return Math.ceil(lobbyRoomsCache.length / LOBBY_ROOMS_PAGE_SIZE);
+        const visible = getLobbyRoomsVisibleList();
+        if (visible.length <= 0) return 0;
+        return Math.ceil(visible.length / LOBBY_ROOMS_PAGE_SIZE);
+    }
+
+    function updateLobbyRoomNavFilterButtons() {
+        const modes = [
+            { id: 'btn-view-all', mode: 'all' },
+            { id: 'btn-waiting', mode: 'waiting' },
+            { id: 'btn-friends', mode: 'friends' }
+        ];
+        modes.forEach(({ id, mode }) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const active = lobbyRoomNavFilter === mode;
+            el.classList.toggle('lobby-room-filter-active', active);
+            el.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+    }
+
+    function setLobbyRoomNavFilter(mode) {
+        const next = mode === 'waiting' || mode === 'friends' ? mode : 'all';
+        if (lobbyRoomNavFilter === next) return;
+        lobbyRoomNavFilter = next;
+        lobbyRoomsPageIndex = 0;
+        updateLobbyRoomNavFilterButtons();
+        renderLobbyRoomsPage();
     }
 
     function clampLobbyRoomsPageIndex(pageIndex) {
@@ -426,8 +464,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!lobbyRoomList) return;
 
         lobbyRoomsPageIndex = clampLobbyRoomsPageIndex(lobbyRoomsPageIndex);
+        const visibleRooms = getLobbyRoomsVisibleList();
         const startIndex = lobbyRoomsPageIndex * LOBBY_ROOMS_PAGE_SIZE;
-        const normalizedRooms = lobbyRoomsCache.slice(startIndex, startIndex + LOBBY_ROOMS_PAGE_SIZE);
+        const normalizedRooms = visibleRooms.slice(startIndex, startIndex + LOBBY_ROOMS_PAGE_SIZE);
         const fragment = document.createDocumentFragment();
 
         normalizedRooms.forEach((room, index) => {
@@ -824,6 +863,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (id === 'btn-lobby-buddy') {
                 toggleBuddyPanel();
             }
+            if (id === 'btn-view-all') {
+                setLobbyRoomNavFilter('all');
+            }
+            if (id === 'btn-waiting') {
+                setLobbyRoomNavFilter('waiting');
+            }
+            if (id === 'btn-friends') {
+                setLobbyRoomNavFilter('friends');
+            }
             if (id === 'btn-lobby-create') {
                 showCreateRoomPopup();
             }
@@ -853,6 +901,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnRanking) btnRanking.disabled = true;
     if (btnJoin) btnJoin.disabled = true;
+    updateLobbyRoomNavFilterButtons();
     updateLobbyRoomPagerButtons();
 
     if (btnPrev) {

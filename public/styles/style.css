@@ -1250,6 +1250,12 @@ body {
     background-image: url('/assets/screens/lobby/b_gamelist_viewall/b_gamelist_viewall_frame_3.png');
 }
 
+#btn-view-all.lobby-room-filter-active:not(:disabled),
+#btn-view-all.lobby-room-filter-active:hover:not(:disabled),
+#btn-view-all.lobby-room-filter-active:active:not(:disabled) {
+    background-image: url('/assets/screens/lobby/b_gamelist_viewall/b_gamelist_viewall_frame_2.png');
+}
+
 #btn-waiting {
     top: 245px;
     left: 133px;
@@ -1320,6 +1326,12 @@ body {
 
 #btn-friends:disabled {
     background-image: url('/assets/screens/lobby/b_gamelist_friend/b_gamelist_friend_frame_3.png');
+}
+
+#btn-friends.lobby-room-filter-active:not(:disabled),
+#btn-friends.lobby-room-filter-active:hover:not(:disabled),
+#btn-friends.lobby-room-filter-active:active:not(:disabled) {
+    background-image: url('/assets/screens/lobby/b_gamelist_friend/b_gamelist_friend_frame_2.png');
 }
 
 #btn-goto {
