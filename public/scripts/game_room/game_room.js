@@ -327,6 +327,42 @@ document.addEventListener('DOMContentLoaded', () => {
         A: [1, 2, 3, 4].map((value) => document.getElementById(`game-room-slot-a${value}`)).filter(Boolean),
         B: [1, 2, 3, 4].map((value) => document.getElementById(`game-room-slot-b${value}`)).filter(Boolean)
     };
+
+    function insertNicknameIntoRoomChatInput(nickname) {
+        if (!roomChatInput) return;
+        const safeNickname = String(nickname || '').trim();
+        if (!safeNickname) return;
+        const currentValue = String(roomChatInput.value || '');
+        const nextValue = currentValue.trim()
+            ? `${currentValue}${currentValue.endsWith(' ') ? '' : ' '}${safeNickname} `
+            : `${safeNickname} `;
+        roomChatInput.value = nextValue;
+        roomChatInput.focus();
+        const caretPosition = nextValue.length;
+        if (typeof roomChatInput.setSelectionRange === 'function') {
+            roomChatInput.setSelectionRange(caretPosition, caretPosition);
+        }
+        roomChatCursorController?.update();
+    }
+
+    function bindSlotNicknameClickToChatInput() {
+        const allSlots = [
+            ...(slotElementsByTeam.A || []),
+            ...(slotElementsByTeam.B || [])
+        ];
+        allSlots.forEach((slot) => {
+            if (!slot) return;
+            if (String(slot.dataset.chatNicknameBinding || '') === '1') return;
+            slot.dataset.chatNicknameBinding = '1';
+            slot.addEventListener('click', () => {
+                if (isLeavingGameRoom) return;
+                const nickname = String(slot.dataset.nickname || '').trim();
+                if (!nickname) return;
+                insertNicknameIntoRoomChatInput(nickname);
+            });
+        });
+    }
+    bindSlotNicknameClickToChatInput();
     let currentTeamSize = Math.max(
         TEAM_SIZE_MIN,
         Math.min(TEAM_SIZE_MAX, Math.trunc(Number(roomConfig?.teamSize || 4)))
@@ -460,6 +496,9 @@ document.addEventListener('DOMContentLoaded', () => {
             roomKey: roomKey || roomConfig.roomKey || `room:${userData?.id || ''}`,
             title: String(roomConfig?.title || roomTitleEl?.textContent || '').trim(),
             mode: String(roomConfig?.mode || currentGameMode || 'solo').trim().toLowerCase(),
+            bigbombMode: String(roomConfig?.bigbombMode || currentBigBombMode || 'bigbomb').trim().toLowerCase(),
+            bombMode: String(roomConfig?.bombMode || currentBombMode || 'basic').trim().toLowerCase(),
+            deathMode: String(roomConfig?.deathMode || currentDeathMode || 'death56').trim().toLowerCase(),
             teamSize: Math.max(1, Math.trunc(Number(roomConfig?.teamSize || currentTeamSize || 4))),
             slotLabel: String(roomConfig?.slotLabel || `${currentTeamSize}v${currentTeamSize}`).trim(),
             mapSide: selectedMapSide === 'B' ? 'B' : 'A',
@@ -575,6 +614,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setBigBombModeButtonVisual(currentBigBombMode);
         roomConfig.bigbombMode = currentBigBombMode;
         persistRoomConfig();
+        syncRoomMetadataToLobby();
         updateMapControlPermissions();
     }
 
@@ -594,6 +634,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setBombModeButtonVisual(currentBombMode);
         roomConfig.bombMode = currentBombMode;
         persistRoomConfig();
+        syncRoomMetadataToLobby();
         updateMapControlPermissions();
     }
 
@@ -613,6 +654,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setDeathModeButtonVisual(currentDeathMode);
         roomConfig.deathMode = currentDeathMode;
         persistRoomConfig();
+        syncRoomMetadataToLobby();
         updateMapControlPermissions();
     }
 
@@ -705,6 +747,57 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.on('game_room_roster', (payload) => {
         if (isLeavingGameRoom) return;
         applyGameRoomRoster(payload);
+    });
+
+    socket.on('game_room_config', (payload) => {
+        if (isLeavingGameRoom) return;
+        const title = String(payload?.title || '').trim();
+        if (title && roomTitleEl) {
+            roomTitleEl.textContent = title;
+            roomConfig.title = title;
+        }
+        const mode = String(payload?.mode || '').trim().toLowerCase();
+        if (mode) {
+            applyGameMode(mode);
+        }
+        const bigbombMode = String(payload?.bigbombMode || '').trim().toLowerCase();
+        if (bigbombMode) {
+            applyBigBombMode(bigbombMode);
+        }
+        const bombMode = String(payload?.bombMode || '').trim().toLowerCase();
+        if (bombMode) {
+            applyBombMode(bombMode);
+        }
+        const deathMode = String(payload?.deathMode || '').trim().toLowerCase();
+        if (deathMode) {
+            applyDeathMode(deathMode);
+        }
+        const nextTeamSize = Math.trunc(Number(payload?.teamSize));
+        if (Number.isFinite(nextTeamSize) && nextTeamSize > 0) {
+            applyTeamSizeLayout(nextTeamSize);
+        }
+        const mapSide = String(payload?.mapSide || '').trim().toUpperCase();
+        if (mapSide === 'A' || mapSide === 'B') {
+            selectedMapSide = mapSide;
+        }
+        const mapIndex = Math.trunc(Number(payload?.mapIndex));
+        if (Number.isFinite(mapIndex)) {
+            selectedMapIndex = Math.max(0, Math.min(MAP_FRAME_COUNT - 1, mapIndex));
+        }
+        renderMapCard();
+    });
+
+    socket.on('game_room_latency', (payload) => {
+        if (isLeavingGameRoom) return;
+        const userId = String(payload?.userId || '').trim();
+        if (!userId) return;
+        const localUserId = String(userData?.id || '').trim();
+        const latencyMs = Math.trunc(Number(payload?.latencyMs));
+        if (userId === localUserId) {
+            setSlotLatencyLabelText(formatLatencyLabel(latencyMs));
+            return;
+        }
+        setRemoteSlotLatencyLabel(userId, latencyMs);
     });
 
     socket.on('game_room_error', (data) => {
@@ -1053,7 +1146,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const SLOT_BUBBLE_MIN_DURATION_MS = 4500;
     const SLOT_BUBBLE_MAX_DURATION_MS = 12000;
     const SLOT_BUBBLE_MS_PER_CHAR = 80;
-    const SLOT_BUBBLE_RESTORE_MIN_DURATION_MS = 3200;
     const DEFAULT_JOIN_MOBILE_INDEX = 15;
     let selectedMobile = Math.trunc(Number(roomConfig?.mobileIndex));
     if (selectedMobile === 0) selectedMobile = DEFAULT_JOIN_MOBILE_INDEX;
@@ -1084,6 +1176,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const remotePlayerIdsBySlot = new Map();
     const remoteAvatarAnimatorsBySlot = new Map();
     const remoteMobileAnimationBySlot = new Map();
+    const remoteLatencyLabelByUserId = new Map();
     const slotSpeechBubbleHideTimers = new WeakMap();
     const activeSlotSpeechBubblesByNickname = new Map();
 
@@ -1408,8 +1501,7 @@ document.addEventListener('DOMContentLoaded', () => {
             activeSlotSpeechBubblesByNickname.delete(nicknameKey);
             return;
         }
-        const restoredDurationMs = Math.max(SLOT_BUBBLE_RESTORE_MIN_DURATION_MS, remainingMs);
-        showSlotSpeechBubbleForSlot(slot, bubbleState.message, Boolean(bubbleState.isPowerUser), restoredDurationMs);
+        showSlotSpeechBubbleForSlot(slot, bubbleState.message, Boolean(bubbleState.isPowerUser), remainingMs);
     }
 
     function getSlotBubbleDurationMs(message) {
@@ -1435,7 +1527,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const slotNicknameKey = getBubbleNicknameKey(slot.dataset.nickname);
         const durationMs = Number.isFinite(Number(durationOverrideMs))
-            ? Math.max(SLOT_BUBBLE_RESTORE_MIN_DURATION_MS, Math.trunc(Number(durationOverrideMs)))
+            ? Math.max(120, Math.trunc(Number(durationOverrideMs)))
             : getSlotBubbleDurationMs(safeMessage);
         const expiresAt = Date.now() + durationMs;
         if (slotNicknameKey) {
@@ -1515,6 +1607,22 @@ document.addEventListener('DOMContentLoaded', () => {
         slotLatencyLabelEl.textContent = String(text || '');
     }
 
+    function formatLatencyLabel(latencyMs) {
+        const parsed = Math.trunc(Number(latencyMs));
+        if (!Number.isFinite(parsed) || parsed < 0) {
+            return '-- ms';
+        }
+        return `${parsed} ms`;
+    }
+
+    function setRemoteSlotLatencyLabel(userId, latencyMs) {
+        const normalizedUserId = String(userId || '').trim();
+        if (!normalizedUserId) return;
+        const labelEl = remoteLatencyLabelByUserId.get(normalizedUserId);
+        if (!labelEl) return;
+        labelEl.textContent = formatLatencyLabel(latencyMs);
+    }
+
     function stopSlotLatencyMonitor() {
         if (slotLatencyTimer) {
             window.clearInterval(slotLatencyTimer);
@@ -1548,6 +1656,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     : Date.now();
                 const rttMs = Math.max(0, Math.round(endedAt - startedAt));
                 setSlotLatencyLabelText(`${rttMs} ms`);
+                if (!isLeavingGameRoom) {
+                    socket.emit('game_room_latency_update', { latencyMs: rttMs });
+                }
             });
         };
 
@@ -1804,7 +1915,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (remoteInfo) {
                 remoteInfo.remove();
             }
+            const remoteLatency = slot.querySelector('.slot-latency-ms-remote');
+            if (remoteLatency) {
+                remoteLatency.remove();
+            }
             if (slot === localPlayerSlot) return;
+            const remoteUserId = String(slot.dataset.userId || '').trim();
+            if (remoteUserId) {
+                remoteLatencyLabelByUserId.delete(remoteUserId);
+            }
             clearSlotOccupantDataset(slot);
         });
         remotePlayerIdsBySlot.clear();
@@ -1813,6 +1932,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function clearRemotePlayerFromSlot(slot) {
         if (!slot || slot === localPlayerSlot) return;
 
+        const remoteUserId = String(slot.dataset.userId || '').trim();
+        if (remoteUserId) {
+            remoteLatencyLabelByUserId.delete(remoteUserId);
+        }
         stopRemoteMobileAnimationForSlot(slot);
         const remoteAnimator = remoteAvatarAnimatorsBySlot.get(slot);
         if (remoteAnimator) {
@@ -1835,6 +1958,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const remoteInfo = slot.querySelector('.slot-player-info-remote');
         if (remoteInfo) {
             remoteInfo.remove();
+        }
+        const remoteLatency = slot.querySelector('.slot-latency-ms-remote');
+        if (remoteLatency) {
+            remoteLatency.remove();
         }
 
         remotePlayerIdsBySlot.delete(slot);
@@ -1987,8 +2114,13 @@ document.addEventListener('DOMContentLoaded', () => {
         infoEl.appendChild(keyIconEl);
 
         slot.appendChild(infoEl);
+        const latencyEl = document.createElement('div');
+        latencyEl.className = 'slot-latency-ms slot-latency-ms-remote';
+        latencyEl.textContent = formatLatencyLabel(player?.latencyMs);
+        slot.appendChild(latencyEl);
         setSlotOccupantDataset(slot, player);
         remotePlayerIdsBySlot.set(slot, remoteUserId);
+        remoteLatencyLabelByUserId.set(remoteUserId, latencyEl);
     }
 
     function applyGameRoomRoster(payload) {

@@ -192,6 +192,7 @@ function buildGameRoomRoster(roomKey) {
             aforeground: presence.aforeground ?? null,
             aexitem: presence.aexitem ?? null,
             mobileIndex: Number(presence.mobileIndex ?? 15),
+            latencyMs: Number.isFinite(Number(presence.latencyMs)) ? Math.max(0, Math.trunc(Number(presence.latencyMs))) : null,
             slotIndex: slotIndex >= 0 ? slotIndex : -1,
             isMaster,
             isReady: !isMaster && Boolean(readySet?.has(normalizedMemberId))
@@ -235,6 +236,35 @@ function getGameRoomTeamSize(roomKey) {
     if (!normalizedRoomKey) return 4;
     const meta = gameRoomMetadata.get(normalizedRoomKey);
     return clampGameRoomTeamSize(meta?.teamSize);
+}
+
+function buildGameRoomConfigPayload(roomKey) {
+    const normalizedRoomKey = String(roomKey || '').trim();
+    const meta = gameRoomMetadata.get(normalizedRoomKey) || {};
+    const teamSize = getGameRoomTeamSize(normalizedRoomKey);
+    return {
+        roomKey: normalizedRoomKey,
+        title: String(meta.title || '').trim(),
+        mode: String(meta.mode || 'solo').trim().toLowerCase(),
+        bigbombMode: String(meta.bigbombMode || 'bigbomb').trim().toLowerCase(),
+        bombMode: String(meta.bombMode || 'basic').trim().toLowerCase(),
+        deathMode: String(meta.deathMode || 'death56').trim().toLowerCase(),
+        teamSize,
+        slotLabel: String(meta.slotLabel || `${teamSize}v${teamSize}`).trim(),
+        mapSide: String(meta.mapSide || 'A').trim().toUpperCase() === 'B' ? 'B' : 'A',
+        mapIndex: Math.max(0, Math.min(21, Math.trunc(Number(meta.mapIndex || 0))))
+    };
+}
+
+function broadcastGameRoomConfig(roomKey) {
+    const normalizedRoomKey = String(roomKey || '').trim();
+    if (!normalizedRoomKey) return;
+    const payload = buildGameRoomConfigPayload(normalizedRoomKey);
+    for (const [socketId, data] of socketData.entries()) {
+        if (String(data?.location || '').toLowerCase() !== 'game_room') continue;
+        if (String(data?.roomKey || '').trim() !== normalizedRoomKey) continue;
+        io.to(socketId).emit('game_room_config', payload);
+    }
 }
 
 function getPreferredSlotOrder(teamSize) {
@@ -433,6 +463,24 @@ function upsertGameRoomMetadata(roomKey, payload = {}) {
     const mode = String(payload?.mode || '').trim().toLowerCase();
     if (mode && next.mode !== mode) {
         next.mode = mode;
+        changed = true;
+    }
+
+    const bigbombMode = String(payload?.bigbombMode || payload?.bigBombMode || '').trim().toLowerCase();
+    if (bigbombMode && next.bigbombMode !== bigbombMode) {
+        next.bigbombMode = bigbombMode;
+        changed = true;
+    }
+
+    const bombMode = String(payload?.bombMode || '').trim().toLowerCase();
+    if (bombMode && next.bombMode !== bombMode) {
+        next.bombMode = bombMode;
+        changed = true;
+    }
+
+    const deathMode = String(payload?.deathMode || '').trim().toLowerCase();
+    if (deathMode && next.deathMode !== deathMode) {
+        next.deathMode = deathMode;
         changed = true;
     }
 
@@ -2637,6 +2685,7 @@ io.on('connection', (socket) => {
                         aforeground: equipState?.aforeground ?? null,
                         aexitem: equipState?.aexitem ?? null,
                         mobileIndex: Math.trunc(Number(data.mobileIndex ?? 15)),
+                        latencyMs: null,
                         location: normalizedLocation,
                         serverId: normalizedLocation === 'world_list' ? 0 : 1,
                         channelId: normalizedLocation === 'channel' ? 1 : 0,
@@ -2697,6 +2746,7 @@ io.on('connection', (socket) => {
                     socket.emit('game_room_item_state', {
                         disabledItems: getSerializedGameRoomDisabledItems(currentData.roomKey)
                     });
+                    socket.emit('game_room_config', buildGameRoomConfigPayload(currentData.roomKey));
                     broadcastGameRoomRoster(currentData.roomKey);
                 }
                 const shouldRefreshAllBuddyLists = Boolean(currentData.__hasGameRoomTopologyChanged);
@@ -2793,6 +2843,9 @@ io.on('connection', (socket) => {
         const changed = upsertGameRoomMetadata(roomKey, {
             title: payload?.title,
             mode: payload?.mode,
+            bigbombMode: payload?.bigbombMode || payload?.bigBombMode,
+            bombMode: payload?.bombMode,
+            deathMode: payload?.deathMode,
             teamSize: nextTeamSize,
             slotLabel: payload?.slotLabel || `${nextTeamSize}v${nextTeamSize}`,
             mapSide: payload?.mapSide,
@@ -2803,6 +2856,7 @@ io.on('connection', (socket) => {
         if (nextTeamSize !== previousTeamSize) {
             syncSocketGameRoomNumbers(true);
         }
+        broadcastGameRoomConfig(roomKey);
         broadcastGameRoomRoster(roomKey);
         broadcastLobbyRooms();
     });
@@ -3001,6 +3055,33 @@ io.on('connection', (socket) => {
         user.mobileIndex = mobileIndex;
         socketData.set(socket.id, user);
         broadcastGameRoomRoster(roomKey);
+    });
+
+    socket.on('game_room_latency_update', (payload) => {
+        const user = socketData.get(socket.id);
+        if (!user || String(user.location || '').toLowerCase() !== 'game_room') {
+            return;
+        }
+        const roomKey = String(user.roomKey || '').trim();
+        const userId = String(user.id || '').trim();
+        if (!roomKey || !userId) return;
+
+        const latencyMs = Math.trunc(Number(payload?.latencyMs));
+        if (!Number.isFinite(latencyMs) || latencyMs < 0 || latencyMs > 9999) {
+            return;
+        }
+
+        user.latencyMs = latencyMs;
+        socketData.set(socket.id, user);
+
+        for (const [socketId, data] of socketData.entries()) {
+            if (String(data?.location || '').toLowerCase() !== 'game_room') continue;
+            if (String(data?.roomKey || '').trim() !== roomKey) continue;
+            io.to(socketId).emit('game_room_latency', {
+                userId,
+                latencyMs
+            });
+        }
     });
 
     socket.on('game_room_set_ready', (payload) => {
