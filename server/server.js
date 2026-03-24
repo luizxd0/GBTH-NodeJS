@@ -377,6 +377,21 @@ function upsertGameRoomMetadata(roomKey, payload = {}) {
         changed = true;
     }
 
+    const mapSide = String(payload?.mapSide || '').trim().toUpperCase();
+    if ((mapSide === 'A' || mapSide === 'B') && next.mapSide !== mapSide) {
+        next.mapSide = mapSide;
+        changed = true;
+    }
+
+    const mapIndex = Math.trunc(Number(payload?.mapIndex));
+    if (Number.isFinite(mapIndex)) {
+        const clampedMapIndex = Math.max(0, Math.min(21, mapIndex));
+        if (next.mapIndex !== clampedMapIndex) {
+            next.mapIndex = clampedMapIndex;
+            changed = true;
+        }
+    }
+
     const ownerUserId = String(payload?.ownerUserId || '').trim();
     if (ownerUserId && next.ownerUserId !== ownerUserId) {
         next.ownerUserId = ownerUserId;
@@ -486,6 +501,22 @@ function assignUserToGameRoom(userId, roomKey) {
     }
 
     const normalizedRoomKey = normalizeGameRoomKey(roomKey, normalizedUserId);
+    const currentTargetMembers = activeGameRooms.get(normalizedRoomKey);
+    const roomTeamSize = getGameRoomTeamSize(normalizedRoomKey);
+    const roomCapacity = Math.max(1, Math.trunc(Number(roomTeamSize || 4)) * 2);
+    const isAlreadyInTargetRoom = Boolean(currentTargetMembers?.has(normalizedUserId));
+    const currentTargetCount = currentTargetMembers ? currentTargetMembers.size : 0;
+    if (!isAlreadyInTargetRoom && currentTargetCount >= roomCapacity) {
+        return {
+            roomKey: normalizedRoomKey,
+            roomId: getGameRoomNumberForKey(normalizedRoomKey) || 0,
+            topologyChanged: false,
+            roomSlotIndex: -1,
+            teamSize: roomTeamSize,
+            joinRejected: 'room_full'
+        };
+    }
+
     const previousRoomKey = userGameRoomMembership.get(normalizedUserId);
     let topologyChanged = false;
     let changedPreviousRoomKey = '';
@@ -525,7 +556,7 @@ function assignUserToGameRoom(userId, roomKey) {
         topologyChanged = true;
     }
     const assignedSlotIndex = allocateUserRoomSlot(normalizedRoomKey, normalizedUserId);
-    const roomTeamSize = getGameRoomTeamSize(normalizedRoomKey);
+    const nextRoomTeamSize = getGameRoomTeamSize(normalizedRoomKey);
 
     userGameRoomMembership.set(normalizedUserId, normalizedRoomKey);
 
@@ -546,7 +577,7 @@ function assignUserToGameRoom(userId, roomKey) {
         roomId: getGameRoomNumberForKey(normalizedRoomKey) || 1,
         topologyChanged,
         roomSlotIndex: assignedSlotIndex >= 0 ? assignedSlotIndex : -1,
-        teamSize: roomTeamSize
+        teamSize: nextRoomTeamSize
     };
 }
 
@@ -2484,6 +2515,13 @@ io.on('connection', (socket) => {
                             dbUser.UserId,
                             data.roomKey || data.roomId || data.roomTitle
                         );
+                        if (String(roomAssignment?.joinRejected || '').toLowerCase() === 'room_full') {
+                            socket.emit('lobby_room_join_error', {
+                                reason: 'room_full',
+                                message: 'Room is full.'
+                            });
+                            return;
+                        }
                         roomId = roomAssignment.roomId || 1;
                         roomKey = roomAssignment.roomKey;
                         roomSlotIndex = Math.trunc(Number(roomAssignment.roomSlotIndex));
@@ -2495,6 +2533,8 @@ io.on('connection', (socket) => {
                                 mode: data.mode,
                                 slotLabel: data.slotLabel,
                                 teamSize: data.teamSize,
+                                mapSide: data.mapSide,
+                                mapIndex: data.mapIndex,
                                 ownerUserId: dbUser.UserId,
                                 ownerNickname: dbUser.Nickname,
                                 ownerGuild: dbUser.Guild || '',
@@ -2681,7 +2721,9 @@ io.on('connection', (socket) => {
             title: payload?.title,
             mode: payload?.mode,
             teamSize: nextTeamSize,
-            slotLabel: payload?.slotLabel || `${nextTeamSize}v${nextTeamSize}`
+            slotLabel: payload?.slotLabel || `${nextTeamSize}v${nextTeamSize}`,
+            mapSide: payload?.mapSide,
+            mapIndex: payload?.mapIndex
         });
         if (!changed) return;
 
@@ -2959,6 +3001,11 @@ io.on('connection', (socket) => {
                 : 4;
             const maxPlayers = teamSize * 2;
             const slotLabel = String(meta.slotLabel || `${teamSize}v${teamSize}`).trim();
+            const resolvedMapIndex = Math.trunc(Number(meta.mapIndex));
+            const mapIndex = Number.isFinite(resolvedMapIndex)
+                ? Math.max(0, Math.min(21, resolvedMapIndex))
+                : 0;
+            const mapSide = String(meta.mapSide || (mapIndex >= 11 ? 'B' : 'A')).trim().toUpperCase() === 'B' ? 'B' : 'A';
 
             rooms.push({
                 roomKey: String(roomKey || ''),
@@ -2967,6 +3014,8 @@ io.on('connection', (socket) => {
                 mode: String(meta.mode || 'solo').trim().toLowerCase(),
                 slotLabel,
                 teamSize,
+                mapSide,
+                mapIndex,
                 memberCount: memberIds.length,
                 maxPlayers,
                 ownerNickname,

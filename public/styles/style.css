@@ -728,9 +728,51 @@ body {
     text-overflow: ellipsis;
 }
 
+.lobby-room-status {
+    position: absolute;
+    top: 23px;
+    left: 20px;
+    width: auto;
+    height: auto;
+    max-width: none;
+    max-height: none;
+    object-fit: none;
+    image-rendering: auto;
+    display: block;
+    pointer-events: none;
+}
+
+.lobby-room-stage {
+    position: absolute;
+    top: 28px;
+    right: 85px;
+    width: auto;
+    height: auto;
+    max-width: none;
+    max-height: none;
+    object-fit: none;
+    image-rendering: auto;
+    display: block;
+    pointer-events: none;
+}
+
+.lobby-room-mode {
+    position: absolute;
+    top: 28px;
+    right: 42px;
+    width: auto;
+    height: auto;
+    max-width: none;
+    max-height: none;
+    object-fit: none;
+    image-rendering: auto;
+    display: block;
+    pointer-events: none;
+}
+
 .lobby-room-meta {
     position: absolute;
-    top: 31px;
+    top: 30px;
     left: 8px;
     width: 215px;
     line-height: 13px;

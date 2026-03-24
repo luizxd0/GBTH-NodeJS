@@ -394,6 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
         roomConfig.mapIndex = selectedMapIndex;
         setMapSideButtonVisual(selectedMapSide);
         persistRoomConfig();
+        syncRoomMetadataToLobby();
     }
 
     function cycleMapBy(delta) {
@@ -459,7 +460,9 @@ document.addEventListener('DOMContentLoaded', () => {
             title: String(roomConfig?.title || roomTitleEl?.textContent || '').trim(),
             mode: String(roomConfig?.mode || currentGameMode || 'solo').trim().toLowerCase(),
             teamSize: Math.max(1, Math.trunc(Number(roomConfig?.teamSize || currentTeamSize || 4))),
-            slotLabel: String(roomConfig?.slotLabel || `${currentTeamSize}v${currentTeamSize}`).trim()
+            slotLabel: String(roomConfig?.slotLabel || `${currentTeamSize}v${currentTeamSize}`).trim(),
+            mapSide: selectedMapSide === 'B' ? 'B' : 'A',
+            mapIndex: Math.max(0, Math.min(MAP_FRAME_COUNT - 1, Math.trunc(Number(selectedMapIndex || 0))))
         });
     }
 

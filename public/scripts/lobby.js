@@ -58,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const channelListContent = document.getElementById('channel-list-content');
     const lobbyRoomList = document.getElementById('lobby-room-list');
     const LOBBY_ROOMS_PAGE_SIZE = 6;
+    const LOBBY_STAGE_FRAME_COUNT = 22;
     let lobbyRoomsCache = [];
     let lobbyRoomsPageIndex = 0;
 
@@ -247,6 +248,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const memberCount = Math.max(0, Math.trunc(Number(room?.memberCount || 0)));
             const maxPlayers = Math.max(1, Math.trunc(Number(room?.maxPlayers || 1)));
             const teamSize = Math.max(1, Math.trunc(Number(room?.teamSize || 4)));
+            const mapIndexRaw = Math.trunc(Number(room?.mapIndex));
+            const mapIndex = Number.isFinite(mapIndexRaw)
+                ? Math.max(0, Math.min(LOBBY_STAGE_FRAME_COUNT - 1, mapIndexRaw))
+                : 0;
+            const mapSide = String(room?.mapSide || (mapIndex >= 11 ? 'B' : 'A')).trim().toUpperCase() === 'B' ? 'B' : 'A';
+            const explicitStatus = String(room?.status || '').trim().toLowerCase();
+            const isPlaying = room?.isPlaying === true
+                || room?.playing === true
+                || explicitStatus === 'playing'
+                || explicitStatus === 'started'
+                || explicitStatus === 'in_game';
+            const isFull = memberCount >= maxPlayers;
+            const status = isPlaying ? 'playing' : (isFull ? 'full' : 'waiting');
             return {
                 roomKey: String(room?.roomKey || '').trim(),
                 roomId: Number.isFinite(roomId) && roomId > 0 ? roomId : 0,
@@ -255,10 +269,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 memberCount,
                 maxPlayers,
                 teamSize,
+                mapIndex,
+                mapSide,
                 slotLabel: String(room?.slotLabel || '').trim(),
                 powerUser: Boolean(room?.powerUser),
                 hasPassword: Boolean(room?.hasPassword),
-                ownerNickname: String(room?.ownerNickname || '').trim()
+                ownerNickname: String(room?.ownerNickname || '').trim(),
+                status
             };
         }).filter((room) => room.roomId > 0)
             .sort((a, b) => {
@@ -290,6 +307,46 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function getLobbyRoomStatusFrame(room) {
+        const status = String(room?.status || 'waiting').trim().toLowerCase();
+        const isPowerUser = Boolean(room?.powerUser);
+        if (status === 'playing') {
+            return isPowerUser
+                ? '/assets/screens/lobby/gamelist_back/gamelist_back_frame_25.png'
+                : '/assets/screens/lobby/gamelist_back/gamelist_back_frame_7.png';
+        }
+        if (status === 'full') {
+            return isPowerUser
+                ? '/assets/screens/lobby/gamelist_back/gamelist_back_frame_26.png'
+                : '/assets/screens/lobby/gamelist_back/gamelist_back_frame_8.png';
+        }
+        return isPowerUser
+            ? '/assets/screens/lobby/gamelist_back/gamelist_back_frame_27.png'
+            : '/assets/screens/lobby/gamelist_back/gamelist_back_frame_9.png';
+    }
+
+    function getLobbyRoomStageFrame(room) {
+        const rawIndex = Math.trunc(Number(room?.mapIndex));
+        const safeIndex = Number.isFinite(rawIndex)
+            ? Math.max(0, Math.min(LOBBY_STAGE_FRAME_COUNT - 1, rawIndex))
+            : 0;
+        return `/assets/screens/lobby/gameliststage/gameliststage_frame_${safeIndex}.png`;
+    }
+
+    function getLobbyRoomModeFrame(room) {
+        const mode = String(room?.mode || 'solo').trim().toLowerCase();
+        if (mode === 'score') {
+            return '/assets/screens/lobby/gamelist_back/gamelist_back_frame_11.png';
+        }
+        if (mode === 'tag') {
+            return '/assets/screens/lobby/gamelist_back/gamelist_back_frame_12.png';
+        }
+        if (mode === 'jewel') {
+            return '/assets/screens/lobby/gamelist_back/gamelist_back_frame_13.png';
+        }
+        return '/assets/screens/lobby/gamelist_back/gamelist_back_frame_10.png';
+    }
+
     function renderLobbyRoomsPage() {
         if (!lobbyRoomList) return;
 
@@ -312,16 +369,28 @@ document.addEventListener('DOMContentLoaded', () => {
             titleEl.className = 'lobby-room-title';
             titleEl.textContent = room.title || (room.ownerNickname ? `${room.ownerNickname}'s Room` : `Room ${room.roomId}`);
 
-            const metaEl = document.createElement('div');
-            metaEl.className = 'lobby-room-meta';
-            const modeLabel = room.mode ? room.mode.toUpperCase() : 'SOLO';
-            const lockLabel = room.hasPassword ? ' LOCK' : '';
-            metaEl.textContent = `${modeLabel}${lockLabel}`;
+            const statusEl = document.createElement('img');
+            statusEl.className = 'lobby-room-status';
+            statusEl.src = getLobbyRoomStatusFrame(room);
+            statusEl.alt = `${room.status || 'waiting'} status`;
+            statusEl.setAttribute('draggable', 'false');
 
-            // Lobby list should show occupancy as x / teamSize, clamped by teamSize.
-            // Example: 4v4 with 1 player => 1/4, 1v1 with 2 players => 1/1.
-            const normalizedTeamSize = Math.max(1, Math.trunc(Number(room.teamSize || 4)));
-            const occupied = Math.min(normalizedTeamSize, Math.ceil(Math.max(0, room.memberCount) / 2));
+            const stageEl = document.createElement('img');
+            stageEl.className = 'lobby-room-stage';
+            stageEl.src = getLobbyRoomStageFrame(room);
+            stageEl.alt = `${room.mapSide || 'A'} stage ${Math.trunc(Number(room.mapIndex || 0)) + 1}`;
+            stageEl.setAttribute('draggable', 'false');
+
+            const modeEl = document.createElement('img');
+            modeEl.className = 'lobby-room-mode';
+            modeEl.src = getLobbyRoomModeFrame(room);
+            modeEl.alt = `${String(room.mode || 'solo').trim().toUpperCase()} mode`;
+            modeEl.setAttribute('draggable', 'false');
+
+            // Lobby list should show occupancy as current players / room capacity.
+            // Example: 1v1 with 1 player => 1/2, 4v4 with 1 player => 1/8.
+            const normalizedMaxPlayers = Math.max(1, Math.trunc(Number(room.maxPlayers || (room.teamSize || 4) * 2)));
+            const occupied = Math.min(normalizedMaxPlayers, Math.max(0, Math.trunc(Number(room.memberCount || 0))));
             const capacityEl = document.createElement('div');
             capacityEl.className = 'lobby-room-capacity';
             const capacityCurrentEl = document.createElement('span');
@@ -329,13 +398,15 @@ document.addEventListener('DOMContentLoaded', () => {
             capacityCurrentEl.textContent = String(occupied);
             const capacityMaxEl = document.createElement('span');
             capacityMaxEl.className = 'lobby-room-capacity-max';
-            capacityMaxEl.textContent = String(normalizedTeamSize);
+            capacityMaxEl.textContent = String(normalizedMaxPlayers);
             capacityEl.appendChild(capacityCurrentEl);
             capacityEl.appendChild(capacityMaxEl);
 
             slot.appendChild(numberEl);
             slot.appendChild(titleEl);
-            slot.appendChild(metaEl);
+            slot.appendChild(statusEl);
+            slot.appendChild(modeEl);
+            slot.appendChild(stageEl);
             slot.appendChild(capacityEl);
             slot.addEventListener('dblclick', () => {
                 joinLobbyRoom(room);
@@ -372,6 +443,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function joinLobbyRoom(room) {
         if (!userData || !room?.roomKey) return;
+        const normalizedMaxPlayers = Math.max(1, Math.trunc(Number(room.maxPlayers || (room.teamSize || 4) * 2)));
+        const occupied = Math.max(0, Math.trunc(Number(room.memberCount || 0)));
+        if (occupied >= normalizedMaxPlayers) {
+            window.showError?.('Room', 'Room is full.');
+            return;
+        }
 
         const roomConfig = {
             title: String(room.title || `Room ${room.roomId}`).trim(),
@@ -379,6 +456,8 @@ document.addEventListener('DOMContentLoaded', () => {
             mode: String(room.mode || 'solo').trim().toLowerCase(),
             teamSize: Math.max(1, Math.trunc(Number(room.teamSize || 4))),
             slotLabel: String(room.slotLabel || '').trim(),
+            mapSide: String(room.mapSide || 'A').trim().toUpperCase() === 'B' ? 'B' : 'A',
+            mapIndex: Math.max(0, Math.min(LOBBY_STAGE_FRAME_COUNT - 1, Math.trunc(Number(room.mapIndex || 0)))),
             createdAt: Date.now()
         };
         sessionStorage.setItem('gbth_pending_room', JSON.stringify(roomConfig));
@@ -396,6 +475,8 @@ document.addEventListener('DOMContentLoaded', () => {
             mode: roomConfig.mode,
             teamSize: roomConfig.teamSize,
             slotLabel: roomConfig.slotLabel,
+            mapSide: roomConfig.mapSide,
+            mapIndex: roomConfig.mapIndex,
             createdAt: roomConfig.createdAt
         });
 
@@ -988,6 +1069,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     socket.on('lobby_rooms', (rooms) => {
         setLobbyRooms(rooms);
+    });
+    socket.on('lobby_room_join_error', (payload) => {
+        const reason = String(payload?.reason || '').trim().toLowerCase();
+        const fallback = reason === 'room_full'
+            ? 'Room is full.'
+            : 'Unable to join room.';
+        const message = String(payload?.message || '').trim() || fallback;
+        window.showError?.('Room', message);
     });
     socket.emit('get_lobby_rooms');
 
