@@ -16,9 +16,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const mapPanelEl = document.getElementById('game-room-map-panel');
     const mapCardEl = document.getElementById('game-room-map-card');
     const mobilePreviewEl = document.getElementById('game-room-mobile-preview');
+    const gameRoomChattingPanel = document.getElementById('game-room-chatting-panel');
     const roomChatFeedEl = document.getElementById('game-room-chat-feed');
     const btnGameRoomChatting = document.getElementById('btn-game-room-chatting');
     const roomChatInput = document.getElementById('game-room-chat-input');
+    const roomChatCursor = document.getElementById('game-room-chat-cursor');
+    const roomChatGhostSpan = document.getElementById('game-room-chat-input-ghost');
     const buddyPanel = document.getElementById('buddy-list-panel');
     const buddyListContent = document.querySelector('#buddy-list-panel .buddy-list-content');
     const onlineCountEl = document.getElementById('buddy-online-count');
@@ -62,7 +65,31 @@ document.addEventListener('DOMContentLoaded', () => {
         const nickname = String(data?.nickname || '').trim();
         const message = String(data?.message || '').trim();
         if (!nickname || !message) return;
-        roomChatFeedEl.textContent = `${nickname}] ${message}`;
+        const msgDiv = document.createElement('div');
+        const typeClass = String(data?.type || 'user').trim() || 'user';
+        const colorClass = String(data?.color || '').trim();
+        msgDiv.className = `chat-message ${typeClass}${colorClass ? ` ${colorClass}` : ''}`;
+        msgDiv.innerHTML = `<span class="nickname">${nickname}]</span> ${message}`;
+
+        const isAtBottom = roomChatFeedEl.scrollHeight - roomChatFeedEl.scrollTop <= roomChatFeedEl.clientHeight + 40;
+        roomChatFeedEl.appendChild(msgDiv);
+        while (roomChatFeedEl.childElementCount > 120) {
+            roomChatFeedEl.removeChild(roomChatFeedEl.firstElementChild);
+        }
+        if (isAtBottom) {
+            roomChatFeedEl.scrollTop = roomChatFeedEl.scrollHeight;
+        }
+    }
+
+    function appendRoomSystemMessage(message, color = 'yellow') {
+        if (!roomChatFeedEl) return;
+        const text = String(message || '').trim();
+        if (!text) return;
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `chat-message system ${String(color || '').trim()}`.trim();
+        msgDiv.textContent = text;
+        roomChatFeedEl.appendChild(msgDiv);
+        roomChatFeedEl.scrollTop = roomChatFeedEl.scrollHeight;
     }
 
     const buddyScroll = ui?.setupScrollControls({
@@ -86,6 +113,13 @@ document.addEventListener('DOMContentLoaded', () => {
         baseLeft: 5,
         baseTop: 4,
         useInputOffset: true
+    });
+
+    const roomChatCursorController = ui?.setupInputCursor({
+        input: roomChatInput,
+        cursor: roomChatCursor,
+        ghost: roomChatGhostSpan,
+        baseLeft: 77
     });
 
     const buddyChatCursorController = ui?.setupInputCursor({
@@ -565,6 +599,7 @@ document.addEventListener('DOMContentLoaded', () => {
             location: 'game_room',
             roomKey: roomKey || `room:${userData.id}`
         });
+        appendRoomSystemMessage('Room successfuly created', 'yellow');
     }
 
     socket.on('buddy_list_data', (data) => {
@@ -1761,12 +1796,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
             socket.emit('game_room_message', message);
             roomChatInput.value = '';
+            roomChatCursorController?.update();
         });
+
+        window.addEventListener('focus', () => roomChatCursorController?.update());
     }
 
     if (btnGameRoomChatting) {
+        const applyChattingMode = (isChattingMode) => {
+            if (!gameRoomScreen) return;
+            gameRoomScreen.classList.toggle('chatting-mode', isChattingMode);
+            if (gameRoomChattingPanel) {
+                gameRoomChattingPanel.setAttribute('aria-hidden', isChattingMode ? 'false' : 'true');
+            }
+        };
+
         btnGameRoomChatting.addEventListener('click', () => {
+            const nextChattingMode = !gameRoomScreen?.classList?.contains('chatting-mode');
+            applyChattingMode(nextChattingMode);
             roomChatInput?.focus();
+            roomChatCursorController?.update();
         });
     }
 

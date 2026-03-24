@@ -812,9 +812,11 @@
     border: none;
     background: transparent;
     outline: none;
-    color: #ff2c2c;
+    color: #fff;
     font-family: var(--gbth-ui-font);
     font-size: 11px;
+    caret-color: transparent;
+    z-index: 11;
 }
 
 #btn-game-room-chatting {
@@ -828,6 +830,7 @@
     background-repeat: no-repeat;
     background-image: url('/assets/screens/game_room/b_ready_chatting/b_ready_chatting_frame_0.png');
     outline: none;
+    z-index: 11;
 }
 
 #btn-game-room-chatting:hover:not(:disabled) {
@@ -844,9 +847,9 @@
 
 #game-room-chat-feed {
     position: absolute;
-    top: 349px;
-    left: 47px;
-    width: 446px;
+    top: 400px;
+    left: 32px;
+    width: 435px;
     height: 14px;
     overflow: hidden;
     color: #f8fcf8;
@@ -857,6 +860,41 @@
     pointer-events: none;
     white-space: nowrap;
     text-overflow: ellipsis;
+    z-index: 11;
+    display: none;
+}
+
+#game-room-screen.chatting-mode #game-room-chat-feed {
+    top: 400px;
+    left: 32px;
+    width: 435px;
+    height: 130px;
+    display: flex;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex-direction: column;
+    gap: 1px;
+    white-space: normal;
+    text-overflow: clip;
+    pointer-events: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+#game-room-screen.chatting-mode #game-room-chat-feed::-webkit-scrollbar {
+    display: none;
+}
+
+#game-room-chat-cursor {
+    position: absolute;
+    top: 366px;
+    left: 77px;
+    width: 2px;
+    height: 14px;
+    background-color: red;
+    z-index: 11;
+    pointer-events: none;
+    animation: cursor-blink 0.8s infinite;
 }
 
 #game-room-mobile-grid {
@@ -869,6 +907,27 @@
     grid-template-columns: repeat(5, 63px);
     grid-template-rows: repeat(3, 47px);
     gap: 4px;
+}
+
+#game-room-chatting-panel {
+    position: absolute;
+    top: 385px;
+    left: 21px;
+    width: 480px;
+    height: 160px;
+    background-image: url('/assets/screens/game_room/ready_back/ready_back_frame_11.png');
+    background-repeat: no-repeat;
+    display: none;
+    z-index: 9;
+}
+
+#game-room-screen.chatting-mode #game-room-chatting-panel {
+    display: block;
+}
+
+#game-room-screen.chatting-mode #game-room-mobile-grid,
+#game-room-screen.chatting-mode #game-room-mobile-preview {
+    display: none;
 }
 
 .game-room-mobile-btn {
