@@ -2985,6 +2985,24 @@ io.on('connection', (socket) => {
         broadcastGameRoomRoster(roomKey);
     });
 
+    socket.on('game_room_set_mobile', (payload) => {
+        const user = socketData.get(socket.id);
+        if (!user || String(user.location || '').toLowerCase() !== 'game_room') {
+            return;
+        }
+        const roomKey = String(user.roomKey || '').trim();
+        if (!roomKey) return;
+
+        const mobileIndex = Math.trunc(Number(payload?.mobileIndex));
+        if (!Number.isFinite(mobileIndex) || mobileIndex < 1 || mobileIndex > 15) {
+            return;
+        }
+
+        user.mobileIndex = mobileIndex;
+        socketData.set(socket.id, user);
+        broadcastGameRoomRoster(roomKey);
+    });
+
     socket.on('game_room_set_ready', (payload) => {
         const user = socketData.get(socket.id);
         if (!user || String(user.location || '').toLowerCase() !== 'game_room') {

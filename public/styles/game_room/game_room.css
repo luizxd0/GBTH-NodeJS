@@ -456,8 +456,9 @@
 }
 
 .slot-textballoon-body {
-    width: 96px;
-    min-width: 96px;
+    display: inline-block;
+    width: auto;
+    min-width: 42px;
     max-width: 96px;
     padding: 3px 4px;
     border: 1px solid #111111;
@@ -467,7 +468,10 @@
 }
 
 .slot-textballoon-text {
-    width: 100%;
+    display: block;
+    width: auto;
+    min-width: 34px;
+    max-width: 88px;
     font-family: Tahoma, Verdana, Arial, sans-serif;
     font-size: 11px;
     line-height: 11px;
