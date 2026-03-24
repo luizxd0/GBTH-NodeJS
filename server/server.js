@@ -21,6 +21,7 @@ const gameRoomNumbers = new Map(); // roomKey -> room number
 const gameRoomDisabledItems = new Map(); // roomKey -> Set("page:index")
 const gameRoomMetadata = new Map(); // roomKey -> room metadata
 const gameRoomSlotAssignments = new Map(); // roomKey -> Map(userId, slotIndex 0..7 as A1,B1,A2,B2,...)
+const gameRoomReadyUsers = new Map(); // roomKey -> Set(userId)
 const RECONNECT_GRACE_MS = 2500;
 const WORLD_LIST_DISCONNECT_GRACE_MS = 150;
 
@@ -114,6 +115,29 @@ function getSerializedGameRoomDisabledItems(roomKey) {
     return Array.from(set);
 }
 
+function getGameRoomReadySet(roomKey, createIfMissing = false) {
+    const normalizedRoomKey = String(roomKey || '').trim();
+    if (!normalizedRoomKey) return null;
+    let readySet = gameRoomReadyUsers.get(normalizedRoomKey);
+    if (!readySet && createIfMissing) {
+        readySet = new Set();
+        gameRoomReadyUsers.set(normalizedRoomKey, readySet);
+    }
+    return readySet || null;
+}
+
+function clearUserReadyState(roomKey, userId) {
+    const normalizedRoomKey = String(roomKey || '').trim();
+    const normalizedUserId = String(userId || '').trim();
+    if (!normalizedRoomKey || !normalizedUserId) return;
+    const readySet = gameRoomReadyUsers.get(normalizedRoomKey);
+    if (!readySet) return;
+    readySet.delete(normalizedUserId);
+    if (readySet.size <= 0) {
+        gameRoomReadyUsers.delete(normalizedRoomKey);
+    }
+}
+
 function getLinkedPresenceByUserId(userId) {
     const normalizedUserId = String(userId || '').trim();
     if (!normalizedUserId) return null;
@@ -143,6 +167,7 @@ function buildGameRoomRoster(roomKey) {
     }
 
     const players = [];
+    const readySet = getGameRoomReadySet(normalizedRoomKey, false);
     for (const memberId of members) {
         const normalizedMemberId = String(memberId || '').trim();
         if (!normalizedMemberId) continue;
@@ -150,6 +175,7 @@ function buildGameRoomRoster(roomKey) {
         if (!linkedPresence?.data) continue;
         const slotIndex = getUserAssignedRoomSlot(normalizedRoomKey, normalizedMemberId);
         const presence = linkedPresence.data;
+        const isMaster = isUserGameRoomMaster(presence.id, normalizedRoomKey);
         players.push({
             id: presence.id,
             nickname: presence.nickname,
@@ -167,7 +193,8 @@ function buildGameRoomRoster(roomKey) {
             aexitem: presence.aexitem ?? null,
             mobileIndex: Number(presence.mobileIndex ?? 15),
             slotIndex: slotIndex >= 0 ? slotIndex : -1,
-            isMaster: isUserGameRoomMaster(presence.id, normalizedRoomKey)
+            isMaster,
+            isReady: !isMaster && Boolean(readySet?.has(normalizedMemberId))
         });
     }
     players.sort((a, b) => {
@@ -279,6 +306,43 @@ function releaseUserRoomSlot(roomKey, userId) {
     if (assignments.size <= 0) {
         gameRoomSlotAssignments.delete(normalizedRoomKey);
     }
+}
+
+function getNextAvailableOppositeTeamSlot(roomKey, userId) {
+    const normalizedRoomKey = String(roomKey || '').trim();
+    const normalizedUserId = String(userId || '').trim();
+    if (!normalizedRoomKey || !normalizedUserId) return -1;
+
+    const currentSlot = getUserAssignedRoomSlot(normalizedRoomKey, normalizedUserId);
+    if (currentSlot < 0) return -1;
+
+    const teamSize = getGameRoomTeamSize(normalizedRoomKey);
+    const isCurrentTeamA = currentSlot % 2 === 0;
+    const targetParity = isCurrentTeamA ? 1 : 0;
+    const assignments = ensureGameRoomSlotAssignmentMap(normalizedRoomKey);
+    if (!assignments) return -1;
+    const members = activeGameRooms.get(normalizedRoomKey);
+    const occupied = new Set();
+
+    if (members && members.size > 0) {
+        for (const memberId of members) {
+            const normalizedMemberId = String(memberId || '').trim();
+            if (!normalizedMemberId || normalizedMemberId === normalizedUserId) continue;
+            const assignedSlot = Math.trunc(Number(assignments.get(normalizedMemberId)));
+            if (Number.isFinite(assignedSlot) && assignedSlot >= 0) {
+                occupied.add(assignedSlot);
+            }
+        }
+    }
+
+    for (let seat = 0; seat < teamSize; seat += 1) {
+        const candidate = seat * 2 + targetParity;
+        if (!occupied.has(candidate)) {
+            return candidate;
+        }
+    }
+
+    return -1;
 }
 
 function upsertGameRoomMetadata(roomKey, payload = {}) {
@@ -398,12 +462,14 @@ function removeUserFromGameRoom(userId) {
     if (members) {
         members.delete(normalizedUserId);
         releaseUserRoomSlot(previousRoomKey, normalizedUserId);
+        clearUserReadyState(previousRoomKey, normalizedUserId);
         if (members.size <= 0) {
             activeGameRooms.delete(previousRoomKey);
             gameRoomNumbers.delete(previousRoomKey);
             gameRoomDisabledItems.delete(previousRoomKey);
             gameRoomMetadata.delete(previousRoomKey);
             gameRoomSlotAssignments.delete(previousRoomKey);
+            gameRoomReadyUsers.delete(previousRoomKey);
         }
     }
 
@@ -429,12 +495,14 @@ function assignUserToGameRoom(userId, roomKey) {
         if (previousMembers) {
             previousMembers.delete(normalizedUserId);
             releaseUserRoomSlot(previousRoomKey, normalizedUserId);
+            clearUserReadyState(previousRoomKey, normalizedUserId);
             if (previousMembers.size <= 0) {
                 activeGameRooms.delete(previousRoomKey);
                 gameRoomNumbers.delete(previousRoomKey);
                 gameRoomDisabledItems.delete(previousRoomKey);
                 gameRoomMetadata.delete(previousRoomKey);
                 gameRoomSlotAssignments.delete(previousRoomKey);
+                gameRoomReadyUsers.delete(previousRoomKey);
             }
         }
         topologyChanged = true;
@@ -2775,6 +2843,65 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('game_room_change_slot', () => {
+        const user = socketData.get(socket.id);
+        if (!user || String(user.location || '').toLowerCase() !== 'game_room') {
+            return;
+        }
+        const roomKey = String(user.roomKey || '').trim();
+        const userId = String(user.id || '').trim();
+        if (!roomKey || !userId) return;
+
+        const assignments = ensureGameRoomSlotAssignmentMap(roomKey);
+        if (!assignments) return;
+
+        const currentSlot = getUserAssignedRoomSlot(roomKey, userId);
+        if (currentSlot < 0) {
+            allocateUserRoomSlot(roomKey, userId);
+        }
+
+        const nextSlot = getNextAvailableOppositeTeamSlot(roomKey, userId);
+        if (nextSlot < 0) {
+            io.to(socket.id).emit('game_room_error', {
+                message: 'No available slot on the opposite team.'
+            });
+            return;
+        }
+
+        assignments.set(userId, nextSlot);
+        syncSocketGameRoomNumbers(true);
+        broadcastGameRoomRoster(roomKey);
+    });
+
+    socket.on('game_room_set_ready', (payload) => {
+        const user = socketData.get(socket.id);
+        if (!user || String(user.location || '').toLowerCase() !== 'game_room') {
+            return;
+        }
+        const roomKey = String(user.roomKey || '').trim();
+        const userId = String(user.id || '').trim();
+        if (!roomKey || !userId) return;
+        if (isUserGameRoomMaster(user.id, roomKey)) {
+            // Room master uses START, never READY.
+            clearUserReadyState(roomKey, userId);
+            broadcastGameRoomRoster(roomKey);
+            return;
+        }
+
+        const nextReady = Boolean(payload?.ready);
+        const readySet = getGameRoomReadySet(roomKey, true);
+        if (!readySet) return;
+        if (nextReady) {
+            readySet.add(userId);
+        } else {
+            readySet.delete(userId);
+            if (readySet.size <= 0) {
+                gameRoomReadyUsers.delete(roomKey);
+            }
+        }
+        broadcastGameRoomRoster(roomKey);
+    });
+
     function broadcastChannelUsers(channelId) {
         if (!channelId) return;
         const channelUsers = [];
@@ -2844,7 +2971,9 @@ io.on('connection', (socket) => {
                 maxPlayers,
                 ownerNickname,
                 ownerGuild,
-                powerUser: Boolean(meta.powerUser || masterPresence?.poweruser),
+                // Always prioritize the current room master's power-user state.
+                // Metadata is only a fallback when master presence is temporarily unavailable.
+                powerUser: masterPresence ? Boolean(masterPresence.poweruser) : Boolean(meta.powerUser),
                 hasPassword: Boolean(meta.hasPassword),
                 createdAt: Math.trunc(Number(meta.createdAt || 0)) || 0
             });

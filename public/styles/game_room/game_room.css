@@ -431,6 +431,22 @@
     z-index: 9;
 }
 
+.slot-ready-badge {
+    position: absolute;
+    bottom: 31px;
+    pointer-events: none;
+    z-index: 8;
+    image-rendering: pixelated;
+}
+
+.slot-ready-badge.team-a {
+    left: 8px;
+}
+
+.slot-ready-badge.team-b {
+    right: 9px;
+}
+
 #game-room-map-panel {
     position: absolute;
     top: 51px;
@@ -1243,4 +1259,20 @@
 
 #btn-game-room-start:disabled {
     background-image: url('/assets/screens/game_room/b_ready_startgame/b_ready_startgame_frame_3.png');
+}
+
+#btn-game-room-start.ready-mode {
+    background-image: url('/assets/screens/game_room/b_ready_ready/b_ready_ready_frame_0.png');
+}
+
+#btn-game-room-start.ready-mode:hover:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_ready/b_ready_ready_frame_1.png');
+}
+
+#btn-game-room-start.ready-mode:active:not(:disabled) {
+    background-image: url('/assets/screens/game_room/b_ready_ready/b_ready_ready_frame_2.png');
+}
+
+#btn-game-room-start.ready-mode:disabled {
+    background-image: url('/assets/screens/game_room/b_ready_ready/b_ready_ready_frame_3.png');
 }

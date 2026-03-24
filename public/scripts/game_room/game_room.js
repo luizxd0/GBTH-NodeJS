@@ -297,6 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const fallbackTitle = userData?.nickname ? `${userData.nickname}'s Room` : 'Room';
     let isRoomMaster = false;
+    let isLocalReady = false;
     let roomMemberCount = 1;
     if (roomNumberEl) {
         roomNumberEl.textContent = '';
@@ -691,6 +692,11 @@ document.addEventListener('DOMContentLoaded', () => {
         applyGameRoomRoster(payload);
     });
 
+    socket.on('game_room_error', (data) => {
+        const message = String(data?.message || 'Room action failed.');
+        showError('Room', message);
+    });
+
     socket.on('incoming_buddy_request', (data) => {
         showBuddyAlert(`'${data.fromNickname}' Is trying to enter on your buddy list, Do you accept?`, {
             showNoButton: true,
@@ -739,6 +745,40 @@ document.addEventListener('DOMContentLoaded', () => {
         socket.emit('get_buddy_list');
     }
 
+    function clearAllReadyBadges() {
+        const allSlots = [
+            ...(slotElementsByTeam.A || []),
+            ...(slotElementsByTeam.B || [])
+        ];
+        allSlots.forEach((slot) => {
+            if (!slot) return;
+            const badge = slot.querySelector('.slot-ready-badge');
+            if (badge) badge.remove();
+        });
+    }
+
+    function applySlotReadyBadge(slot, isMasterUser, isReadyUser) {
+        if (!slot || isMasterUser) return;
+        const badge = document.createElement('img');
+        const teamClass = slot.classList.contains('team-b') ? 'team-b' : 'team-a';
+        badge.className = `slot-ready-badge ${teamClass}`;
+        const frame = isReadyUser ? 6 : (slot.classList.contains('team-b') ? 4 : 3);
+        badge.alt = '';
+        badge.draggable = false;
+        badge.src = `/assets/screens/game_room/ready_back/ready_back_frame_${frame}.png`;
+        slot.appendChild(badge);
+    }
+
+    function updateReadyBadgesFromRoster(players) {
+        clearAllReadyBadges();
+        (players || []).forEach((player) => {
+            const slotIndex = Math.trunc(Number(player?.slotIndex));
+            const slot = getSlotByAssignedIndex(slotIndex);
+            if (!slot) return;
+            applySlotReadyBadge(slot, Boolean(player?.isMaster), Boolean(player?.isReady));
+        });
+    }
+
     function updateMapControlPermissions() {
         const disabled = !isRoomMaster;
         const prevButton = document.getElementById('btn-game-room-map-prev');
@@ -750,6 +790,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const teamSizeButton = document.getElementById('btn-game-room-4v4');
         const mapSideButton = document.getElementById('btn-game-room-aside');
         const editTitleButton = document.getElementById('btn-game-room-edit-title');
+        const startButton = document.getElementById('btn-game-room-start');
         if (prevButton) {
             prevButton.disabled = disabled;
         }
@@ -782,6 +823,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (disabled && gameRoomTitlePopup && !gameRoomTitlePopup.classList.contains('hidden')) {
             hideRoomTitlePopup();
+        }
+        if (startButton) {
+            const nonMasterReadyMode = !isRoomMaster;
+            startButton.classList.toggle('ready-mode', nonMasterReadyMode);
         }
     }
 
@@ -1632,6 +1677,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const localUserId = String(userData?.id || '').trim();
         const localNickname = String(userData?.nickname || '').trim().toLowerCase();
         removeRemotePlayersFromSlots();
+        let localReadyFromRoster = false;
+        let localSlotFromRoster = -1;
 
         let rosterCount = 0;
         players.forEach((player) => {
@@ -1639,12 +1686,33 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!playerId) return;
             rosterCount += 1;
             const playerNickname = String(player?.nickname || '').trim().toLowerCase();
-            if (playerId === localUserId || (localNickname && playerNickname === localNickname)) return;
+            const isLocal = playerId === localUserId || (localNickname && playerNickname === localNickname);
+            if (isLocal) {
+                localReadyFromRoster = Boolean(player?.isReady);
+                const localSlotIndex = Math.trunc(Number(player?.slotIndex));
+                localSlotFromRoster = Number.isFinite(localSlotIndex) ? localSlotIndex : -1;
+                return;
+            }
             const slotIndex = Math.trunc(Number(player?.slotIndex));
             const slot = getSlotByAssignedIndex(slotIndex);
             if (!slot) return;
             renderRemotePlayerInSlot(slot, player);
         });
+        isLocalReady = localReadyFromRoster;
+        if (localSlotFromRoster >= 0) {
+            preferredJoinSlotIndex = localSlotFromRoster;
+            const targetLocalSlot = getSlotByAssignedIndex(localSlotFromRoster);
+            if (targetLocalSlot && localPlayerSlot && targetLocalSlot !== localPlayerSlot && !isSlotOccupied(targetLocalSlot)) {
+                if (!moveLocalPlayerToSlot(targetLocalSlot)) {
+                    destroySlotAvatar();
+                    renderSlotAvatar(targetLocalSlot, userData);
+                } else {
+                    startMobileAnimation(selectedMobile);
+                }
+            }
+        }
+        updateReadyBadgesFromRoster(players);
+        updateMapControlPermissions();
 
         if (rosterCount > 0) {
             roomMemberCount = rosterCount;
@@ -2086,27 +2154,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnChange) {
         btnChange.addEventListener('click', () => {
-            if (!userData || !localPlayerSlot) return;
-            const targetSlot = getNextAvailableTeamSlotForPlayer(localPlayerSlot);
-            if (!targetSlot) {
-                showError('Room', 'No available slot on the opposite team.');
-                return;
-            }
-
-            if (!moveLocalPlayerToSlot(targetSlot)) {
-                // Fallback only if expected DOM state is missing.
-                destroySlotAvatar();
-                renderSlotAvatar(targetSlot, userData);
-                return;
-            }
-            // Reset frame anchors after team switch to keep rider/avatar lock consistent.
-            startMobileAnimation(selectedMobile);
+            if (!userData) return;
+            socket.emit('game_room_change_slot');
         });
     }
 
     if (btnStart) {
         btnStart.addEventListener('click', () => {
-            showError('Room', 'Start game flow is not implemented yet.');
+            if (isRoomMaster) {
+                showError('Room', 'Start game flow is not implemented yet.');
+                return;
+            }
+            isLocalReady = !isLocalReady;
+            updateMapControlPermissions();
+            socket.emit('game_room_set_ready', { ready: isLocalReady });
         });
     }
 
