@@ -618,15 +618,15 @@ body {
 #lobby-room-list {
     --slot-container-offset-x: 0px;
     --slot-container-offset-y: 0px;
-    --slot-width: 260px;
-    --slot-height: 52px;
+    --slot-width: 257px;
+    --slot-height: 58px;
     --slot-column-gap: 14px;
     --slot-row-gap: 2px;
     position: absolute;
-    top: 61px;
-    left: 22px;
+    top: 58px;
+    left: 24px;
     width: 550px;
-    height: 162px;
+    height: 180px;
     display: grid;
     grid-auto-flow: column;
     grid-template-columns: repeat(2, var(--slot-width));
@@ -652,7 +652,7 @@ body {
     background-color: transparent;
     background-image: var(--frame-static);
     background-repeat: no-repeat;
-    background-size: var(--slot-width) var(--slot-height);
+    background-size: auto;
     color: #ffffff;
     font-family: var(--gbth-ui-font);
     text-align: left;
@@ -660,7 +660,7 @@ body {
     padding: 0;
     overflow: hidden;
     z-index: 1;
-    --slot-capacity-top: 8px;
+    --slot-capacity-top: 11px;
     --slot-capacity-right: 40px;
     --slot-capacity-width: 24px;
     --slot-capacity-gap: 5px;
@@ -701,7 +701,7 @@ body {
 
 .lobby-room-number {
     position: absolute;
-    top: 7px;
+    top: 9px;
     left: 11px;
     width: 22px;
     font-size: 12px;
@@ -716,7 +716,7 @@ body {
 
 .lobby-room-title {
     position: absolute;
-    top: 8px;
+    top: 10px;
     left: 33px;
     width: 215px;
     line-height: 14px;
@@ -730,7 +730,7 @@ body {
 
 .lobby-room-status {
     position: absolute;
-    top: 23px;
+    top: 27px;
     left: 20px;
     width: auto;
     height: auto;
@@ -744,8 +744,8 @@ body {
 
 .lobby-room-stage {
     position: absolute;
-    top: 28px;
-    right: 85px;
+    top: 32px;
+    right: 84px;
     width: auto;
     height: auto;
     max-width: none;
@@ -758,8 +758,8 @@ body {
 
 .lobby-room-mode {
     position: absolute;
-    top: 28px;
-    right: 42px;
+    top: 32px;
+    right: 41px;
     width: auto;
     height: auto;
     max-width: none;
