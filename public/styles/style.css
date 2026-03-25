@@ -4040,7 +4040,7 @@ body {
 
 .room-details-slot {
     position: absolute;
-    left: 0;
+    left: 25px;
     width: 106px;
     height: 15px;
     padding-left: 10px;
