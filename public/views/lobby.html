@@ -223,58 +223,112 @@
 
             <!-- Room Details Popup (right-click on room tiles) -->
             <div id="room-details-popup" class="hidden" aria-hidden="true">
-                <img id="room-details-status-img" class="room-details-status-img" src="" alt="" draggable="false">
-                <img id="room-details-stage-img" class="room-details-stage-img" src="" alt="" draggable="false">
-                <img id="room-details-mode-img" class="room-details-mode-img" src="" alt="" draggable="false">
+                <!-- Layout used when the room tile is in the lobby LEFT column (frames 16/28) -->
+                <div class="room-details-layout room-details-layout--left" data-layout="left">
+                    <div class="room-details-room-number" data-role="room-number"></div>
+                    <div class="room-details-room-title" data-role="title"></div>
+                    <img class="room-details-status-img" data-role="status-img" src="" alt="" draggable="false">
+                    <img class="room-details-mode-img" data-role="mode-img" src="" alt="" draggable="false">
+                    <img class="room-details-stage-img" data-role="stage-img" src="" alt="" draggable="false">
+                    <div class="room-details-capacity" data-role="capacity" aria-hidden="true">
+                        <img
+                            class="room-details-capacity-icon"
+                            data-role="capacity-buddy-icon"
+                            src="/assets/screens/lobby/gamelist_back/gamelist_back_frame_14.png"
+                            alt=""
+                            draggable="false">
+                        <span data-role="capacity-current"></span>
+                        <span data-role="capacity-max"></span>
+                    </div>
+                    <img class="room-details-password-tab room-details-password-tab--hidden" data-role="password-tab" src="/assets/screens/lobby/gamelist_back/gamelist_back_frame_15.png" alt="" draggable="false">
 
-                <div id="room-details-room-title" class="room-details-room-title"></div>
-
-                <div id="room-details-capacity" class="room-details-capacity" aria-hidden="true">
-                    <img
-                        id="room-details-capacity-buddy-icon"
-                        class="room-details-capacity-icon"
-                        src="/assets/screens/lobby/gamelist_back/gamelist_back_frame_14.png"
-                        alt=""
-                        draggable="false">
-                    <span id="room-details-capacity-current"></span>
-                    <span id="room-details-capacity-max"></span>
-                </div>
-
-                <div id="room-details-players">
-                    <div id="room-details-team-left" class="room-details-team-col">
-                        <div id="room-details-slot-a1" class="room-details-slot">
-                            <span id="room-details-guild-a1" class="room-details-guild"></span>
-                            <span id="room-details-nickname-a1" class="room-details-nickname"></span>
+                    <div class="room-details-players-grid" data-role="players-grid">
+                        <div class="room-details-slot" data-slot="a1">
+                            <span class="room-details-guild" data-field="guild"></span>
+                            <span class="room-details-nickname" data-field="nickname"></span>
                         </div>
-                        <div id="room-details-slot-a2" class="room-details-slot">
-                            <span id="room-details-guild-a2" class="room-details-guild"></span>
-                            <span id="room-details-nickname-a2" class="room-details-nickname"></span>
+                        <div class="room-details-slot" data-slot="b1">
+                            <span class="room-details-guild" data-field="guild"></span>
+                            <span class="room-details-nickname" data-field="nickname"></span>
                         </div>
-                        <div id="room-details-slot-a3" class="room-details-slot">
-                            <span id="room-details-guild-a3" class="room-details-guild"></span>
-                            <span id="room-details-nickname-a3" class="room-details-nickname"></span>
+                        <div class="room-details-slot" data-slot="a2">
+                            <span class="room-details-guild" data-field="guild"></span>
+                            <span class="room-details-nickname" data-field="nickname"></span>
                         </div>
-                        <div id="room-details-slot-a4" class="room-details-slot">
-                            <span id="room-details-guild-a4" class="room-details-guild"></span>
-                            <span id="room-details-nickname-a4" class="room-details-nickname"></span>
+                        <div class="room-details-slot" data-slot="b2">
+                            <span class="room-details-guild" data-field="guild"></span>
+                            <span class="room-details-nickname" data-field="nickname"></span>
+                        </div>
+                        <div class="room-details-slot" data-slot="a3">
+                            <span class="room-details-guild" data-field="guild"></span>
+                            <span class="room-details-nickname" data-field="nickname"></span>
+                        </div>
+                        <div class="room-details-slot" data-slot="b3">
+                            <span class="room-details-guild" data-field="guild"></span>
+                            <span class="room-details-nickname" data-field="nickname"></span>
+                        </div>
+                        <div class="room-details-slot" data-slot="a4">
+                            <span class="room-details-guild" data-field="guild"></span>
+                            <span class="room-details-nickname" data-field="nickname"></span>
+                        </div>
+                        <div class="room-details-slot" data-slot="b4">
+                            <span class="room-details-guild" data-field="guild"></span>
+                            <span class="room-details-nickname" data-field="nickname"></span>
                         </div>
                     </div>
-                    <div id="room-details-team-right" class="room-details-team-col room-details-team-col--right">
-                        <div id="room-details-slot-b1" class="room-details-slot">
-                            <span id="room-details-guild-b1" class="room-details-guild"></span>
-                            <span id="room-details-nickname-b1" class="room-details-nickname"></span>
+                </div>
+
+                <!-- Layout used when the room tile is in the lobby RIGHT column (frames 17/29) -->
+                <div class="room-details-layout room-details-layout--right hidden" data-layout="right">
+                    <div class="room-details-room-number" data-role="room-number"></div>
+                    <div class="room-details-room-title" data-role="title"></div>
+                    <img class="room-details-status-img" data-role="status-img" src="" alt="" draggable="false">
+                    <img class="room-details-mode-img" data-role="mode-img" src="" alt="" draggable="false">
+                    <img class="room-details-stage-img" data-role="stage-img" src="" alt="" draggable="false">
+                    <div class="room-details-capacity" data-role="capacity" aria-hidden="true">
+                        <img
+                            class="room-details-capacity-icon"
+                            data-role="capacity-buddy-icon"
+                            src="/assets/screens/lobby/gamelist_back/gamelist_back_frame_14.png"
+                            alt=""
+                            draggable="false">
+                        <span data-role="capacity-current"></span>
+                        <span data-role="capacity-max"></span>
+                    </div>
+                    <img class="room-details-password-tab room-details-password-tab--hidden" data-role="password-tab" src="/assets/screens/lobby/gamelist_back/gamelist_back_frame_15.png" alt="" draggable="false">
+
+                    <div class="room-details-players-grid" data-role="players-grid">
+                        <div class="room-details-slot" data-slot="a1">
+                            <span class="room-details-guild" data-field="guild"></span>
+                            <span class="room-details-nickname" data-field="nickname"></span>
                         </div>
-                        <div id="room-details-slot-b2" class="room-details-slot">
-                            <span id="room-details-guild-b2" class="room-details-guild"></span>
-                            <span id="room-details-nickname-b2" class="room-details-nickname"></span>
+                        <div class="room-details-slot" data-slot="b1">
+                            <span class="room-details-guild" data-field="guild"></span>
+                            <span class="room-details-nickname" data-field="nickname"></span>
                         </div>
-                        <div id="room-details-slot-b3" class="room-details-slot">
-                            <span id="room-details-guild-b3" class="room-details-guild"></span>
-                            <span id="room-details-nickname-b3" class="room-details-nickname"></span>
+                        <div class="room-details-slot" data-slot="a2">
+                            <span class="room-details-guild" data-field="guild"></span>
+                            <span class="room-details-nickname" data-field="nickname"></span>
                         </div>
-                        <div id="room-details-slot-b4" class="room-details-slot">
-                            <span id="room-details-guild-b4" class="room-details-guild"></span>
-                            <span id="room-details-nickname-b4" class="room-details-nickname"></span>
+                        <div class="room-details-slot" data-slot="b2">
+                            <span class="room-details-guild" data-field="guild"></span>
+                            <span class="room-details-nickname" data-field="nickname"></span>
+                        </div>
+                        <div class="room-details-slot" data-slot="a3">
+                            <span class="room-details-guild" data-field="guild"></span>
+                            <span class="room-details-nickname" data-field="nickname"></span>
+                        </div>
+                        <div class="room-details-slot" data-slot="b3">
+                            <span class="room-details-guild" data-field="guild"></span>
+                            <span class="room-details-nickname" data-field="nickname"></span>
+                        </div>
+                        <div class="room-details-slot" data-slot="a4">
+                            <span class="room-details-guild" data-field="guild"></span>
+                            <span class="room-details-nickname" data-field="nickname"></span>
+                        </div>
+                        <div class="room-details-slot" data-slot="b4">
+                            <span class="room-details-guild" data-field="guild"></span>
+                            <span class="room-details-nickname" data-field="nickname"></span>
                         </div>
                     </div>
                 </div>

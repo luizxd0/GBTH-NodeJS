@@ -3842,7 +3842,8 @@ body {
     display: none !important;
 }
 
-/* Room Details Popup (Lobby right-click on room tiles) */
+/* Room Details Popup (Lobby right-click on room tiles)
+ * Header metrics mirror .lobby-room-slot / .lobby-room-slot.right — keep in sync when tuning lobby tiles. */
 #room-details-popup {
     position: absolute;
     width: 257px;
@@ -3854,58 +3855,153 @@ body {
     z-index: 3300;
 }
 
-#room-details-status-img,
-#room-details-stage-img,
-#room-details-mode-img {
+.room-details-layout {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    font-family: var(--gbth-ui-font);
+}
+
+.room-details-layout--left {
+    --lobby-room-password-tab-top: 51%;
+    --lobby-room-password-tab-right: 9px;
+    --lobby-room-password-tab-translate-x: 0px;
+    --lobby-room-password-tab-translate-y: -50%;
+    --slot-capacity-top: 8px;
+    --slot-capacity-right: 39px;
+    --slot-capacity-row-min-height: 17px;
+    --slot-capacity-gap: 6px;
+    --slot-capacity-max-margin-left: 0px;
+    --slot-capacity-buddy-icon-top: 0px;
+    --slot-capacity-buddy-icon-right: -5px;
+    --lobby-room-number-top: 9px;
+    --lobby-room-number-left: 11px;
+    --lobby-room-number-width: 22px;
+    --lobby-room-title-top: 10px;
+    --lobby-room-title-left: 33px;
+    --lobby-room-title-width: 215px;
+    --lobby-room-status-top: 27px;
+    --lobby-room-status-left: 20px;
+    --lobby-room-stage-top: 32px;
+    --lobby-room-stage-right: 84px;
+    --lobby-room-mode-top: 32px;
+    --lobby-room-mode-right: 41px;
+}
+
+.room-details-layout--right {
+    --lobby-room-password-tab-top: 51%;
+    --lobby-room-password-tab-right: 234px;
+    --lobby-room-password-tab-translate-x: 0px;
+    --lobby-room-password-tab-translate-y: -50%;
+    --slot-capacity-top: 8px;
+    --slot-capacity-right: 14px;
+    --slot-capacity-row-min-height: 17px;
+    --slot-capacity-gap: 6px;
+    --slot-capacity-max-margin-left: 0px;
+    --slot-capacity-buddy-icon-top: 0px;
+    --slot-capacity-buddy-icon-right: -5px;
+    --lobby-room-number-top: 9px;
+    --lobby-room-number-left: 36px;
+    --lobby-room-number-width: 22px;
+    --lobby-room-title-top: 10px;
+    --lobby-room-title-left: 58px;
+    --lobby-room-title-width: 215px;
+    --lobby-room-status-top: 27px;
+    --lobby-room-status-left: 45px;
+    --lobby-room-stage-top: 32px;
+    --lobby-room-stage-right: 58px;
+    --lobby-room-mode-top: 32px;
+    --lobby-room-mode-right: 16px;
+}
+
+.room-details-layout--password {
+    overflow: visible;
+}
+
+.room-details-room-number {
+    position: absolute;
+    top: var(--lobby-room-number-top);
+    left: var(--lobby-room-number-left);
+    width: var(--lobby-room-number-width);
+    font-size: 12px;
+    font-weight: bold;
+    color: #ffffff;
+    text-align: center;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.room-details-popup--power-user .room-details-room-number {
+    color: #ffe066;
+}
+
+.room-details-password-tab {
+    position: absolute;
+    top: var(--lobby-room-password-tab-top);
+    right: var(--lobby-room-password-tab-right);
+    transform: translate(
+        var(--lobby-room-password-tab-translate-x),
+        var(--lobby-room-password-tab-translate-y)
+    );
+    width: auto;
+    height: auto;
+    max-width: none;
+    max-height: none;
+    object-fit: none;
+    image-rendering: auto;
+    pointer-events: none;
+    z-index: 4;
+}
+
+.room-details-password-tab.room-details-password-tab--hidden {
+    display: none;
+}
+
+.room-details-layout .room-details-status-img,
+.room-details-layout .room-details-stage-img,
+.room-details-layout .room-details-mode-img {
     position: absolute;
     pointer-events: none;
     image-rendering: auto;
     display: block;
+    width: auto;
+    height: auto;
+    max-width: none;
+    max-height: none;
+    object-fit: none;
 }
 
-.room-details-popup--left #room-details-status-img {
-    top: 27px;
-    left: 20px;
+.room-details-layout .room-details-status-img {
+    top: var(--lobby-room-status-top);
+    left: var(--lobby-room-status-left);
 }
 
-.room-details-popup--right #room-details-status-img {
-    top: 27px;
-    left: 45px;
+.room-details-layout .room-details-stage-img {
+    top: var(--lobby-room-stage-top);
+    right: var(--lobby-room-stage-right);
 }
 
-.room-details-popup--left #room-details-stage-img {
-    top: 32px;
-    right: 84px;
+.room-details-layout .room-details-mode-img {
+    top: var(--lobby-room-mode-top);
+    right: var(--lobby-room-mode-right);
 }
 
-.room-details-popup--right #room-details-stage-img {
-    top: 32px;
-    right: 58px;
-}
-
-.room-details-popup--left #room-details-mode-img {
-    top: 32px;
-    right: 41px;
-}
-
-.room-details-popup--right #room-details-mode-img {
-    top: 32px;
-    right: 16px;
-}
-
-/* Capacity + buddy badge (same behavior as .lobby-room-capacity) */
-#room-details-capacity {
+.room-details-layout .room-details-capacity {
     position: absolute;
-    top: 8px;
-    right: 39px;
+    top: var(--slot-capacity-top);
+    right: var(--slot-capacity-right);
+    width: max-content;
+    max-width: none;
+    min-height: var(--slot-capacity-row-min-height);
+    box-sizing: border-box;
     display: inline-flex;
     justify-content: flex-end;
     align-items: center;
-    gap: 6px;
+    gap: var(--slot-capacity-gap);
     flex-wrap: nowrap;
     white-space: nowrap;
-    width: max-content;
-    min-height: 17px;
     font-size: 12px;
     font-weight: bold;
     line-height: 12px;
@@ -3914,38 +4010,40 @@ body {
     z-index: 2;
 }
 
-.room-details-popup--right #room-details-capacity {
-    right: 14px;
-}
-
-#room-details-capacity .room-details-capacity-icon {
+.room-details-layout .room-details-capacity-icon {
     display: block;
+    flex-shrink: 0;
     width: auto;
     height: auto;
     max-width: none;
     max-height: none;
     image-rendering: auto;
     position: relative;
-    top: 0px;
-    right: -5px;
+    top: var(--slot-capacity-buddy-icon-top);
+    right: var(--slot-capacity-buddy-icon-right);
+    pointer-events: none;
 }
 
-#room-details-capacity-current,
-#room-details-capacity-max {
+.room-details-layout .room-details-capacity [data-role="capacity-current"],
+.room-details-layout .room-details-capacity [data-role="capacity-max"] {
     display: inline-block;
     min-width: 10px;
     text-align: center;
 }
 
-.room-details-popup--power-user #room-details-capacity {
+.room-details-layout .room-details-capacity [data-role="capacity-max"] {
+    margin-left: var(--slot-capacity-max-margin-left);
+}
+
+.room-details-popup--power-user .room-details-layout .room-details-capacity {
     color: #fff5c4;
 }
 
 .room-details-room-title {
     position: absolute;
-    top: 10px;
-    left: 33px;
-    width: 215px;
+    top: var(--lobby-room-title-top);
+    left: var(--lobby-room-title-left);
+    width: var(--lobby-room-title-width);
     line-height: 14px;
     font-size: 11px;
     font-weight: bold;
@@ -3953,13 +4051,8 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    text-shadow: 1px 1px 0 #000;
     pointer-events: none;
     z-index: 3;
-}
-
-.room-details-popup--right .room-details-room-title {
-    left: 58px;
 }
 
 .room-details-popup--power-user .room-details-room-title {
@@ -3991,8 +4084,8 @@ body {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    line-height: 7px;
-    font-size: 10px;
+    line-height: 11px;
+    font-size: 12px;
     display: block;
 }
 
@@ -4011,38 +4104,39 @@ body {
     color: inherit;
 }
 
-/* Player name list layout (8 slots) */
-#room-details-players {
+/* Player name list (8 slots). Base vars = LEFT-column lobby popup (frames 16/28). */
+.room-details-players-grid {
+    --room-details-slot-width: 106px;
+    --room-details-slot-col-a-left: 48px;
+    --room-details-slot-col-b-left: 151px;
+    --room-details-slot-1-top: 61px;
+    --room-details-slot-2-top: 97px;
+    --room-details-slot-3-top: 127px;
+    --room-details-slot-4-top: 158px;
     position: absolute;
-    left: 0;
-    top: 0;
+    left: -20px;
+    top: 2px;
     width: 257px;
     height: 188px;
     pointer-events: none;
     z-index: 1;
 }
 
-.room-details-team-col {
-    position: absolute;
-    top: 2px;
-    width: 106px;
-    height: 188px;
-    pointer-events: none;
-}
-
-#room-details-team-left {
-    left: 6px;
-}
-
-#room-details-team-right {
-    left: 116px;
+/* RIGHT-column lobby popup only (frames 17/29) — does not affect left-column popup */
+.room-details-layout--right .room-details-players-grid {
+    --room-details-slot-col-b-left: 152px;
+    --room-details-slot-1-top: 59px;
+    --room-details-slot-2-top: 90px;
+    --room-details-slot-3-top: 121px;
+    --room-details-slot-4-top: 151px;
+    left: 5px;
+    top: 3px;
 }
 
 .room-details-slot {
     position: absolute;
-    left: 25px;
-    width: 106px;
-    height: 15px;
+    width: var(--room-details-slot-width);
+    height: 24px;
     padding-left: 10px;
     box-sizing: border-box;
     overflow: hidden;
@@ -4053,6 +4147,34 @@ body {
     color: #ffffff;
 }
 
+.room-details-slot[data-slot^='a'] {
+    left: var(--room-details-slot-col-a-left);
+}
+
+.room-details-slot[data-slot^='b'] {
+    left: var(--room-details-slot-col-b-left);
+}
+
+.room-details-slot[data-slot='a1'],
+.room-details-slot[data-slot='b1'] {
+    top: var(--room-details-slot-1-top);
+}
+
+.room-details-slot[data-slot='a2'],
+.room-details-slot[data-slot='b2'] {
+    top: var(--room-details-slot-2-top);
+}
+
+.room-details-slot[data-slot='a3'],
+.room-details-slot[data-slot='b3'] {
+    top: var(--room-details-slot-3-top);
+}
+
+.room-details-slot[data-slot='a4'],
+.room-details-slot[data-slot='b4'] {
+    top: var(--room-details-slot-4-top);
+}
+
 .room-details-popup--power-user .room-details-slot {
     color: #fff5c4;
 }
@@ -4060,63 +4182,6 @@ body {
 .room-details-popup--power-user .room-details-guild {
     color: #fff5c4;
     text-shadow: 1px 1px 0 #000;
-}
-
-/* Slot positions within popup frame */
-#room-details-slot-a1 {
-    top: 58px;
-}
-#room-details-slot-a2 {
-    top: 92px;
-}
-#room-details-slot-a3 {
-    top: 122px;
-}
-#room-details-slot-a4 {
-    top: 154px;
-}
-
-#room-details-slot-b1 {
-    top: 58px;
-}
-#room-details-slot-b2 {
-    top: 92px;
-}
-#room-details-slot-b3 {
-    top: 122px;
-}
-#room-details-slot-b4 {
-    top: 154px;
-}
-
-/* Interior cell positions (frame_16/17/28/29 are 257x188) */
-#room-details-name-0 {
-    left: 31px;
-    top: 62px;
-    width: 106px;
-    padding-left: 10px;
-    height: 25px;
-}
-#room-details-name-1 {
-    left: 31px;
-    top: 90px;
-    width: 106px;
-    padding-left: 10px;
-    height: 30px;
-}
-#room-details-name-2 {
-    left: 138px;
-    top: 62px;
-    width: 106px;
-    padding-left: 10px;
-    height: 30px;
-}
-#room-details-name-3 {
-    left: 116px;
-    top: 90px;
-    width: 106px;
-    padding-left: 10px;
-    height: 30px;
 }
 
 /* Create Room Popup */

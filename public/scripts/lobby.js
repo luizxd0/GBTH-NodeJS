@@ -198,34 +198,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const DIRECT_GO_ROOM_INPUT_MAX_LEN = 8;
 
     const roomDetailsPopup = document.getElementById('room-details-popup');
-    const roomDetailsStatusImg = document.getElementById('room-details-status-img');
-    const roomDetailsStageImg = document.getElementById('room-details-stage-img');
-    const roomDetailsModeImg = document.getElementById('room-details-mode-img');
-    const roomDetailsRoomTitle = document.getElementById('room-details-room-title');
-    const roomDetailsCapacityBuddyIcon = document.getElementById('room-details-capacity-buddy-icon');
-    const roomDetailsCapacityCurrent = document.getElementById('room-details-capacity-current');
-    const roomDetailsCapacityMax = document.getElementById('room-details-capacity-max');
-    // 8 slots (team A and team B). Each slot is its own container so positioning can be adjusted easily.
-    const roomDetailsSlotGuild = {
-        a1: document.getElementById('room-details-guild-a1'),
-        a2: document.getElementById('room-details-guild-a2'),
-        a3: document.getElementById('room-details-guild-a3'),
-        a4: document.getElementById('room-details-guild-a4'),
-        b1: document.getElementById('room-details-guild-b1'),
-        b2: document.getElementById('room-details-guild-b2'),
-        b3: document.getElementById('room-details-guild-b3'),
-        b4: document.getElementById('room-details-guild-b4')
-    };
-    const roomDetailsSlotNickname = {
-        a1: document.getElementById('room-details-nickname-a1'),
-        a2: document.getElementById('room-details-nickname-a2'),
-        a3: document.getElementById('room-details-nickname-a3'),
-        a4: document.getElementById('room-details-nickname-a4'),
-        b1: document.getElementById('room-details-nickname-b1'),
-        b2: document.getElementById('room-details-nickname-b2'),
-        b3: document.getElementById('room-details-nickname-b3'),
-        b4: document.getElementById('room-details-nickname-b4')
-    };
+    const roomDetailsLayoutLeft = roomDetailsPopup?.querySelector?.('.room-details-layout--left') || null;
+    const roomDetailsLayoutRight = roomDetailsPopup?.querySelector?.('.room-details-layout--right') || null;
+
+    function getRoomDetailsLayout(isLeftColumn) {
+        return isLeftColumn ? roomDetailsLayoutLeft : roomDetailsLayoutRight;
+    }
 
     const directGoRoomCursorController = ui?.setupInputCursor({
         input: directGoRoomInput,
@@ -895,6 +873,8 @@ document.addEventListener('DOMContentLoaded', () => {
         roomDetailsPopup.classList.remove('room-details-popup--power-user');
         roomDetailsPopup.classList.remove('room-details-popup--left', 'room-details-popup--right');
         roomDetailsPopup.setAttribute('aria-hidden', 'true');
+        if (roomDetailsLayoutLeft) roomDetailsLayoutLeft.classList.remove('room-details-layout--password');
+        if (roomDetailsLayoutRight) roomDetailsLayoutRight.classList.remove('room-details-layout--password');
         activeRoomDetailsRoomKey = null;
     }
 
@@ -918,6 +898,13 @@ document.addEventListener('DOMContentLoaded', () => {
         roomDetailsPopup.classList.toggle('room-details-popup--power-user', Boolean(room?.powerUser));
         roomDetailsPopup.classList.remove('room-details-popup--left', 'room-details-popup--right');
         roomDetailsPopup.classList.add(isLeftColumn ? 'room-details-popup--left' : 'room-details-popup--right');
+
+        if (roomDetailsLayoutLeft) roomDetailsLayoutLeft.classList.toggle('hidden', !isLeftColumn);
+        if (roomDetailsLayoutRight) roomDetailsLayoutRight.classList.toggle('hidden', isLeftColumn);
+
+        const layout = getRoomDetailsLayout(isLeftColumn);
+        if (!layout) return;
+
         roomDetailsPopup.setAttribute('aria-hidden', 'false');
         roomDetailsPopup.classList.remove('hidden');
 
@@ -939,6 +926,22 @@ document.addEventListener('DOMContentLoaded', () => {
             centerLobbyPopup(roomDetailsPopup);
         }
 
+        const hasPassword = Boolean(room?.hasPassword);
+        layout.classList.toggle('room-details-layout--password', hasPassword);
+        const passwordTab = layout.querySelector('[data-role="password-tab"]');
+        if (passwordTab) {
+            passwordTab.classList.toggle('room-details-password-tab--hidden', !hasPassword);
+        }
+
+        const roomDetailsStatusImg = layout.querySelector('[data-role="status-img"]');
+        const roomDetailsStageImg = layout.querySelector('[data-role="stage-img"]');
+        const roomDetailsModeImg = layout.querySelector('[data-role="mode-img"]');
+        const roomDetailsRoomTitle = layout.querySelector('[data-role="title"]');
+        const roomDetailsRoomNumber = layout.querySelector('[data-role="room-number"]');
+        const roomDetailsCapacityBuddyIcon = layout.querySelector('[data-role="capacity-buddy-icon"]');
+        const roomDetailsCapacityCurrent = layout.querySelector('[data-role="capacity-current"]');
+        const roomDetailsCapacityMax = layout.querySelector('[data-role="capacity-max"]');
+
         // Status / stage / mode icons (same logic as room tile)
         if (roomDetailsStatusImg) {
             roomDetailsStatusImg.src = getLobbyRoomStatusFrame(room);
@@ -951,6 +954,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (roomDetailsModeImg) {
             roomDetailsModeImg.src = getLobbyRoomModeFrame(room);
             roomDetailsModeImg.alt = `${String(room?.mode || 'solo').trim().toUpperCase()} mode`;
+        }
+
+        if (roomDetailsRoomNumber) {
+            roomDetailsRoomNumber.textContent = String(room?.roomId ?? '');
         }
 
         // Room title (replicates the room tile's title text, but in the popup header area)
@@ -991,8 +998,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const teamBPlayers = padTeamPlayers(room?.teamB);
 
         const setSlot = (slotKey, player) => {
-            const guildEl = roomDetailsSlotGuild?.[slotKey];
-            const nickEl = roomDetailsSlotNickname?.[slotKey];
+            const slotEl = layout.querySelector(`.room-details-slot[data-slot="${slotKey}"]`);
+            if (!slotEl) return;
+            const guildEl = slotEl.querySelector('[data-field="guild"]');
+            const nickEl = slotEl.querySelector('[data-field="nickname"]');
             if (guildEl) guildEl.textContent = String(player?.guild || '').trim();
             if (nickEl) nickEl.textContent = String(player?.nickname || player?.id || '').trim();
         };
