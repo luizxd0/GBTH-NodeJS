@@ -3210,6 +3210,15 @@ io.on('connection', (socket) => {
             if (!Number.isFinite(roomId) || roomId <= 0) continue;
 
             const memberIds = Array.from(members).map((value) => String(value || '').trim()).filter(Boolean);
+            const memberDetails = memberIds.map((id) => {
+                const presence = linkedPresenceByUserId.get(id) || null;
+                const fallbackNickname = String(id || '').trim();
+                return {
+                    id,
+                    nickname: String(presence?.nickname || fallbackNickname).trim(),
+                    guild: String(presence?.guild || '').trim()
+                };
+            });
             const masterId = memberIds[0] || '';
             const masterPresence = linkedPresenceByUserId.get(masterId);
             const meta = gameRoomMetadata.get(String(roomKey || '').trim()) || {};
@@ -3239,6 +3248,7 @@ io.on('connection', (socket) => {
                 mapIndex,
                 memberCount: memberIds.length,
                 memberIds: memberIds.slice(),
+                members: memberDetails,
                 maxPlayers,
                 ownerNickname,
                 ownerGuild,

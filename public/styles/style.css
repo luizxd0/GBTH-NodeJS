@@ -3842,6 +3842,203 @@ body {
     display: none !important;
 }
 
+/* Room Details Popup (Lobby right-click on room tiles) */
+#room-details-popup {
+    position: absolute;
+    width: 257px;
+    height: 188px;
+    background-repeat: no-repeat;
+    background-size: 257px 188px;
+    background-position: center;
+    image-rendering: pixelated;
+    z-index: 3300;
+}
+
+#room-details-status-img,
+#room-details-stage-img,
+#room-details-mode-img {
+    position: absolute;
+    pointer-events: none;
+    image-rendering: auto;
+    display: block;
+}
+
+.room-details-popup--left #room-details-status-img {
+    top: 27px;
+    left: 20px;
+}
+
+.room-details-popup--right #room-details-status-img {
+    top: 27px;
+    left: 45px;
+}
+
+.room-details-popup--left #room-details-stage-img {
+    top: 32px;
+    right: 84px;
+}
+
+.room-details-popup--right #room-details-stage-img {
+    top: 32px;
+    right: 58px;
+}
+
+.room-details-popup--left #room-details-mode-img {
+    top: 32px;
+    right: 41px;
+}
+
+.room-details-popup--right #room-details-mode-img {
+    top: 32px;
+    right: 16px;
+}
+
+/* Capacity + buddy badge (same behavior as .lobby-room-capacity) */
+#room-details-capacity {
+    position: absolute;
+    top: 8px;
+    right: 39px;
+    display: inline-flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    width: max-content;
+    min-height: 17px;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 12px;
+    color: #ffffff;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.room-details-popup--right #room-details-capacity {
+    right: 14px;
+}
+
+#room-details-capacity .room-details-capacity-icon {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: none;
+    max-height: none;
+    image-rendering: auto;
+    position: relative;
+    top: 0px;
+    right: -5px;
+}
+
+#room-details-capacity-current,
+#room-details-capacity-max {
+    display: inline-block;
+    min-width: 10px;
+    text-align: center;
+}
+
+.room-details-popup--power-user #room-details-capacity {
+    color: #fff5c4;
+}
+
+.room-details-room-title {
+    position: absolute;
+    top: 10px;
+    left: 33px;
+    width: 215px;
+    line-height: 14px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 1px 1px 0 #000;
+    pointer-events: none;
+    z-index: 3;
+}
+
+.room-details-popup--right .room-details-room-title {
+    left: 58px;
+}
+
+.room-details-popup--power-user .room-details-room-title {
+    color: #fff5c4;
+}
+
+.room-details-name-cell {
+    position: absolute;
+    font-family: var(--gbth-ui-font);
+    font-size: 11px;
+    font-weight: bold;
+    color: #ffffff;
+    text-shadow: 1px 1px 0 #000;
+    overflow: hidden;
+    white-space: nowrap;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    pointer-events: none;
+}
+
+.room-details-popup--power-user .room-details-name-cell {
+    color: #fff5c4;
+}
+
+.room-details-guild,
+.room-details-nickname {
+    width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    line-height: 14px;
+}
+
+.room-details-guild {
+    /* Same typography as lobby chat guild names */
+    color: #f8fcf8;
+    text-shadow:
+        -1px -1px 0 #0000f8,
+        1px -1px 0 #0000f8,
+        -1px 1px 0 #0000f8,
+        1px 1px 0 #0000f8;
+    font-weight: bold;
+}
+
+.room-details-nickname {
+    color: inherit;
+}
+
+/* Interior cell positions (frame_16/17/28/29 are 257x188) */
+#room-details-name-0 {
+    left: 6px;
+    top: 58px;
+    width: 106px;
+    padding-left: 10px;
+    height: 30px;
+}
+#room-details-name-1 {
+    left: 6px;
+    top: 90px;
+    width: 106px;
+    padding-left: 10px;
+    height: 30px;
+}
+#room-details-name-2 {
+    left: 116px;
+    top: 58px;
+    width: 106px;
+    padding-left: 10px;
+    height: 30px;
+}
+#room-details-name-3 {
+    left: 116px;
+    top: 90px;
+    width: 106px;
+    padding-left: 10px;
+    height: 30px;
+}
+
 /* Create Room Popup */
 #create-room-popup {
     position: absolute;

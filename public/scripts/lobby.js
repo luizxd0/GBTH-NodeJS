@@ -197,6 +197,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnDirectGoCancel = document.getElementById('btn-direct-go-cancel');
     const DIRECT_GO_ROOM_INPUT_MAX_LEN = 8;
 
+    const roomDetailsPopup = document.getElementById('room-details-popup');
+    const roomDetailsStatusImg = document.getElementById('room-details-status-img');
+    const roomDetailsStageImg = document.getElementById('room-details-stage-img');
+    const roomDetailsModeImg = document.getElementById('room-details-mode-img');
+    const roomDetailsRoomTitle = document.getElementById('room-details-room-title');
+    const roomDetailsCapacityBuddyIcon = document.getElementById('room-details-capacity-buddy-icon');
+    const roomDetailsCapacityCurrent = document.getElementById('room-details-capacity-current');
+    const roomDetailsCapacityMax = document.getElementById('room-details-capacity-max');
+    const roomDetailsGuildEls = [
+        document.getElementById('room-details-guild-0'),
+        document.getElementById('room-details-guild-1'),
+        document.getElementById('room-details-guild-2'),
+        document.getElementById('room-details-guild-3')
+    ];
+    const roomDetailsNicknameEls = [
+        document.getElementById('room-details-nickname-0'),
+        document.getElementById('room-details-nickname-1'),
+        document.getElementById('room-details-nickname-2'),
+        document.getElementById('room-details-nickname-3')
+    ];
+
     const directGoRoomCursorController = ui?.setupInputCursor({
         input: directGoRoomInput,
         cursor: directGoRoomCursor,
@@ -381,6 +402,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const isFull = memberCount >= maxPlayers;
             const status = isPlaying ? 'playing' : (isFull ? 'full' : 'waiting');
             const hintPwd = String(room?.password ?? '').trim().slice(0, JOIN_ROOM_PASSWORD_MAX_LEN);
+            const memberIdsNormalized = Array.isArray(room?.memberIds)
+                ? room.memberIds.map((id) => String(id ?? '').trim()).filter(Boolean)
+                : [];
+            const membersNormalized = Array.isArray(room?.members)
+                ? room.members.map((m) => {
+                    const id = String(m?.id ?? '').trim();
+                    const nickname = String(m?.nickname ?? '').trim();
+                    const guild = String(m?.guild ?? '').trim();
+                    return {
+                        id,
+                        nickname,
+                        guild
+                    };
+                }).filter((m) => Boolean(m?.id || m?.nickname))
+                : memberIdsNormalized.map((id) => ({ id, nickname: '', guild: '' }));
             const normalized = {
                 roomKey: String(room?.roomKey || '').trim(),
                 roomId: Number.isFinite(roomId) && roomId > 0 ? roomId : 0,
@@ -395,9 +431,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 powerUser: Boolean(room?.powerUser),
                 hasPassword: Boolean(room?.hasPassword),
                 ownerNickname: String(room?.ownerNickname || '').trim(),
-                memberIds: Array.isArray(room?.memberIds)
-                    ? room.memberIds.map((id) => String(id ?? '').trim()).filter(Boolean)
-                    : [],
+                memberIds: memberIdsNormalized,
+                members: membersNormalized,
                 status
             };
             if (hintPwd !== '') {
@@ -513,6 +548,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderLobbyRoomsPage() {
         if (!lobbyRoomList) return;
 
+        hideRoomDetailsPopup();
+
         lobbyRoomsPageIndex = clampLobbyRoomsPageIndex(lobbyRoomsPageIndex);
         const visibleRooms = getLobbyRoomsVisibleList();
         const startIndex = lobbyRoomsPageIndex * LOBBY_ROOMS_PAGE_SIZE;
@@ -592,6 +629,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             slot.addEventListener('dblclick', () => {
                 joinLobbyRoom(room);
+            });
+            slot.addEventListener('contextmenu', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                showRoomDetailsPopup(room, isLeftColumn, slot);
             });
             fragment.appendChild(slot);
         });
@@ -815,6 +857,113 @@ document.addEventListener('DOMContentLoaded', () => {
             container: lobbyScreen,
             offsetX,
             offsetY
+        });
+    }
+
+    let activeRoomDetailsRoomKey = null;
+
+    function hideRoomDetailsPopup() {
+        if (!roomDetailsPopup) return;
+        roomDetailsPopup.classList.add('hidden');
+        roomDetailsPopup.classList.remove('room-details-popup--power-user');
+        roomDetailsPopup.classList.remove('room-details-popup--left', 'room-details-popup--right');
+        roomDetailsPopup.setAttribute('aria-hidden', 'true');
+        activeRoomDetailsRoomKey = null;
+    }
+
+    function getRoomDetailsFrameUrl(room, isLeftColumn) {
+        const powerUser = Boolean(room?.powerUser);
+        if (powerUser) {
+            return isLeftColumn
+                ? '/assets/screens/lobby/gamelist_back/gamelist_back_frame_28.png'
+                : '/assets/screens/lobby/gamelist_back/gamelist_back_frame_29.png';
+        }
+        return isLeftColumn
+            ? '/assets/screens/lobby/gamelist_back/gamelist_back_frame_16.png'
+            : '/assets/screens/lobby/gamelist_back/gamelist_back_frame_17.png';
+    }
+
+    function showRoomDetailsPopup(room, isLeftColumn, anchorEl) {
+        if (!roomDetailsPopup || !room) return;
+
+        const frameUrl = getRoomDetailsFrameUrl(room, isLeftColumn);
+        roomDetailsPopup.style.backgroundImage = `url('${frameUrl}')`;
+        roomDetailsPopup.classList.toggle('room-details-popup--power-user', Boolean(room?.powerUser));
+        roomDetailsPopup.classList.remove('room-details-popup--left', 'room-details-popup--right');
+        roomDetailsPopup.classList.add(isLeftColumn ? 'room-details-popup--left' : 'room-details-popup--right');
+        roomDetailsPopup.setAttribute('aria-hidden', 'false');
+        roomDetailsPopup.classList.remove('hidden');
+
+        activeRoomDetailsRoomKey = String(room?.roomKey || room?.roomId || '');
+
+        // Anchor horizontally to the clicked room tile; vertically to the tile top.
+        if (anchorEl && lobbyScreen) {
+            const btnRect = anchorEl.getBoundingClientRect();
+            const lobbyRect = lobbyScreen.getBoundingClientRect();
+            const popupWidth = 257;
+            const popupHeight = 188;
+            const left = btnRect.left - lobbyRect.left;
+            const top = btnRect.top - lobbyRect.top;
+            const clampedLeft = Math.max(0, Math.min(lobbyRect.width - popupWidth, left));
+            const clampedTop = Math.max(0, Math.min(lobbyRect.height - popupHeight, top));
+            roomDetailsPopup.style.left = `${Math.round(clampedLeft)}px`;
+            roomDetailsPopup.style.top = `${Math.round(clampedTop)}px`;
+        } else {
+            centerLobbyPopup(roomDetailsPopup);
+        }
+
+        // Status / stage / mode icons (same logic as room tile)
+        if (roomDetailsStatusImg) {
+            roomDetailsStatusImg.src = getLobbyRoomStatusFrame(room);
+            roomDetailsStatusImg.alt = `${room?.status || 'waiting'} status`;
+        }
+        if (roomDetailsStageImg) {
+            roomDetailsStageImg.src = getLobbyRoomStageFrame(room);
+            roomDetailsStageImg.alt = `${room?.mapSide || 'A'} stage ${Math.trunc(Number(room?.mapIndex || 0)) + 1}`;
+        }
+        if (roomDetailsModeImg) {
+            roomDetailsModeImg.src = getLobbyRoomModeFrame(room);
+            roomDetailsModeImg.alt = `${String(room?.mode || 'solo').trim().toUpperCase()} mode`;
+        }
+
+        // Room title (replicates the room tile's title text, but in the popup header area)
+        if (roomDetailsRoomTitle) {
+            const title = String(room?.title || room?.ownerNickname || '').trim();
+            roomDetailsRoomTitle.textContent = title || '';
+        }
+
+        // Occupancy + buddy badge (same logic as room tile)
+        const normalizedMaxPlayers = Math.max(1, Math.trunc(Number(room.maxPlayers || (room.teamSize || 4) * 2)));
+        const occupied = Math.min(
+            normalizedMaxPlayers,
+            Math.max(0, Math.trunc(Number(room.memberCount || 0)))
+        );
+
+        if (roomDetailsCapacityCurrent) roomDetailsCapacityCurrent.textContent = String(occupied);
+        if (roomDetailsCapacityMax) roomDetailsCapacityMax.textContent = String(normalizedMaxPlayers);
+
+        const showBuddyBadge = lobbyRoomHasBuddyMember(room);
+        if (roomDetailsCapacityBuddyIcon) {
+            roomDetailsCapacityBuddyIcon.style.display = showBuddyBadge ? 'block' : 'none';
+        }
+
+        const rawMembers = Array.isArray(room?.members)
+            ? room.members
+            : (Array.isArray(room?.memberIds)
+                ? room.memberIds.map((id) => ({ id, nickname: '' }))
+                : []);
+
+        const members = rawMembers.slice(0, 4);
+        roomDetailsGuildEls.forEach((el, idx) => {
+            if (!el) return;
+            const m = members[idx];
+            el.textContent = String(m?.guild || '').trim();
+        });
+        roomDetailsNicknameEls.forEach((el, idx) => {
+            if (!el) return;
+            const m = members[idx];
+            const nicknameText = m?.nickname || m?.id || '';
+            el.textContent = String(nicknameText).trim();
         });
     }
 
@@ -1570,7 +1719,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.addEventListener('keydown', (event) => {
+        const isRoomDetailsVisible = roomDetailsPopup && !roomDetailsPopup.classList.contains('hidden');
         const isCreateRoomVisible = createRoomPopup && !createRoomPopup.classList.contains('hidden');
+        if (event.key === 'Escape' && isRoomDetailsVisible) {
+            event.preventDefault();
+            hideRoomDetailsPopup();
+            return;
+        }
         if (event.key === 'Escape' && isCreateRoomVisible) {
             event.preventDefault();
             hideCreateRoomPopup();
@@ -1595,6 +1750,26 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (chatInput) {
             chatInput.focus();
         }
+    });
+
+    // Disable browser right-click menu (inspection context) on the lobby screen.
+    // Also: when the room-details popup is open, right-click anywhere *except* on a room tile closes it.
+    // Right-clicking on a room tile itself still opens the popup because the room handler runs and stops propagation.
+    document.addEventListener('contextmenu', (event) => {
+        event.preventDefault();
+
+        if (!roomDetailsPopup || roomDetailsPopup.classList.contains('hidden')) return;
+        const target = event.target;
+        const clickedRoomTile = target && target.closest ? target.closest('.lobby-room-slot') : null;
+        if (!clickedRoomTile) hideRoomDetailsPopup();
+    });
+
+    // Close room details popup on any left mouse click while it is open.
+    document.addEventListener('mousedown', (event) => {
+        if (!roomDetailsPopup || roomDetailsPopup.classList.contains('hidden')) return;
+        // Only close on left click.
+        if (event.button !== 0) return;
+        hideRoomDetailsPopup();
     });
 
     window.setTimeout(() => {
