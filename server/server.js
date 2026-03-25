@@ -3089,6 +3089,9 @@ io.on('connection', (socket) => {
         compactGameRoomTeamSlots(roomKey);
         syncSocketGameRoomNumbers(true);
         broadcastGameRoomRoster(roomKey);
+        // Team/slot changes impact the lobby "room details" popup ordering (team A/B seats),
+        // so broadcast updated lobby rooms immediately.
+        broadcastLobbyRooms();
     });
 
     socket.on('game_room_set_mobile', (payload) => {
@@ -3219,17 +3222,83 @@ io.on('connection', (socket) => {
                     guild: String(presence?.guild || '').trim()
                 };
             });
-            const masterId = memberIds[0] || '';
-            const masterPresence = linkedPresenceByUserId.get(masterId);
-            const meta = gameRoomMetadata.get(String(roomKey || '').trim()) || {};
 
-            const ownerNickname = String(meta.ownerNickname || masterPresence?.nickname || '').trim();
-            const ownerGuild = String(meta.ownerGuild || masterPresence?.guild || '').trim();
+            const memberDetailsById = new Map(memberDetails.map((d) => [String(d?.id || '').trim(), d]));
+
+            const normalizedRoomKey = String(roomKey || '').trim();
+            const meta = gameRoomMetadata.get(normalizedRoomKey) || {};
             const resolvedTeamSize = Math.trunc(Number(meta.teamSize || 4));
             const teamSize = Number.isFinite(resolvedTeamSize) && resolvedTeamSize > 0
                 ? Math.min(Math.max(resolvedTeamSize, 1), 4)
                 : 4;
             const maxPlayers = teamSize * 2;
+            const slotCount = maxPlayers;
+
+            // Build ordered team lists (A slot 1..4 on even slots, B slot 1..4 on odd slots).
+            // Uses slot assignment map when available; otherwise fills deterministically without duplicates.
+            const assignments = gameRoomSlotAssignments.get(normalizedRoomKey) || null;
+            const preferredSlots = getPreferredSlotOrder(teamSize); // [A1,B1,A2,B2,...] as slot indices
+
+            const slotToMember = new Array(slotCount).fill(null);
+            const usedMemberIds = new Set();
+
+            if (assignments) {
+                memberIds.forEach((memberId) => {
+                    const id = String(memberId || '').trim();
+                    if (!id) return;
+                    const rawSlot = assignments.get(id);
+                    const slot = Number.isFinite(rawSlot) ? Math.trunc(rawSlot) : Math.trunc(Number(rawSlot));
+                    if (!Number.isFinite(slot) || slot < 0 || slot >= slotCount) return;
+
+                    const details = memberDetailsById.get(id);
+                    if (!details) return;
+
+                    slotToMember[slot] = details;
+                    usedMemberIds.add(id);
+                });
+            }
+
+            const remainingPool = memberIds
+                .map((id) => String(id || '').trim())
+                .filter(Boolean)
+                .filter((id) => !usedMemberIds.has(id))
+                .map((id) => memberDetailsById.get(id))
+                .filter(Boolean)
+                .sort((a, b) => String(a?.id || '').localeCompare(String(b?.id || '')));
+
+            let remIndex = 0;
+            preferredSlots.forEach((slot) => {
+                if (slot < 0 || slot >= slotCount) return;
+                if (slotToMember[slot]) return;
+                if (remIndex >= remainingPool.length) return;
+
+                const nextMember = remainingPool[remIndex++];
+                if (!nextMember || !nextMember.id) return;
+                const id = String(nextMember.id || '').trim();
+                if (!id) return;
+                if (usedMemberIds.has(id)) return;
+
+                slotToMember[slot] = nextMember;
+                usedMemberIds.add(id);
+            });
+
+            const teamA = [];
+            const teamB = [];
+            for (let slot = 0; slot < slotCount; slot += 1) {
+                const m = slotToMember[slot];
+                if (!m) continue;
+                if (slot % 2 === 0) teamA.push(m);
+                else teamB.push(m);
+            }
+
+            while (teamA.length < 4) teamA.push({ id: '', nickname: '', guild: '' });
+            while (teamB.length < 4) teamB.push({ id: '', nickname: '', guild: '' });
+
+            const masterId = memberIds[0] || '';
+            const masterPresence = linkedPresenceByUserId.get(masterId);
+
+            const ownerNickname = String(meta.ownerNickname || masterPresence?.nickname || '').trim();
+            const ownerGuild = String(meta.ownerGuild || masterPresence?.guild || '').trim();
             const slotLabel = String(meta.slotLabel || `${teamSize}v${teamSize}`).trim();
             const resolvedMapIndex = Math.trunc(Number(meta.mapIndex));
             const mapIndex = Number.isFinite(resolvedMapIndex)
@@ -3249,6 +3318,8 @@ io.on('connection', (socket) => {
                 memberCount: memberIds.length,
                 memberIds: memberIds.slice(),
                 members: memberDetails,
+                teamA,
+                teamB,
                 maxPlayers,
                 ownerNickname,
                 ownerGuild,

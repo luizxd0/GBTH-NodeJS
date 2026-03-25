@@ -3991,7 +3991,8 @@ body {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    line-height: 14px;
+    line-height: 7px;
+    font-size: 10px;
 }
 
 .room-details-guild {
@@ -4011,22 +4012,22 @@ body {
 
 /* Interior cell positions (frame_16/17/28/29 are 257x188) */
 #room-details-name-0 {
-    left: 6px;
-    top: 58px;
+    left: 31px;
+    top: 62px;
     width: 106px;
     padding-left: 10px;
-    height: 30px;
+    height: 25px;
 }
 #room-details-name-1 {
-    left: 6px;
+    left: 31px;
     top: 90px;
     width: 106px;
     padding-left: 10px;
     height: 30px;
 }
 #room-details-name-2 {
-    left: 116px;
-    top: 58px;
+    left: 138px;
+    top: 62px;
     width: 106px;
     padding-left: 10px;
     height: 30px;
