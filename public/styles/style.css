@@ -3993,6 +3993,7 @@ body {
     text-overflow: ellipsis;
     line-height: 7px;
     font-size: 10px;
+    display: block;
 }
 
 .room-details-guild {
@@ -4008,6 +4009,84 @@ body {
 
 .room-details-nickname {
     color: inherit;
+}
+
+/* Player name list layout (8 slots) */
+#room-details-players {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 257px;
+    height: 188px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.room-details-team-col {
+    position: absolute;
+    top: 2px;
+    width: 106px;
+    height: 188px;
+    pointer-events: none;
+}
+
+#room-details-team-left {
+    left: 6px;
+}
+
+#room-details-team-right {
+    left: 116px;
+}
+
+.room-details-slot {
+    position: absolute;
+    left: 0;
+    width: 106px;
+    height: 15px;
+    padding-left: 10px;
+    box-sizing: border-box;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    pointer-events: none;
+    color: #ffffff;
+}
+
+.room-details-popup--power-user .room-details-slot {
+    color: #fff5c4;
+}
+
+.room-details-popup--power-user .room-details-guild {
+    color: #fff5c4;
+    text-shadow: 1px 1px 0 #000;
+}
+
+/* Slot positions within popup frame */
+#room-details-slot-a1 {
+    top: 58px;
+}
+#room-details-slot-a2 {
+    top: 92px;
+}
+#room-details-slot-a3 {
+    top: 122px;
+}
+#room-details-slot-a4 {
+    top: 154px;
+}
+
+#room-details-slot-b1 {
+    top: 58px;
+}
+#room-details-slot-b2 {
+    top: 92px;
+}
+#room-details-slot-b3 {
+    top: 122px;
+}
+#room-details-slot-b4 {
+    top: 154px;
 }
 
 /* Interior cell positions (frame_16/17/28/29 are 257x188) */

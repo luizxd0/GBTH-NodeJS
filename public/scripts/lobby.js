@@ -205,20 +205,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const roomDetailsCapacityBuddyIcon = document.getElementById('room-details-capacity-buddy-icon');
     const roomDetailsCapacityCurrent = document.getElementById('room-details-capacity-current');
     const roomDetailsCapacityMax = document.getElementById('room-details-capacity-max');
-    // 4 cells (2x2). Each cell contains 2 player entries stacked (top and bottom),
-    // matching slot order 1..4 within a team column.
-    const roomDetailsGuildEls = [
-        [document.getElementById('room-details-guild-0-0'), document.getElementById('room-details-guild-0-1')],
-        [document.getElementById('room-details-guild-1-0'), document.getElementById('room-details-guild-1-1')],
-        [document.getElementById('room-details-guild-2-0'), document.getElementById('room-details-guild-2-1')],
-        [document.getElementById('room-details-guild-3-0'), document.getElementById('room-details-guild-3-1')]
-    ];
-    const roomDetailsNicknameEls = [
-        [document.getElementById('room-details-nickname-0-0'), document.getElementById('room-details-nickname-0-1')],
-        [document.getElementById('room-details-nickname-1-0'), document.getElementById('room-details-nickname-1-1')],
-        [document.getElementById('room-details-nickname-2-0'), document.getElementById('room-details-nickname-2-1')],
-        [document.getElementById('room-details-nickname-3-0'), document.getElementById('room-details-nickname-3-1')]
-    ];
+    // 8 slots (team A and team B). Each slot is its own container so positioning can be adjusted easily.
+    const roomDetailsSlotGuild = {
+        a1: document.getElementById('room-details-guild-a1'),
+        a2: document.getElementById('room-details-guild-a2'),
+        a3: document.getElementById('room-details-guild-a3'),
+        a4: document.getElementById('room-details-guild-a4'),
+        b1: document.getElementById('room-details-guild-b1'),
+        b2: document.getElementById('room-details-guild-b2'),
+        b3: document.getElementById('room-details-guild-b3'),
+        b4: document.getElementById('room-details-guild-b4')
+    };
+    const roomDetailsSlotNickname = {
+        a1: document.getElementById('room-details-nickname-a1'),
+        a2: document.getElementById('room-details-nickname-a2'),
+        a3: document.getElementById('room-details-nickname-a3'),
+        a4: document.getElementById('room-details-nickname-a4'),
+        b1: document.getElementById('room-details-nickname-b1'),
+        b2: document.getElementById('room-details-nickname-b2'),
+        b3: document.getElementById('room-details-nickname-b3'),
+        b4: document.getElementById('room-details-nickname-b4')
+    };
 
     const directGoRoomCursorController = ui?.setupInputCursor({
         input: directGoRoomInput,
@@ -983,25 +990,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const teamAPlayers = padTeamPlayers(room?.teamA);
         const teamBPlayers = padTeamPlayers(room?.teamB);
 
-        // Each cell (2x2) contains 2 player entries stacked.
-        const cellToTeamAndIndices = [
-            { cell: 0, players: [teamAPlayers[0], teamAPlayers[1]] }, // A slot 1..2
-            { cell: 1, players: [teamAPlayers[2], teamAPlayers[3]] }, // A slot 3..4
-            { cell: 2, players: [teamBPlayers[0], teamBPlayers[1]] }, // B slot 1..2
-            { cell: 3, players: [teamBPlayers[2], teamBPlayers[3]] }  // B slot 3..4
-        ];
+        const setSlot = (slotKey, player) => {
+            const guildEl = roomDetailsSlotGuild?.[slotKey];
+            const nickEl = roomDetailsSlotNickname?.[slotKey];
+            if (guildEl) guildEl.textContent = String(player?.guild || '').trim();
+            if (nickEl) nickEl.textContent = String(player?.nickname || player?.id || '').trim();
+        };
 
-        cellToTeamAndIndices.forEach(({ cell, players }) => {
-            const gEls = roomDetailsGuildEls?.[cell] || [];
-            const nEls = roomDetailsNicknameEls?.[cell] || [];
-            const p0 = players[0] || { guild: '', nickname: '' };
-            const p1 = players[1] || { guild: '', nickname: '' };
-
-            if (gEls[0]) gEls[0].textContent = String(p0.guild || '').trim();
-            if (nEls[0]) nEls[0].textContent = String(p0.nickname || p0.id || '').trim();
-            if (gEls[1]) gEls[1].textContent = String(p1.guild || '').trim();
-            if (nEls[1]) nEls[1].textContent = String(p1.nickname || p1.id || '').trim();
-        });
+        setSlot('a1', teamAPlayers[0]);
+        setSlot('a2', teamAPlayers[1]);
+        setSlot('a3', teamAPlayers[2]);
+        setSlot('a4', teamAPlayers[3]);
+        setSlot('b1', teamBPlayers[0]);
+        setSlot('b2', teamBPlayers[1]);
+        setSlot('b3', teamBPlayers[2]);
+        setSlot('b4', teamBPlayers[3]);
     }
 
     function showAddBuddyPopup({ resetInput = true } = {}) {
