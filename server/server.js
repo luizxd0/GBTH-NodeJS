@@ -22,6 +22,7 @@ const gameRoomDisabledItems = new Map(); // roomKey -> Set("page:index")
 const gameRoomMetadata = new Map(); // roomKey -> room metadata
 const gameRoomSlotAssignments = new Map(); // roomKey -> Map(userId, slotIndex 0..7 as A1,B1,A2,B2,...)
 const gameRoomReadyUsers = new Map(); // roomKey -> Set(userId)
+const roomStartKickTimeouts = new Map(); // roomKey -> timeoutId
 const RECONNECT_GRACE_MS = 2500;
 const WORLD_LIST_DISCONNECT_GRACE_MS = 150;
 /** Max players allowed in the world (channel/lobby/game/etc.); must match /api/worlds server_capacity. */
@@ -225,7 +226,62 @@ function broadcastGameRoomRoster(roomKey) {
         if (!isLinkedPresence) continue;
         io.to(socketId).emit('game_room_roster', payload);
     }
+    stopMasterStartKickTimeout(normalizedRoomKey);
+    evaluateGameRoomReadyState(normalizedRoomKey);
 }
+
+function evaluateGameRoomReadyState(roomKey) {
+    const members = activeGameRooms.get(roomKey);
+    if (!members || members.size <= 1) {
+        stopMasterStartKickTimeout(roomKey);
+        return;
+    }
+
+    const readySet = gameRoomReadyUsers.get(roomKey);
+    const masterId = Array.from(members)[0];
+    const nonMasterMembers = Array.from(members).filter(id => id !== masterId);
+    
+    const allReady = nonMasterMembers.length > 0 && nonMasterMembers.every(id => readySet?.has(id));
+
+    if (allReady) {
+        if (!roomStartKickTimeouts.has(roomKey)) {
+            // Notify master to start
+            const masterPresence = getLinkedPresenceByUserId(masterId);
+            if (masterPresence) {
+                io.to(masterPresence.socketId).emit('game_room_master_start_warn', { active: true });
+            }
+
+            const timeoutId = setTimeout(() => {
+                const mp = getLinkedPresenceByUserId(masterId);
+                if (mp) {
+                    io.to(mp.socketId).emit('game_room_idle_kick');
+                }
+                roomStartKickTimeouts.delete(roomKey);
+            }, 15000);
+            roomStartKickTimeouts.set(roomKey, timeoutId);
+        }
+    } else {
+        stopMasterStartKickTimeout(roomKey);
+    }
+}
+
+function stopMasterStartKickTimeout(roomKey) {
+    const timeoutId = roomStartKickTimeouts.get(roomKey);
+    if (timeoutId) {
+        clearTimeout(timeoutId);
+        roomStartKickTimeouts.delete(roomKey);
+
+        const members = activeGameRooms.get(roomKey);
+        if (members) {
+            const masterId = Array.from(members)[0];
+            const masterPresence = getLinkedPresenceByUserId(masterId);
+            if (masterPresence) {
+                io.to(masterPresence.socketId).emit('game_room_master_start_warn', { active: false });
+            }
+        }
+    }
+}
+
 
 function clampGameRoomTeamSize(teamSize) {
     const normalized = Math.trunc(Number(teamSize));
@@ -3186,6 +3242,39 @@ io.on('connection', (socket) => {
         }
         broadcastGameRoomRoster(roomKey);
     });
+
+    socket.on('game_room_start', () => {
+        const user = socketData.get(socket.id);
+        if (!user || String(user.location || '').toLowerCase() !== 'game_room') return;
+        const roomKey = String(user.roomKey || '').trim();
+        if (!roomKey) return;
+        if (!isUserGameRoomMaster(user.id, roomKey)) return;
+
+        const members = activeGameRooms.get(roomKey);
+        const readySet = gameRoomReadyUsers.get(roomKey);
+        const masterId = user.id;
+        const nonMasterMembers = Array.from(members || []).filter(id => id !== masterId);
+        const allReady = nonMasterMembers.length > 0 && nonMasterMembers.every(id => readySet?.has(id));
+
+        if (!allReady) {
+            // Broadcast warning to everyone in the room. 
+            // Clients check if they are unready to show the flash.
+            for (const [sId, data] of socketData.entries()) {
+                if (data.location === 'game_room' && data.roomKey === roomKey) {
+                    io.to(sId).emit('game_room_force_ready_warn');
+                }
+            }
+        } else {
+            // Stop the master kick timeout if it was running
+            stopMasterStartKickTimeout(roomKey);
+            // Simulate error for now as game start is not yet implemented
+            io.to(socket.id).emit('server_error', { 
+                title: 'Room', 
+                message: 'Start game flow is not implemented yet.' 
+            });
+        }
+    });
+
 
     function broadcastChannelUsers(channelId) {
         if (!channelId) return;

@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const roomChatInput = document.getElementById('game-room-chat-input');
     const roomChatCursor = document.getElementById('game-room-chat-cursor');
     const roomChatGhostSpan = document.getElementById('game-room-chat-input-ghost');
+    const readyWarningEl = document.getElementById('game-room-ready-warning');
     const buddyPanel = document.getElementById('buddy-list-panel');
     const buddyListContent = document.querySelector('#buddy-list-panel .buddy-list-content');
     const onlineCountEl = document.getElementById('buddy-online-count');
@@ -1104,6 +1105,55 @@ document.addEventListener('DOMContentLoaded', () => {
     applyDeathMode(currentDeathMode);
     applyTeamSizeLayout(currentTeamSize);
     updateMapControlPermissions();
+    
+    let masterWarningInterval = null;
+    function stopMasterWarningFlash() {
+        if (masterWarningInterval) {
+            clearInterval(masterWarningInterval);
+            masterWarningInterval = null;
+        }
+        readyWarningEl?.classList.add('hidden');
+    }
+
+    function startMasterWarningFlash() {
+        stopMasterWarningFlash();
+        if (!readyWarningEl) return;
+        readyWarningEl.classList.remove('hidden');
+        masterWarningInterval = setInterval(() => {
+            readyWarningEl.classList.toggle('hidden');
+        }, 500); // 15 times in 15 seconds means ~1s per cycle
+    }
+
+    socket.on('game_room_force_ready_warn', () => {
+        if (isLocalReady || isRoomMaster || !readyWarningEl) return;
+        // Flash 3 times in 3 seconds (appear, disappear, appear, disappear, appear, disappear)
+        // 500ms on, 500ms off = 1s per cycle
+        let count = 0;
+        readyWarningEl.classList.remove('hidden');
+        const interval = setInterval(() => {
+            readyWarningEl.classList.toggle('hidden');
+            count++;
+            if (count >= 5) { // 6 total states: on(0), off(1), on(2), off(3), on(4), off(5=stop)
+                clearInterval(interval);
+                readyWarningEl.classList.add('hidden');
+            }
+        }, 500);
+    });
+
+    socket.on('game_room_master_start_warn', (data) => {
+        if (!isRoomMaster) return;
+        if (data?.active) {
+            startMasterWarningFlash();
+        } else {
+            stopMasterWarningFlash();
+        }
+    });
+
+    socket.on('game_room_idle_kick', () => {
+        if (!isRoomMaster) return;
+        btnExit?.click();
+    });
+
 
     const mobileGrid = document.getElementById('game-room-mobile-grid');
     const mobileButtons = [];
@@ -2677,7 +2727,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnStart) {
         btnStart.addEventListener('click', () => {
             if (isRoomMaster) {
-                showError('Room', 'Start game flow is not implemented yet.');
+                socket.emit('game_room_start');
                 return;
             }
             isLocalReady = !isLocalReady;

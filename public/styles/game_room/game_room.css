@@ -1388,3 +1388,21 @@
 #btn-game-room-start.ready-mode:disabled {
     background-image: url('/assets/screens/game_room/b_ready_ready/b_ready_ready_frame_3.png');
 }
+
+#game-room-ready-warning {
+    position: absolute;
+    bottom: 59px;
+    left: 590px; /* Center over Ready/Start buttons */
+    width: 176px;
+    height: 62px;
+    background-image: url('/assets/screens/game_room/ready_back/ready_back_frame_9.png');
+    background-repeat: no-repeat;
+    background-size: 176px 62px;
+    pointer-events: none;
+    z-index: 2000;
+}
+
+#game-room-ready-warning.hidden {
+    display: none;
+}
+
