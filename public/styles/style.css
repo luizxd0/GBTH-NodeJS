@@ -3786,7 +3786,7 @@ body {
 #error-title {
     position: absolute;
     top: 9px;
-    left: -66px;
+    left: -99px;
     width: 200px;
     height: 20px;
     color: #fff;
@@ -3800,7 +3800,7 @@ body {
 #error-message {
     position: absolute;
     top: 39px;
-    left: -38px;
+    left: -26px;
     width: 264px;
     height: 80px;
     color: #fff;

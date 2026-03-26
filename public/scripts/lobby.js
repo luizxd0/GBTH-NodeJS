@@ -75,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const JOIN_ROOM_PASSWORD_MAX_LEN = 4;
     let lobbyRoomsCache = [];
     let lobbyRoomsPageIndex = 0;
+    let selectedLobbyRoomKey = '';
     /** Lobby room list filter: all rooms, only waiting, or only rooms with a buddy member. */
     let lobbyRoomNavFilter = 'all';
     /** Buddy user ids (from `buddy_list_data`) — used to show headcount friend icon on room rows. */
@@ -564,8 +565,12 @@ document.addEventListener('DOMContentLoaded', () => {
         normalizedRooms.forEach((room, index) => {
             const slot = document.createElement('button');
             const isLeftColumn = index < 3;
+            const roomKey = String(room?.roomKey || room?.roomId || '').trim();
             slot.type = 'button';
             slot.className = `lobby-room-slot ${isLeftColumn ? 'left' : 'right'}${room.powerUser ? ' power-user' : ''}`;
+            if (roomKey && roomKey === selectedLobbyRoomKey) {
+                slot.classList.add('selected');
+            }
 
             const numberEl = document.createElement('div');
             numberEl.className = 'lobby-room-number';
@@ -632,12 +637,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 passwordTabEl.setAttribute('draggable', 'false');
                 slot.appendChild(passwordTabEl);
             }
+            slot.addEventListener('click', () => {
+                const key = String(room?.roomKey || room?.roomId || '').trim();
+                selectedLobbyRoomKey = key;
+                const prevSelected = lobbyRoomList.querySelector('.lobby-room-slot.selected');
+                if (prevSelected && prevSelected !== slot) {
+                    prevSelected.classList.remove('selected');
+                }
+                slot.classList.add('selected');
+            });
             slot.addEventListener('dblclick', () => {
                 joinLobbyRoom(room);
             });
             slot.addEventListener('contextmenu', (event) => {
                 event.preventDefault();
                 event.stopPropagation();
+                const key = String(room?.roomKey || room?.roomId || '').trim();
+                selectedLobbyRoomKey = key;
+                const prevSelected = lobbyRoomList.querySelector('.lobby-room-slot.selected');
+                if (prevSelected && prevSelected !== slot) {
+                    prevSelected.classList.remove('selected');
+                }
+                slot.classList.add('selected');
                 showRoomDetailsPopup(room, isLeftColumn, slot);
             });
             fragment.appendChild(slot);

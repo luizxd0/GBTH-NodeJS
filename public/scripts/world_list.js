@@ -215,9 +215,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         showJoiningAnimation(() => {
-            socket.emit('joinWorld');
-            window.playTransition('closing', () => {
-                window.location.href = '/views/lobby.html';
+            socket.emit('joinWorld', (response) => {
+                if (response && response.ok === false) {
+                    window.showError?.(
+                        'Error',
+                        response.message || 'Server is full. Please try again later.'
+                    );
+                    return;
+                }
+                window.playTransition('closing', () => {
+                    window.location.href = '/views/lobby.html';
+                });
             });
         });
     }

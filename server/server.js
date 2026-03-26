@@ -24,6 +24,8 @@ const gameRoomSlotAssignments = new Map(); // roomKey -> Map(userId, slotIndex 0
 const gameRoomReadyUsers = new Map(); // roomKey -> Set(userId)
 const RECONNECT_GRACE_MS = 2500;
 const WORLD_LIST_DISCONNECT_GRACE_MS = 150;
+/** Max players allowed in the world (channel/lobby/game/etc.); must match /api/worlds server_capacity. */
+const WORLD_SERVER_CAPACITY = 20;
 
 function getUKTimestamp() {
     const now = new Date();
@@ -2608,7 +2610,7 @@ app.get('/api/worlds', (req, res) => {
             server_name: 'Server 1',
             server_description: 'All',
             server_utilization: getActivePlayerCount(),
-            server_capacity: 10,
+            server_capacity: WORLD_SERVER_CAPACITY,
             server_enabled: true
         }
     ]);
@@ -2618,6 +2620,23 @@ io.on('connection', (socket) => {
 
     // Send current lobby count to new connections (e.g. World List)
     socket.emit('playerCountUpdate', userSockets.size);
+
+    /**
+     * World List → lobby: reject when the server is at capacity (same rule as /api/worlds utilization).
+     * Client must pass an acknowledgement callback.
+     */
+    socket.on('joinWorld', (ack) => {
+        if (typeof ack !== 'function') return;
+        if (getActivePlayerCount() >= WORLD_SERVER_CAPACITY) {
+            ack({
+                ok: false,
+                reason: 'server_full',
+                message: 'Server is full. Please try again later.'
+            });
+            return;
+        }
+        ack({ ok: true });
+    });
 
     socket.on('set_user_data', async (data) => {
         if (data && data.nickname) {
